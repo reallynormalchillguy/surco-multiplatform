@@ -166,7 +166,7 @@ private val tabs = listOf(
 )
 
 @Composable
-fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int) {
+fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String? = null) {
     val settings by container.prefs.settings.collectAsState()
     if (settings.treeUri == null) {
         OnboardingScreen(container)
@@ -202,6 +202,9 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int) {
             onOpenPlayer = { showPlayer = true },
         )
     }
+
+    // Ruta inicial opcional (capturas automáticas de iOS).
+    LaunchedEffect(initialRoute) { initialRoute?.let { if (it in tabs.map { t -> t.route }) actions.openTab(it) else actions.go(it) } }
 
     CompositionLocalProvider(
         LocalActions provides actions,

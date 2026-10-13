@@ -2,6 +2,23 @@ package dev.surco.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import dev.surco.ios.IosLibrary
+import dev.surco.ios.toByteArray
+import platform.Foundation.NSURL
+import platform.PhotosUI.PHPickerConfiguration
+import platform.PhotosUI.PHPickerFilter
+import platform.PhotosUI.PHPickerResult
+import platform.PhotosUI.PHPickerViewController
+import platform.PhotosUI.PHPickerViewControllerDelegateProtocol
+import platform.UIKit.UIApplication
+import platform.UIKit.UIDocumentPickerDelegateProtocol
+import platform.UIKit.UIDocumentPickerViewController
+import platform.UIKit.UIViewController
+import platform.UniformTypeIdentifiers.UTTypeFolder
+import platform.darwin.NSObject
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
@@ -18,24 +35,66 @@ import dev.surco.resources.figtree_extrabold
 import dev.surco.resources.figtree_medium
 import dev.surco.resources.figtree_regular
 import dev.surco.resources.figtree_semibold
-import io.ktor.http.decodeURLPart
 import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.Font
 
-// Los selectores nativos (carpeta con marcador de seguridad y PHPicker) llegan con la app de iOS (fase 4).
 @Composable
-actual fun rememberDirectoryPicker(onPicked: (String) -> Unit): () -> Unit = IosPickers.directory(onPicked)
+actual fun rememberDirectoryPicker(onPicked: (String) -> Unit): () -> Unit {
+    val callback = rememberUpdatedState(onPicked)
+    val delegate = remember { DirectoryDelegate { url -> IosLibrary.rootFor(url)?.let { callback.value(it) } } }
+    return remember {
+        {
+            val picker = UIDocumentPickerViewController(forOpeningContentTypes = listOf(UTTypeFolder))
+            picker.delegate = delegate
+            picker.allowsMultipleSelection = false
+            topViewController()?.presentViewController(picker, animated = true, completion = null)
+            Unit
+        }
+    }
+}
 
 @Composable
 actual fun rememberFolderReleaser(): (String) -> Unit = remember { { _: String -> } }
 
 @Composable
-actual fun rememberImagePicker(onPicked: (ByteArray?) -> Unit): () -> Unit = IosPickers.image(onPicked)
+actual fun rememberImagePicker(onPicked: (ByteArray?) -> Unit): () -> Unit {
+    val callback = rememberUpdatedState(onPicked)
+    val delegate = remember { ImageDelegate { bytes -> callback.value(bytes) } }
+    return remember {
+        {
+            val config = PHPickerConfiguration()
+            config.filter = PHPickerFilter.imagesFilter
+            config.selectionLimit = 1
+            val picker = PHPickerViewController(configuration = config)
+            picker.delegate = delegate
+            topViewController()?.presentViewController(picker, animated = true, completion = null)
+            Unit
+        }
+    }
+}
 
-/** Puntos de enganche para los selectores de la app de iOS. */
-object IosPickers {
-    var directory: @Composable ((String) -> Unit) -> (() -> Unit) = { _ -> {} }
-    var image: @Composable ((ByteArray?) -> Unit) -> (() -> Unit) = { _ -> {} }
+@Suppress("DEPRECATION")
+private fun topViewController(): UIViewController? {
+    var vc = UIApplication.sharedApplication.keyWindow?.rootViewController
+    while (vc?.presentedViewController != null) vc = vc.presentedViewController
+    return vc
+}
+
+private class DirectoryDelegate(val onUrl: (NSURL) -> Unit) : NSObject(), UIDocumentPickerDelegateProtocol {
+    override fun documentPicker(controller: UIDocumentPickerViewController, didPickDocumentsAtURLs: List<*>) {
+        (didPickDocumentsAtURLs.firstOrNull() as? NSURL)?.let(onUrl)
+    }
+}
+
+private class ImageDelegate(val onBytes: (ByteArray?) -> Unit) : NSObject(), PHPickerViewControllerDelegateProtocol {
+    override fun picker(picker: PHPickerViewController, didFinishPicking: List<*>) {
+        picker.dismissViewControllerAnimated(true, null)
+        val result = didFinishPicking.firstOrNull() as? PHPickerResult ?: return
+        result.itemProvider.loadDataRepresentationForTypeIdentifier("public.image") { data, _ ->
+            val bytes = data?.toByteArray()
+            dispatch_async(dispatch_get_main_queue()) { onBytes(bytes) }
+        }
+    }
 }
 
 @Composable
@@ -62,4 +121,4 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
     dominantColor(pixels)?.let { lerp(it, Color.Black, 0.25f) }
 }.getOrNull()
 
-actual fun folderLabel(root: String): String = runCatching { root.trimEnd('/').substringAfterLast('/').decodeURLPart() }.getOrDefault(root)
+actual fun folderLabel(root: String): String = runCatching { IosLibrary.label(root) }.getOrDefault(root)

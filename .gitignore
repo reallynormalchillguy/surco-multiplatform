@@ -8,3 +8,9 @@
 /captures/
 .externalNativeBuild/
 .cxx/
+build/
+iosApp/Surco.xcodeproj/
+iosApp/build/
+iosApp/build-sim/
+iosApp/Payload/
+*.ipa

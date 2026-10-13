@@ -283,7 +283,11 @@ private fun folderName(tree: String?): String {
     val path = decoded.substringAfter(':', decoded)
     val volume = decoded.substringBefore(':', "")
     val vol = if (volume == "primary") S.internalStorage else volume
-    return if (path.isBlank()) vol else "$vol / $path"
+    return when {
+        vol.isBlank() -> path
+        path.isBlank() -> vol
+        else -> "$vol / $path"
+    }
 }
 
 @Composable

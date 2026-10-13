@@ -1,0 +1,56 @@
+# Proyecto de Xcode generado con XcodeGen (`xcodegen generate`). No se versiona el .xcodeproj.
+name: Surco
+options:
+  bundleIdPrefix: dev.surco
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SURCO_LASTFM_KEY: ""
+    SURCO_LASTFM_SECRET: ""
+targets:
+  Surco:
+    type: application
+    platform: iOS
+    sources:
+      - path: Surco
+    info:
+      path: Surco/Info.plist
+      properties:
+        CFBundleDisplayName: Surco
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: ""
+        UIBackgroundModes: [audio]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        CADisableMinimumFrameDurationOnPhone: true
+        UIViewControllerBasedStatusBarAppearance: false
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+        SurcoLastfmKey: $(SURCO_LASTFM_KEY)
+        SurcoLastfmSecret: $(SURCO_LASTFM_SECRET)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.surco.ios
+        PRODUCT_NAME: Surco
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
+        OTHER_LDFLAGS: ["$(inherited)", "-framework", "Shared"]
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        SWIFT_VERSION: "5.0"
+    preBuildScripts:
+      - name: Compilar Kotlin (shared)
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode --no-daemon
