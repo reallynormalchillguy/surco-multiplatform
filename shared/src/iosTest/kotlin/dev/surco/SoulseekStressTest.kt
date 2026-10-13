@@ -29,6 +29,7 @@ import kotlinx.coroutines.withTimeout
 import platform.posix.RLIMIT_NOFILE
 import platform.posix.getrlimit
 import platform.posix.rlimit
+import platform.posix.setrlimit
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
@@ -46,9 +47,18 @@ class SoulseekStressTest {
         r.rlim_cur.toLong()
     }
 
+    private fun setFdLimit(n: Long) = memScoped {
+        val r = alloc<rlimit>()
+        getrlimit(RLIMIT_NOFILE, r.ptr)
+        r.rlim_cur = n.toULong()
+        setrlimit(RLIMIT_NOFILE, r.ptr)
+    }
+
     @Test
     fun manyPeersAnsweringASearch() = runTest(timeout = 120.seconds) {
         withContext(Dispatchers.Default) {
+            // Igual que un iPhone: 256 archivos abiertos como máximo por defecto.
+            setFdLimit(256)
             println("Límite de archivos abiertos (RLIMIT_NOFILE): ${fdLimit()}")
             val selector = SelectorManager(Dispatchers.Default)
             val serverSocket = aSocket(selector).tcp().bind("127.0.0.1", 0)
