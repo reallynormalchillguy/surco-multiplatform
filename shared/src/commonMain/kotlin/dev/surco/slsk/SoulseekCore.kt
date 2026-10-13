@@ -74,9 +74,33 @@ class SoulseekCore(
      */
     private var selector = newSelector()
 
-    private fun newSelector() = SelectorManager(
-        IoDispatcher + CoroutineExceptionHandler { _, e -> println("Soulseek: el selector de sockets se detuvo: $e") }
-    )
+    private fun newSelector(): SelectorManager {
+        lateinit var created: SelectorManager
+        created = SelectorManager(
+            IoDispatcher + CoroutineExceptionHandler { _, e ->
+                println("Soulseek: el selector de sockets se detuvo: $e")
+                onSelectorDied(created)
+            }
+        )
+        return created
+    }
+
+    /**
+     * Con el selector detenido, las lecturas pendientes ya no terminarían nunca: rehacemos la sesión
+     * entera (sockets y selector nuevos) en vez de quedarnos «en línea» sin funcionar.
+     */
+    private fun onSelectorDied(dead: SelectorManager) {
+        scope.launch {
+            if (dead !== selector || !wantOnline) return@launch
+            sessionJob?.cancel()
+            closeAll()
+            _state.value = SlskState.Failed(S.slskReconnecting, retrying = true)
+            sessionJob = scope.launch {
+                delay(3_000)
+                sessionLoop()
+            }
+        }
+    }
 
     private val _state = MutableStateFlow<SlskState>(SlskState.Offline)
     override val state: StateFlow<SlskState> = _state.asStateFlow()
