@@ -176,7 +176,9 @@ class Discovery(
         /** Búsqueda limpia para Soulseek: sin «(Deluxe Edition)», «[Remastered]»… */
         fun soulseekQuery(artist: String, title: String): String {
             val clean = title.replace(Regex("""\s*[(\[][^)\]]*[)\]]"""), "").trim().ifBlank { title }
-            return "$artist $clean".replace(Regex("""[^\p{L}\p{N}\s'&]"""), " ").replace(Regex("""\s+"""), " ").trim()
+            // Sin \p{L}: el motor de expresiones regulares de iOS no conoce las clases Unicode.
+            val kept = "$artist $clean".map { c -> if (c.isLetterOrDigit() || c.isWhitespace() || c == '\'' || c == '&') c else ' ' }
+            return kept.joinToString("").replace(Regex("""\s+"""), " ").trim()
         }
     }
 }
