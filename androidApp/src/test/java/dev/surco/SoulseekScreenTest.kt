@@ -23,6 +23,9 @@ import org.robolectric.annotation.GraphicsMode
 /** Abre Soulseek sin cuenta (pantalla de inicio de sesión) y pasa por los distintos estados. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
+// SQLite «legacy»: la base de datos (Room, WorkManager) se abre en hilos de fondo y, en modo nativo,
+// carga la misma biblioteca nativa que los gráficos a la vez que el hilo principal → el JVM abortaba.
+@org.robolectric.annotation.SQLiteMode(org.robolectric.annotation.SQLiteMode.Mode.LEGACY)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xhdpi")
 class SoulseekScreenTest {
 
