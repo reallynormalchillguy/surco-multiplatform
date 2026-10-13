@@ -6,6 +6,7 @@ import android.net.Uri
 import dev.surco.net.CoverSearch
 import dev.surco.net.LastFm
 import dev.surco.net.LastFmException
+import dev.surco.net.scrobble
 import dev.surco.tags.TagEdits
 import dev.surco.tags.TagWriter
 import kotlinx.coroutines.CoroutineScope

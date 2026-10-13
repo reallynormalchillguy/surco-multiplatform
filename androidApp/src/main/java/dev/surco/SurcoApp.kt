@@ -20,8 +20,6 @@ import dev.surco.tags.TagWriter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 class SurcoApp : Application(), ImageLoaderFactory {
     lateinit var container: AppContainer
@@ -40,10 +38,8 @@ class SurcoApp : Application(), ImageLoaderFactory {
 /** Inyección de dependencias manual: todo lo compartido vive aquí. */
 class AppContainer(app: Application) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val http: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    /** Cliente común (Ktor) para las APIs públicas: Deezer, iTunes, MusicBrainz, LRCLIB y Last.fm. */
+    val api = dev.surco.net.surcoHttpClient("Surco/${BuildConfig.VERSION_NAME} (https://github.com/reallynormalchillguy/surco)")
     val db = SurcoDatabase.create(app)
     val prefs = Prefs(app)
     private val art = ArtStore(app)
@@ -55,14 +51,14 @@ class AppContainer(app: Application) {
         scanner = scanner,
         art = art,
         tags = tagWriter,
-        covers = CoverSearch(http),
-        lastFm = LastFm(http, prefs),
+        covers = CoverSearch(api),
+        lastFm = LastFm(api, dev.surco.net.PrefsLastFmAccount(prefs)),
         appScope = appScope,
         scheduleScrobbleRetry = { dev.surco.playback.ScrobbleWorker.schedule(app) },
     )
     val player = PlayerConnection(app)
-    val lyrics = LyricsRepository(app, db.lyrics(), prefs, tagWriter, LrcLib(http))
+    val lyrics = LyricsRepository(app, db.lyrics(), prefs, tagWriter, LrcLib(api))
     val soulseek = SoulseekManager(app, prefs, repository)
-    val deezer = Deezer(http)
+    val deezer = Deezer(api)
     val discovery = Discovery(app, db.dao(), deezer, appScope)
 }

@@ -139,8 +139,6 @@ data class GenreRow(
     val artPath: String?,
 )
 
-const val UNKNOWN_ARTIST = "Artista desconocido"
-const val UNKNOWN_ALBUM = "Álbum desconocido"
 
 fun Track.qualityLabel(): String {
     val ext = fileName.substringAfterLast('.', "").uppercase()

@@ -3,6 +3,7 @@ package dev.surco.playback
 import android.os.SystemClock
 import dev.surco.data.PlayEvent
 import dev.surco.data.Repository
+import dev.surco.net.nowPlaying
 import dev.surco.data.ScrobbleMode
 import dev.surco.data.Track
 import kotlinx.coroutines.CoroutineScope
