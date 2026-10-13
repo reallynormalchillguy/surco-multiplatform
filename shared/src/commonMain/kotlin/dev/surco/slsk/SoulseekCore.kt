@@ -67,7 +67,16 @@ class SoulseekCore(
     private val scope = CoroutineScope(
         SupervisorJob() + IoDispatcher + CoroutineExceptionHandler { _, e -> println("Soulseek: fallo en segundo plano: $e") }
     )
-    private val selector = SelectorManager(IoDispatcher)
+    /**
+     * Selector de sockets de Ktor. En iOS usa select(), que no admite descriptores ≥ 1024: si uno lo
+     * supera, el bucle del selector lanza una excepción. Con este manejador ya no cierra la app; la
+     * sesión cae, se crea un selector nuevo y se reconecta sola.
+     */
+    private var selector = newSelector()
+
+    private fun newSelector() = SelectorManager(
+        IoDispatcher + CoroutineExceptionHandler { _, e -> println("Soulseek: el selector de sockets se detuvo: $e") }
+    )
 
     private val _state = MutableStateFlow<SlskState>(SlskState.Offline)
     override val state: StateFlow<SlskState> = _state.asStateFlow()
@@ -97,13 +106,45 @@ class SoulseekCore(
     private fun nextToken() = tokens.updateAndGet { it + 1 } and 0xFFFFFFFFL
     private fun nextId() = ids.updateAndGet { it + 1 }
 
+    /** Sockets abiertos ahora mismo (para no pasar de [MAX_SOCKETS]). */
+    private val openSockets = MutableStateFlow(0)
+
+    /** Número de sockets abiertos (pruebas). */
+    val socketCount: Int get() = openSockets.value
+
     /** Socket con sus dos canales y un cerrojo para escribir mensajes enteros. */
-    private class Conn(val socket: Socket) {
+    private inner class Conn(val socket: Socket) {
         val input: ByteReadChannel = socket.openReadChannel()
         val output: ByteWriteChannel = socket.openWriteChannel(autoFlush = true)
         private val writeLock = Mutex()
+        private val closed = MutableStateFlow(false)
+
+        init { openSockets.update { it + 1 } }
+
         suspend fun send(bytes: ByteArray) = writeLock.withLock { output.writeFully(bytes, 0, bytes.size); output.flush() }
-        fun close() = runCatching { socket.close() }
+
+        fun close() {
+            if (closed.compareAndSet(false, true)) {
+                openSockets.update { it - 1 }
+                runCatching { socket.close() }
+            }
+        }
+    }
+
+    /**
+     * Antes de abrir otro socket: si vamos justos, cierra las conexiones con usuarios que sólo nos
+     * mandaron resultados (sin descargas pendientes), empezando por las más antiguas.
+     * Devuelve false si aun así no hay sitio.
+     */
+    private fun makeRoom(): Boolean {
+        if (openSockets.value < MAX_SOCKETS) return true
+        val busy = _transfers.value.filter { it.state.active }.map { it.user }.toSet()
+        val idle = peers.value.values.filter { it.user !in busy }.sortedBy { it.lastActivity }
+        for (pc in idle) {
+            if (openSockets.value < MAX_SOCKETS - SOCKET_SLACK) break
+            pc.close()
+        }
+        return openSockets.value < MAX_SOCKETS
     }
 
     // ------------------------------------------------------------------ Sesión
@@ -227,8 +268,16 @@ class SoulseekCore(
         listener = ss
         scope.launch {
             while (!ss.isClosed) {
-                val sock = runCatching { ss.accept() }.getOrNull() ?: break
-                scope.launch { acceptIncoming(Conn(sock)) }
+                val sock = runCatching { ss.accept() }.getOrNull()
+                if (sock == null) {
+                    // p. ej. sin descriptores libres: esperamos un poco en vez de dejar de escuchar.
+                    if (ss.isClosed) break
+                    delay(500)
+                    continue
+                }
+                val c = Conn(sock)
+                if (openSockets.value > MAX_SOCKETS && !makeRoom()) { c.close(); continue }
+                scope.launch { acceptIncoming(c) }
             }
         }
         return (ss.localAddress as InetSocketAddress).port
@@ -242,6 +291,10 @@ class SoulseekCore(
         peers.getAndClear().values.forEach { it.close() }
         indirect.getAndClear().values.forEach { it.cancel() }
         addrWaiters.getAndClear().values.forEach { it.cancel() }
+        // Selector nuevo para la siguiente sesión (el anterior puede haberse detenido).
+        val old = selector
+        selector = newSelector()
+        runCatching { old.close() }
     }
 
     private fun <K, V> MutableStateFlow<Map<K, V>>.getAndClear(): Map<K, V> {
@@ -266,6 +319,7 @@ class SoulseekCore(
 
     private inner class PeerConn(val user: String, val conn: Conn) {
         var closed = false
+        var lastActivity = nowMillis()
 
         suspend fun send(bytes: ByteArray) = conn.send(bytes)
 
@@ -278,7 +332,15 @@ class SoulseekCore(
             scope.launch {
                 try {
                     while (!closed) {
-                        val frame = withTimeoutOrNull(PEER_IDLE_MS) { conn.input.readFrame(MAX_PEER_MESSAGE) } ?: break
+                        // Quien sólo nos mandó resultados se cierra pronto; con descargas en marcha, se espera más.
+                        val waiting = _transfers.value.any { it.user == user && it.state.active }
+                        val idle = if (waiting) PEER_IDLE_MS else SEARCH_PEER_IDLE_MS
+                        val frame = withTimeoutOrNull(idle) { conn.input.readFrame(MAX_PEER_MESSAGE) }
+                        if (frame == null) {
+                            if (_transfers.value.any { it.user == user && it.state.active } && !waiting) continue
+                            break
+                        }
+                        lastActivity = nowMillis()
                         handlePeer(this@PeerConn, Reader(frame))
                     }
                 } catch (e: Throwable) {
@@ -323,6 +385,7 @@ class SoulseekCore(
                 runCatching {
                     val (ip, port) = withTimeoutOrNull(12_000) { addr.await() } ?: error("sin dirección")
                     if (port == 0) error("sin puerto")
+                    if (!makeRoom()) error(S.couldNotConnectTo(user))
                     val sock = withTimeout(8_000) { aSocket(selector).tcp().connect(ip, port) }
                     val c = Conn(sock)
                     c.send(Writer.initMessage(1) { str(username); str("P"); u32(0) })
@@ -348,6 +411,8 @@ class SoulseekCore(
 
     private suspend fun answerIndirect(user: String, type: String, ip: String, port: Int, token: Long) {
         try {
+            // Para búsquedas basta con que lleguen por otras vías; las descargas siempre tienen prioridad.
+            if (type != "F" && !makeRoom()) error("sin sitio para más conexiones")
             val sock = withTimeout(10_000) { aSocket(selector).tcp().connect(ip, port) }
             val c = Conn(sock)
             c.send(Writer.initMessage(0) { u32(token) })
@@ -694,6 +759,11 @@ class SoulseekCore(
         private const val MINOR_VERSION = 1
         val LISTEN_PORTS = 2234..2240
         private const val PEER_IDLE_MS = 120_000L
+        /** Usuarios que sólo nos enviaron resultados de búsqueda. */
+        private const val SEARCH_PEER_IDLE_MS = 15_000L
+        /** Tope de sockets a la vez: muy por debajo de los 1024 descriptores que admite select() en iOS. */
+        const val MAX_SOCKETS = 250
+        private const val SOCKET_SLACK = 50
         private const val SEARCH_WINDOW_MS = 20_000L
         private const val MAX_RESULT_FILES = 15_000
     }

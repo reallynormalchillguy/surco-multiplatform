@@ -57,8 +57,7 @@ class SoulseekStressTest {
     @Test
     fun manyPeersAnsweringASearch() = runTest(timeout = 120.seconds) {
         withContext(Dispatchers.Default) {
-            // Igual que un iPhone: 256 archivos abiertos como máximo por defecto.
-            setFdLimit(256)
+            setFdLimit(4096)
             println("Límite de archivos abiertos (RLIMIT_NOFILE): ${fdLimit()}")
             val selector = SelectorManager(Dispatchers.Default)
             val serverSocket = aSocket(selector).tcp().bind("127.0.0.1", 0)
@@ -112,6 +111,8 @@ class SoulseekStressTest {
             val n = client.results.value.size
             println("Resultados recibidos: $n; estado: ${client.state.value}")
             assertTrue(n > 0, "Debe haber resultados")
+            println("Sockets abiertos en el cliente: ${client.socketCount}")
+            assertTrue(client.socketCount <= SoulseekCore.MAX_SOCKETS + 1, "El cliente respeta el tope de sockets")
             // El proceso sigue vivo y el cliente sigue en línea.
             assertTrue(client.state.value is SlskState.Online, "Sigue en línea")
             peers.forEach { runCatching { it.close() } }

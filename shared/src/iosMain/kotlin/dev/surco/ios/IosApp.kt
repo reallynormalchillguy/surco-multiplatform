@@ -35,6 +35,7 @@ private fun appVersion(): String = bundleString("CFBundleShortVersionString").if
 
 /** Estado global de la app de iOS (Swift lo usa como `IosApp.shared`). */
 object IosApp {
+    val versionName: String get() = appVersion()
     val container: IosContainer by lazy { IosContainer() }
     internal var openPlayerSignal by mutableIntStateOf(0)
 
