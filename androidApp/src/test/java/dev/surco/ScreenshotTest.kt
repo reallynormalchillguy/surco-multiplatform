@@ -66,6 +66,17 @@ class ScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
 
+    /**
+     * Carga los gráficos nativos de Robolectric en el hilo principal antes que nada: si el primero en
+     * usarlos es un hilo de fondo (Coil decodificando una portada), el JVM aborta con
+     * «Class not found: java/nio/DoubleBuffer».
+     */
+    @org.junit.Before
+    fun preloadNativeGraphics() {
+        android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888).recycle()
+        android.graphics.BitmapFactory.decodeByteArray(ByteArray(0), 0, 0)
+    }
+
     private val app get() = ApplicationProvider.getApplicationContext<SurcoApp>()
 
     private val palettes = listOf(
