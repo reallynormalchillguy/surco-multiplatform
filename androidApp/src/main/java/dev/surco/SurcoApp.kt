@@ -12,6 +12,7 @@ import dev.surco.data.Prefs
 import dev.surco.data.Repository
 import dev.surco.data.Scanner
 import dev.surco.data.SurcoDatabase
+import dev.surco.data.create
 import dev.surco.net.CoverSearch
 import dev.surco.net.LastFm
 import dev.surco.playback.PlayerConnection

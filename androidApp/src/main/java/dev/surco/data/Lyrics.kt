@@ -46,13 +46,17 @@ class LyricsRepository(
         tags.write(Uri.parse(track.uri), track.fileName, dev.surco.tags.TagEdits(lyrics = text))
     }
 
-    private fun LyricsEntry.toLyrics(): Lyrics = when {
+    private fun LyricsEntry.toLyrics(): Lyrics {
+        val synced = synced
+        val plain = plain
+        return when {
         source == "instrumental" -> Lyrics.Instrumental
         !synced.isNullOrBlank() -> LrcParser.parse(synced).takeIf { it.isNotEmpty() }
             ?.let { Lyrics.Synced(it, source, synced) }
             ?: Lyrics.Plain(LrcParser.plainLines(synced), source, synced)
         !plain.isNullOrBlank() -> Lyrics.Plain(LrcParser.plainLines(plain), source, plain)
         else -> Lyrics.None
+        }
     }
 
     private fun entryFromText(track: Track, text: String, source: String): LyricsEntry? {
