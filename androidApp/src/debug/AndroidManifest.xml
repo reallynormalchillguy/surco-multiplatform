@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sólo en compilaciones de depuración (pruebas): EmojiCompat carga su tipografía en un hilo de fondo
+  al arrancar, y en Robolectric eso inicializa los gráficos nativos fuera del hilo principal y el JVM
+  aborta («Class not found: java/nio/LongBuffer»). La versión publicada no cambia.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                tools:node="remove" />
+        </provider>
+    </application>
+</manifest>
