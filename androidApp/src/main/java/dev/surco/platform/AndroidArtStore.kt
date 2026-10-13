@@ -1,4 +1,6 @@
-package dev.surco.data
+package dev.surco.platform
+
+import dev.surco.data.ArtStore
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,15 +10,14 @@ import java.io.File
 import java.security.MessageDigest
 
 /**
- * Guarda las portadas en el almacenamiento interno de la app.
- * Cada versión de una portada tiene un nombre distinto para que la caché de imágenes no muestre la antigua.
+ * Portadas en el almacenamiento interno de la app (Android: BitmapFactory para normalizar a JPEG).
  */
-class ArtStore(context: Context) {
+class AndroidArtStore(context: Context) : ArtStore {
     private val albumDir = File(context.filesDir, "art").apply { mkdirs() }
     private val artistDir = File(context.filesDir, "artists").apply { mkdirs() }
 
     /** Normaliza cualquier imagen a JPEG de como mucho [max] px de lado. Devuelve null si no es una imagen. */
-    fun toJpeg(bytes: ByteArray, max: Int = 1200): ByteArray? {
+    override fun toJpeg(bytes: ByteArray, max: Int): ByteArray? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
@@ -36,25 +37,25 @@ class ArtStore(context: Context) {
         return out.toByteArray()
     }
 
-    fun writeAlbumArt(albumKey: String, jpeg: ByteArray): String {
+    override fun writeAlbumArt(albumKey: String, jpeg: ByteArray): String {
         val f = File(albumDir, "${md5(albumKey)}_${System.currentTimeMillis()}.jpg")
         f.writeBytes(jpeg)
         return f.absolutePath
     }
 
-    fun writeArtistImage(name: String, jpeg: ByteArray): String {
+    override fun writeArtistImage(name: String, jpeg: ByteArray): String {
         val f = File(artistDir, "${md5(name)}.jpg")
         f.writeBytes(jpeg)
         return f.absolutePath
     }
 
-    fun delete(path: String?) {
+    override fun delete(path: String?) {
         if (path == null) return
         val f = File(path)
         if (f.parentFile == albumDir) f.delete()
     }
 
-    fun exists(path: String?) = path != null && File(path).exists()
+    override fun exists(path: String?) = path != null && File(path).exists()
 
     companion object {
         fun md5(s: String): String =

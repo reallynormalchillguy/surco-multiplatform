@@ -1,6 +1,5 @@
 package dev.surco.playback
 
-import android.os.SystemClock
 import dev.surco.data.PlayEvent
 import dev.surco.data.Repository
 import dev.surco.net.nowPlaying
@@ -10,6 +9,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import dev.surco.util.nowMillis
+import kotlin.time.TimeSource
 
 /**
  * Cuenta el tiempo real escuchado de cada canción y aplica las reglas de Last.fm:
@@ -26,13 +27,17 @@ class ScrobbleTracker(private val scope: CoroutineScope, private val repo: Repos
     private var nowPlayingSent = false
     private var historyRecorded = false
     private var timer: Job? = null
+    private val origin = TimeSource.Monotonic.markNow()
+
+    /** Reloj monótono (no salta si cambia la hora del sistema). */
+    private fun elapsed(): Long = origin.elapsedNow().inWholeMilliseconds
 
     private val builtin get() = repo.prefs.current.scrobbleMode == ScrobbleMode.BUILTIN && repo.prefs.current.lastfmLoggedIn
 
     fun onTrackStarted(track: Track?, isPlaying: Boolean) {
         timer?.cancel()
         current = track
-        startedAtSec = System.currentTimeMillis() / 1000
+        startedAtSec = nowMillis() / 1000
         playedMs = 0
         resumedAt = -1
         scrobbled = false
@@ -44,12 +49,12 @@ class ScrobbleTracker(private val scope: CoroutineScope, private val repo: Repos
     fun onPlayingChanged(isPlaying: Boolean) {
         val t = current ?: return
         if (isPlaying) {
-            if (resumedAt < 0) resumedAt = SystemClock.elapsedRealtime()
+            if (resumedAt < 0) resumedAt = elapsed()
             if (!historyRecorded) {
                 historyRecorded = true
                 scope.launch {
                     repo.dao.insertPlay(
-                        PlayEvent(trackUri = t.uri, albumKey = t.albumKey, artist = t.groupArtist, playedAt = System.currentTimeMillis())
+                        PlayEvent(trackUri = t.uri, albumKey = t.albumKey, artist = t.groupArtist, playedAt = nowMillis())
                     )
                 }
             }
@@ -77,13 +82,13 @@ class ScrobbleTracker(private val scope: CoroutineScope, private val repo: Repos
 
     private fun accumulate() {
         if (resumedAt >= 0) {
-            playedMs += SystemClock.elapsedRealtime() - resumedAt
+            playedMs += elapsed() - resumedAt
             resumedAt = -1
         }
     }
 
     private fun playedSoFar(): Long =
-        playedMs + if (resumedAt >= 0) SystemClock.elapsedRealtime() - resumedAt else 0
+        playedMs + if (resumedAt >= 0) elapsed() - resumedAt else 0
 
     private fun threshold(t: Track): Long? =
         if (t.durationMs < 30_000) null else minOf(t.durationMs / 2, 240_000L)

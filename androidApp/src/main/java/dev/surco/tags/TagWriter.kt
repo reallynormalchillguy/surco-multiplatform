@@ -4,7 +4,7 @@ import dev.surco.i18n.S
 
 import android.content.Context
 import android.net.Uri
-import dev.surco.data.ArtStore
+import dev.surco.platform.AndroidArtStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jaudiotagger.audio.AudioFileIO
@@ -16,37 +16,23 @@ import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/** Cambios de etiquetas. Un campo null significa "no tocar". Un texto vacío borra el campo. */
-data class TagEdits(
-    val title: String? = null,
-    val artist: String? = null,
-    val album: String? = null,
-    val albumArtist: String? = null,
-    val year: String? = null,
-    val trackNumber: String? = null,
-    val discNumber: String? = null,
-    val genre: String? = null,
-    /** Letra (texto o LRC sincronizado). */
-    val lyrics: String? = null,
-    /** JPEG para incrustar como portada; array vacío = quitar la portada. */
-    val cover: ByteArray? = null,
-)
-
-class TagWriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
-
 /**
  * Escribe etiquetas en archivos accesibles mediante SAF.
  * jaudiotagger necesita un java.io.File, así que copiamos el archivo a la caché, lo editamos
  * y lo volvemos a escribir en su sitio.
  */
-class TagWriter(private val context: Context) {
+class TagWriter(private val context: Context) : TagEditor {
 
     init {
         TagOptionSingleton.getInstance().setAndroid(true)
         Logger.getLogger("org.jaudiotagger").level = Level.OFF
     }
 
-    suspend fun write(uri: Uri, fileName: String, edits: TagEdits) = withContext(Dispatchers.IO) {
+    override suspend fun write(uri: String, fileName: String, edits: TagEdits) = write(Uri.parse(uri), fileName, edits)
+
+    override suspend fun readLyrics(uri: String, fileName: String): String? = readLyrics(Uri.parse(uri), fileName)
+
+    suspend fun write(uri: Uri, fileName: String, edits: TagEdits): Unit = withContext(Dispatchers.IO) {
         val cr = context.contentResolver
         val ext = fileName.substringAfterLast('.', "").lowercase().ifEmpty { "mp3" }
         val tmp = File.createTempFile("surco_edit_", ".$ext", context.cacheDir)
@@ -76,7 +62,7 @@ class TagWriter(private val context: Context) {
                     artwork.binaryData = jpeg
                     artwork.mimeType = "image/jpeg"
                     artwork.pictureType = 3 // Portada frontal
-                    val (w, h) = ArtStore.size(jpeg)
+                    val (w, h) = AndroidArtStore.size(jpeg)
                     artwork.width = w
                     artwork.height = h
                     try {

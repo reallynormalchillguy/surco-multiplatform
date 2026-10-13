@@ -102,7 +102,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.Player
 import dev.surco.data.Track
 import dev.surco.data.formatDuration
 import dev.surco.data.qualityLabel
@@ -381,8 +380,8 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         Icon(Icons.Filled.SkipNext, S.next, tint = Color.White, modifier = Modifier.size(42.dp))
                     }
                     ToggleIcon(
-                        if (state.repeat == Player.REPEAT_MODE_ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
-                        state.repeat != Player.REPEAT_MODE_OFF,
+                        if (state.repeat == dev.surco.playback.Repeat.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
+                        state.repeat != dev.surco.playback.Repeat.OFF,
                         S.repeat,
                     ) { actions.player.cycleRepeat() }
                 }

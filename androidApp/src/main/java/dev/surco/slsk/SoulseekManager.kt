@@ -38,19 +38,19 @@ class SoulseekManager(
     private val context: Context,
     private val prefs: Prefs,
     private val repo: Repository,
-) {
+) : SoulseekService {
     private val saveLock = Mutex()
 
-    val client = SoulseekClient(
+    override val client = SoulseekClient(
         cacheDir = File(context.cacheDir, "slsk").apply { mkdirs() },
         sink = { t, tmp -> save(t, tmp) },
         onDownloadsFinished = { repo.rescan() },
     )
 
-    val hasAccount get() = prefs.current.slskUser.isNotBlank() && prefs.current.slskPass.isNotEmpty()
+    override val hasAccount get() = prefs.current.slskUser.isNotBlank() && prefs.current.slskPass.isNotEmpty()
 
     /** Conecta con la cuenta guardada si aún no hay sesión. */
-    fun ensureConnected() {
+    override fun ensureConnected() {
         if (!hasAccount) return
         when (client.state.value) {
             is SlskState.Online, SlskState.Connecting -> Unit
@@ -58,30 +58,30 @@ class SoulseekManager(
         }
     }
 
-    fun login(user: String, pass: String) {
+    override fun login(user: String, pass: String) {
         prefs.update { it.copy(slskUser = user.trim(), slskPass = pass) }
         client.connect(user.trim(), pass)
     }
 
-    fun logout() {
+    override fun logout() {
         client.disconnect()
         prefs.update { it.copy(slskUser = "", slskPass = "") }
     }
 
-    fun download(files: List<SlskFile>) {
+    override fun download(files: List<SlskFile>) {
         client.download(files)
         DownloadService.start(context)
     }
 
-    fun retry(id: Long) {
+    override fun retry(id: Long) {
         client.retry(id)
         DownloadService.start(context)
     }
 
-    fun retryFailed(): Int = client.retryFailed().also { if (it > 0) DownloadService.start(context) }
+    override fun retryFailed(): Int = client.retryFailed().also { if (it > 0) DownloadService.start(context) }
 
     /** Carpeta donde se guardan las descargas (la elegida o la de música). */
-    val targetTree: String? get() = prefs.current.slskDir ?: prefs.current.treeUri
+    override val targetTree: String? get() = prefs.current.slskDir ?: prefs.current.treeUri
 
     // ------------------------------------------------------------------ Guardado vía SAF
 

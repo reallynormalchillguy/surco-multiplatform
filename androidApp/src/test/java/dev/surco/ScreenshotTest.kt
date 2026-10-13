@@ -115,7 +115,7 @@ class ScreenshotTest {
         val tracks = ArrayList<Track>()
         albums.forEachIndexed { ai, (album, artist, genre) ->
             val art = fakeArt("album$ai", ai)
-            val key = Scanner.albumKeyFor(artist, album, "folder$ai")
+            val key = dev.surco.data.ScanRules.albumKeyFor(artist, album, "folder$ai")
             repeat(8) { ti ->
                 tracks += Track(
                     uri = "content://fake/$ai/$ti", folderId = "folder$ai", fileName = "${ti + 1}. ${songNames[(ai + ti) % songNames.size]}.flac",

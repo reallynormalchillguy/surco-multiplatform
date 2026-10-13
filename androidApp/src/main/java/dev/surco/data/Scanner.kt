@@ -15,13 +15,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-sealed interface ScanState {
-    data object Idle : ScanState
-    data class Running(val done: Int, val total: Int, val current: String) : ScanState
-    data class Done(val total: Int, val updated: Int, val removed: Int) : ScanState
-    data class Failed(val message: String) : ScanState
-}
-
 /**
  * Recorre la carpeta elegida (Storage Access Framework) y mantiene la tabla de canciones al día.
  * Es incremental: sólo vuelve a leer los archivos cuya fecha o tamaño ha cambiado.
@@ -30,9 +23,9 @@ class Scanner(
     private val context: Context,
     private val dao: LibraryDao,
     private val art: ArtStore,
-) {
+) : LibraryScanner {
     private val _state = MutableStateFlow<ScanState>(ScanState.Idle)
-    val state: StateFlow<ScanState> = _state.asStateFlow()
+    override val state: StateFlow<ScanState> = _state.asStateFlow()
     private val mutex = Mutex()
 
     private data class Doc(
@@ -40,7 +33,9 @@ class Scanner(
         val size: Long, val lastModified: Long,
     )
 
-    suspend fun scan(treeUri: Uri): ScanState = mutex.withLock {
+    override suspend fun scan(root: String): ScanState = scanTree(Uri.parse(root))
+
+    private suspend fun scanTree(treeUri: Uri): ScanState = mutex.withLock {
         withContext(Dispatchers.IO) {
             try {
                 _state.value = ScanState.Running(0, 0, S.searchingFiles)
@@ -113,27 +108,15 @@ class Scanner(
                     val size = if (c.isNull(4)) 0L else c.getLong(4)
                     when {
                         mime == DocumentsContract.Document.MIME_TYPE_DIR -> if (!name.startsWith(".")) stack.addLast(id)
-                        isAudio(name, mime) -> audio.add(
+                        ScanRules.isAudio(name, mime) -> audio.add(
                             Doc(DocumentsContract.buildDocumentUriUsingTree(tree, id), parent, name, mime, size, lm)
                         )
-                        isImage(name) -> coverCandidates.add(name to DocumentsContract.buildDocumentUriUsingTree(tree, id))
+                        ScanRules.isImage(name) -> coverCandidates.add(name to DocumentsContract.buildDocumentUriUsingTree(tree, id))
                     }
                 }
             }
-            pickFolderCover(coverCandidates)?.let { covers[parent] = it }
+            ScanRules.pickFolderCover(coverCandidates)?.let { covers[parent] = it }
         }
-    }
-
-    private fun pickFolderCover(list: List<Pair<String, Uri>>): Uri? {
-        if (list.isEmpty()) return null
-        val preferred = listOf("cover", "folder", "front", "album", "albumart")
-        for (p in preferred) {
-            list.firstOrNull { it.first.substringBeforeLast('.').lowercase() == p }?.let { return it.second }
-        }
-        for (p in preferred) {
-            list.firstOrNull { it.first.lowercase().contains(p) }?.let { return it.second }
-        }
-        return if (list.size == 1) list[0].second else null
     }
 
     private fun read(
@@ -154,9 +137,9 @@ class Scanner(
         val artist = m(MediaMetadataRetriever.METADATA_KEY_ARTIST).ifBlank { albumArtist }.ifBlank { UNKNOWN_ARTIST }
         val album = m(MediaMetadataRetriever.METADATA_KEY_ALBUM).ifBlank { UNKNOWN_ALBUM }
         val groupArtist = albumArtist.ifBlank { artist }
-        val albumKey = albumKeyFor(albumArtist, album, doc.folderId)
-        val year = parseYear(m(MediaMetadataRetriever.METADATA_KEY_YEAR))
-            .takeIf { it > 0 } ?: parseYear(m(MediaMetadataRetriever.METADATA_KEY_DATE))
+        val albumKey = ScanRules.albumKeyFor(albumArtist, album, doc.folderId)
+        val year = ScanRules.parseYear(m(MediaMetadataRetriever.METADATA_KEY_YEAR))
+            .takeIf { it > 0 } ?: ScanRules.parseYear(m(MediaMetadataRetriever.METADATA_KEY_DATE))
         val sampleRate = if (Build.VERSION.SDK_INT >= 31) m(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE).toIntOrNull() ?: 0 else 0
         val bits = if (Build.VERSION.SDK_INT >= 31) m(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE).toIntOrNull() ?: 0 else 0
 
@@ -185,10 +168,10 @@ class Scanner(
             albumArtist = albumArtist,
             groupArtist = groupArtist,
             albumKey = albumKey,
-            trackNumber = leadingInt(m(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)),
-            discNumber = leadingInt(m(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)).coerceAtLeast(1),
+            trackNumber = ScanRules.leadingInt(m(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)),
+            discNumber = ScanRules.leadingInt(m(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)).coerceAtLeast(1),
             year = year,
-            genre = cleanGenre(m(MediaMetadataRetriever.METADATA_KEY_GENRE)),
+            genre = ScanRules.cleanGenre(m(MediaMetadataRetriever.METADATA_KEY_GENRE)),
             durationMs = m(MediaMetadataRetriever.METADATA_KEY_DURATION).toLongOrNull() ?: 0L,
             bitrate = m(MediaMetadataRetriever.METADATA_KEY_BITRATE).toIntOrNull() ?: 0,
             sampleRate = sampleRate,
@@ -200,39 +183,21 @@ class Scanner(
         )
     }
 
-    companion object {
-        private val AUDIO_EXT = setOf(
-            "mp3", "flac", "m4a", "m4b", "aac", "alac", "ogg", "oga", "opus", "wav", "aif", "aiff",
-            "wma", "ape", "wv", "mka", "dsf", "mp4",
-        )
-        private val NOT_AUDIO = setOf("m3u", "m3u8", "pls", "cue", "lrc", "nfo", "log", "txt")
-        private val IMAGE_EXT = setOf("jpg", "jpeg", "png", "webp")
-
-        fun isAudio(name: String, mime: String): Boolean {
-            val ext = name.substringAfterLast('.', "").lowercase()
-            if (ext in NOT_AUDIO) return false
-            return ext in AUDIO_EXT || (mime.startsWith("audio/") && !mime.contains("mpegurl"))
-        }
-
-        fun isImage(name: String) = name.substringAfterLast('.', "").lowercase() in IMAGE_EXT
-
-        /**
-         * Clave de agrupación de un álbum. Si hay "artista del álbum" se usa junto al título;
-         * si no, se agrupa por carpeta + título para que los recopilatorios sin etiquetar no se rompan
-         * en un álbum por artista.
-         */
-        fun albumKeyFor(albumArtist: String, album: String, folderId: String): String =
-            if (albumArtist.isNotBlank()) "aa:${albumArtist.trim().lowercase()}|${album.trim().lowercase()}"
-            else "f:$folderId|${album.trim().lowercase()}"
-
-        fun leadingInt(s: String): Int = Regex("^\\s*(\\d+)").find(s)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-
-        fun parseYear(s: String): Int = Regex("(\\d{4})").find(s)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-
-        private fun cleanGenre(g: String): String {
-            val t = g.trim()
-            if (Regex("^\\(?\\d+\\)?$").matches(t)) return ""
-            return t
-        }
+    override suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray? = withContext(Dispatchers.IO) {
+        runCatching {
+            val tree = Uri.parse(root)
+            val target = fileName.lowercase()
+            val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, track.folderId)
+            val proj = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            var found: String? = null
+            context.contentResolver.query(children, proj, null, null, null)?.use { c ->
+                while (c.moveToNext()) {
+                    val name = c.getString(1) ?: continue
+                    if (name.lowercase() == target) { found = c.getString(0); break }
+                }
+            }
+            val id = found ?: return@runCatching null
+            context.contentResolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
+        }.getOrNull()
     }
 }

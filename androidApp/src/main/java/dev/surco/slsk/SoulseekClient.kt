@@ -32,83 +32,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.random.Random
 
-// ============================================================================ Modelos
-
-data class SlskFile(
-    val user: String,
-    val path: String,
-    val size: Long,
-    val bitrate: Int = 0,
-    val durationSec: Int = 0,
-    val sampleRate: Int = 0,
-    val bitDepth: Int = 0,
-    val vbr: Boolean = false,
-) {
-    val name get() = path.substringAfterLast('\\')
-    val folder get() = path.substringBeforeLast('\\', "")
-    val ext get() = name.substringAfterLast('.', "").lowercase()
-    val isAudio get() = ext in AUDIO_EXT
-    val isImage get() = ext in IMAGE_EXT
-    val lossless get() = ext in LOSSLESS_EXT
-
-    companion object {
-        val AUDIO_EXT = setOf("mp3", "flac", "m4a", "aac", "alac", "ogg", "oga", "opus", "wav", "aif", "aiff", "ape", "wv", "wma", "dsf")
-        val LOSSLESS_EXT = setOf("flac", "alac", "wav", "aif", "aiff", "ape", "wv", "dsf")
-        val IMAGE_EXT = setOf("jpg", "jpeg", "png")
-    }
-}
-
-data class UserResult(
-    val user: String,
-    val files: List<SlskFile>,
-    val slotFree: Boolean,
-    val avgSpeed: Long,
-    val queueLength: Long,
-)
-
-enum class TransferState(val active: Boolean) {
-    CONNECTING(true), QUEUED(true), STARTING(true), TRANSFERRING(true), SAVING(true),
-    DONE(false), FAILED(false), CANCELLED(false);
-
-    val label: String
-        get() = when (this) {
-            CONNECTING -> S.stConnecting
-            QUEUED -> S.stQueued
-            STARTING -> S.stStarting
-            TRANSFERRING -> S.stTransferring
-            SAVING -> S.stSaving
-            DONE -> S.stDone
-            FAILED -> S.error
-            CANCELLED -> S.stCancelled
-        }
-}
-
-data class Transfer(
-    val id: Long,
-    val user: String,
-    val path: String,
-    val size: Long,
-    val state: TransferState = TransferState.CONNECTING,
-    val bytes: Long = 0,
-    val speed: Long = 0,
-    val place: Long? = null,
-    val error: String? = null,
-    val savedAs: String? = null,
-    val token: Long? = null,
-) {
-    val name get() = path.substringAfterLast('\\')
-    val folder get() = path.substringBeforeLast('\\', "").substringAfterLast('\\')
-    val progress get() = if (size > 0) (bytes.toFloat() / size).coerceIn(0f, 1f) else 0f
-}
-
-sealed interface SlskState {
-    data object Offline : SlskState
-    data object Connecting : SlskState
-    data class Online(val user: String, val port: Int) : SlskState
-    /** [retrying]: se volverá a intentar solo (corte de red); si no, hace falta volver a iniciar sesión. */
-    data class Failed(val message: String, val retrying: Boolean = false) : SlskState
-}
-
 // ============================================================================ Cliente
 
 /**
@@ -122,7 +45,7 @@ class SoulseekClient(
     /** Copia el archivo temporal a su destino definitivo y devuelve «Carpeta/archivo.flac». */
     private val sink: suspend (Transfer, File) -> String,
     private val onDownloadsFinished: () -> Unit,
-) {
+) : SoulseekEngine {
     /** Hilos propios: cada conexión bloquea uno mientras lee, y puede haber cientos tras una búsqueda. */
     private val io = Executors.newCachedThreadPool { r -> Thread(r, "slsk").apply { isDaemon = true } }
         .asCoroutineDispatcher()
@@ -135,15 +58,15 @@ class SoulseekClient(
     )
 
     private val _state = MutableStateFlow<SlskState>(SlskState.Offline)
-    val state: StateFlow<SlskState> = _state.asStateFlow()
+    override val state: StateFlow<SlskState> = _state.asStateFlow()
 
     private val _results = MutableStateFlow<List<UserResult>>(emptyList())
-    val results: StateFlow<List<UserResult>> = _results.asStateFlow()
+    override val results: StateFlow<List<UserResult>> = _results.asStateFlow()
     private val _searching = MutableStateFlow(false)
-    val searching: StateFlow<Boolean> = _searching.asStateFlow()
+    override val searching: StateFlow<Boolean> = _searching.asStateFlow()
 
     private val _transfers = MutableStateFlow<List<Transfer>>(emptyList())
-    val transfers: StateFlow<List<Transfer>> = _transfers.asStateFlow()
+    override val transfers: StateFlow<List<Transfer>> = _transfers.asStateFlow()
 
     @Volatile private var username = ""
     @Volatile private var password = ""
@@ -491,7 +414,7 @@ class SoulseekClient(
 
     // ------------------------------------------------------------------ Búsqueda
 
-    fun search(query: String) {
+    override fun search(query: String) {
         val q = query.trim()
         if (q.isEmpty()) return
         val token = nextToken()
@@ -506,7 +429,7 @@ class SoulseekClient(
         }
     }
 
-    fun clearResults() {
+    override fun clearResults() {
         searchToken = -1
         _results.value = emptyList()
         _searching.value = false
@@ -571,7 +494,7 @@ class SoulseekClient(
         scope.launch { request(t.user, listOf(t)) }
     }
 
-    fun cancel(id: Long) {
+    override fun cancel(id: Long) {
         val t = _transfers.value.firstOrNull { it.id == id } ?: return
         update(id) { it.copy(state = TransferState.CANCELLED, speed = 0) }
         activeSockets.remove(id)?.let { runCatching { it.close() } }
@@ -584,7 +507,7 @@ class SoulseekClient(
      * Cancela de golpe todas las descargas activas que cumplan [which]. Devuelve cuántas.
      * (Las que ya se están guardando en tu carpeta no se tocan: están a punto de terminar.)
      */
-    fun cancelAll(which: (Transfer) -> Boolean = { true }): Int {
+    override fun cancelAll(which: (Transfer) -> Boolean): Int {
         val ids = _transfers.value.filter { it.state.active && it.state != TransferState.SAVING && which(it) }.map { it.id }.toSet()
         if (ids.isEmpty()) return 0
         _transfers.update { list -> list.map { if (it.id in ids) it.copy(state = TransferState.CANCELLED, speed = 0) else it } }
@@ -594,10 +517,10 @@ class SoulseekClient(
     }
 
     /** En cola (propia o del otro usuario) o conectando: aún no ha empezado a bajar nada. */
-    fun cancelQueued() = cancelAll { it.state == TransferState.QUEUED || it.state == TransferState.CONNECTING }
+    override fun cancelQueued() = cancelAll { it.state == TransferState.QUEUED || it.state == TransferState.CONNECTING }
 
     /** Las que están bajando ahora mismo. */
-    fun cancelDownloading() = cancelAll { it.state == TransferState.STARTING || it.state == TransferState.TRANSFERRING }
+    override fun cancelDownloading() = cancelAll { it.state == TransferState.STARTING || it.state == TransferState.TRANSFERRING }
 
     /** Vuelve a pedir todas las que fallaron o se cancelaron. */
     fun retryFailed(): Int {
@@ -609,7 +532,7 @@ class SoulseekClient(
         return failed.size
     }
 
-    fun clearFinished() {
+    override fun clearFinished() {
         _transfers.update { list -> list.filter { it.state.active } }
     }
 
@@ -743,7 +666,7 @@ class SoulseekClient(
     }
 
     /** Sólo para las capturas de pantalla automáticas. */
-    fun debugSet(state: SlskState, results: List<UserResult>, transfers: List<Transfer>) {
+    override fun debugSet(state: SlskState, results: List<UserResult>, transfers: List<Transfer>) {
         _state.value = state
         _results.value = results
         _transfers.value = transfers

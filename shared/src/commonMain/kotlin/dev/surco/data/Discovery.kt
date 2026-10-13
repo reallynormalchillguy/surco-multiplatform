@@ -1,9 +1,16 @@
 package dev.surco.data
 
-import android.content.Context
 import dev.surco.net.Deezer
+import dev.surco.net.arr
+import dev.surco.net.int
+import dev.surco.net.long
+import dev.surco.net.obj
+import dev.surco.net.objects
+import dev.surco.net.parseJson
+import dev.surco.net.str
+import dev.surco.util.IoDispatcher
+import dev.surco.util.nowMillis
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,10 +19,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.File
-import java.time.LocalDate
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.random.Random
 
 data class DiscoverAlbum(
@@ -39,12 +45,11 @@ data class DiscoverSection(
  * Se recalcula como mucho una vez al día (y cambia un poco cada día).
  */
 class Discovery(
-    context: Context,
+    private val files: AppFiles,
     private val dao: LibraryDao,
     private val deezer: Deezer,
     private val scope: CoroutineScope,
 ) {
-    private val file = File(context.filesDir, "discover.json")
     private val _sections = MutableStateFlow<List<DiscoverSection>>(emptyList())
     val sections: StateFlow<List<DiscoverSection>> = _sections.asStateFlow()
     private val _loading = MutableStateFlow(false)
@@ -53,11 +58,11 @@ class Discovery(
     private var computedAt = 0L
 
     init {
-        scope.launch(Dispatchers.IO) { load() }
+        scope.launch(IoDispatcher) { load() }
     }
 
     fun refreshIfStale(force: Boolean = false) {
-        if (!force && System.currentTimeMillis() - computedAt < MAX_AGE_MS && _sections.value.isNotEmpty()) return
+        if (!force && nowMillis() - computedAt < MAX_AGE_MS && _sections.value.isNotEmpty()) return
         scope.launch {
             if (!mutex.tryLock()) return@launch
             try {
@@ -65,7 +70,7 @@ class Discovery(
                 val result = runCatching { compute() }.getOrNull()
                 if (!result.isNullOrEmpty()) {
                     _sections.value = result
-                    computedAt = System.currentTimeMillis()
+                    computedAt = nowMillis()
                     save()
                 }
             } finally {
@@ -75,7 +80,7 @@ class Discovery(
         }
     }
 
-    private suspend fun compute(): List<DiscoverSection> = withContext(Dispatchers.IO) {
+    private suspend fun compute(): List<DiscoverSection> = withContext(IoDispatcher) {
         val libraryArtists = dao.artists().first()
         if (libraryArtists.isEmpty()) return@withContext emptyList()
         val owned = libraryArtists.map { norm(it.name) }.toSet()
@@ -86,7 +91,7 @@ class Discovery(
             .distinct()
             .take(SEEDS)
 
-        val rnd = Random(LocalDate.now().toEpochDay())
+        val rnd = Random(nowMillis() / 86_400_000L)
         val used = HashSet<String>()
         val out = ArrayList<DiscoverSection>()
         for (seed in seeds) {
@@ -116,39 +121,39 @@ class Discovery(
     private fun norm(s: String) = s.lowercase().trim()
 
     private fun save() = runCatching {
-        val arr = JSONArray()
-        _sections.value.forEach { s ->
-            arr.put(JSONObject().apply {
-                put("seed", s.seed); put("seedImage", s.seedImage)
-                put("albums", JSONArray().apply {
-                    s.albums.forEach { a ->
-                        put(JSONObject().apply {
-                            put("id", a.id); put("title", a.title); put("artist", a.artist)
-                            put("cover", a.cover); put("year", a.year)
+        val json = buildJsonObject {
+            put("at", computedAt)
+            put("sections", buildJsonArray {
+                _sections.value.forEach { s ->
+                    add(buildJsonObject {
+                        put("seed", s.seed)
+                        put("seedImage", s.seedImage)
+                        put("albums", buildJsonArray {
+                            s.albums.forEach { a ->
+                                add(buildJsonObject {
+                                    put("id", a.id); put("title", a.title); put("artist", a.artist)
+                                    put("cover", a.cover); put("year", a.year)
+                                })
+                            }
                         })
-                    }
-                })
+                    })
+                }
             })
         }
-        file.writeText(JSONObject().put("at", computedAt).put("sections", arr).toString())
+        files.writeText(FILE, json.toString())
     }
 
     private fun load() = runCatching {
-        if (!file.exists()) return@runCatching
-        val o = JSONObject(file.readText())
-        computedAt = o.optLong("at")
-        val arr = o.getJSONArray("sections")
-        _sections.value = (0 until arr.length()).map { i ->
-            val s = arr.getJSONObject(i)
-            val al = s.getJSONArray("albums")
+        val o = parseJson(files.readText(FILE) ?: return@runCatching).obj() ?: return@runCatching
+        computedAt = o.long("at")
+        _sections.value = o.arr("sections")?.objects().orEmpty().map { s ->
             DiscoverSection(
-                seed = s.getString("seed"),
-                seedImage = s.optString("seedImage").takeIf { it.isNotBlank() && it != "null" },
-                albums = (0 until al.length()).map { j ->
-                    val a = al.getJSONObject(j)
+                seed = s.str("seed"),
+                seedImage = s.str("seedImage").takeIf { it.isNotBlank() && it != "null" },
+                albums = s.arr("albums")?.objects().orEmpty().map { a ->
                     DiscoverAlbum(
-                        a.getLong("id"), a.getString("title"), a.getString("artist"),
-                        a.optString("cover").takeIf { it.isNotBlank() && it != "null" }, a.optInt("year"),
+                        a.long("id"), a.str("title"), a.str("artist"),
+                        a.str("cover").takeIf { it.isNotBlank() && it != "null" }, a.int("year"),
                     )
                 },
             )
@@ -158,10 +163,11 @@ class Discovery(
     /** Sólo para las capturas de pantalla automáticas. */
     fun debugSet(list: List<DiscoverSection>) {
         _sections.value = list
-        computedAt = System.currentTimeMillis()
+        computedAt = nowMillis()
     }
 
     companion object {
+        private const val FILE = "discover.json"
         private const val MAX_AGE_MS = 20L * 3600 * 1000
         private const val SEEDS = 6
         private const val MAX_SECTIONS = 3

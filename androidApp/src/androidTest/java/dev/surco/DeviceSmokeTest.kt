@@ -74,7 +74,7 @@ class DeviceSmokeTest {
                     Track(
                         uri = "content://fake/$a/$i", folderId = "f$a", fileName = "$i.flac", mime = "audio/flac",
                         title = "Song $a-$i", artist = artist, album = album, albumArtist = artist, groupArtist = artist,
-                        albumKey = Scanner.albumKeyFor(artist, album, "f$a"), trackNumber = i, discNumber = 1, year = 2020,
+                        albumKey = dev.surco.data.ScanRules.albumKeyFor(artist, album, "f$a"), trackNumber = i, discNumber = 1, year = 2020,
                         genre = listOf("Flamenco", "Electronic", "Synthpop", "Jazz")[a], durationMs = 200_000, bitrate = 900_000,
                         sampleRate = 44_100, bitsPerSample = 16, size = 20_000_000, lastModified = 1, addedAt = 1, artPath = null,
                     )
@@ -158,8 +158,8 @@ class DeviceSmokeTest {
         assertEquals(2, LrcParser.parse("[offset:+0]\n[00:01.00]a\n[00:02.50]b").size)
         assertEquals("Song", LrcLib.cleanTitle("Song (feat. X)"))
         assertEquals("Artist Album", Discovery.soulseekQuery("Artist", "Album (Deluxe Edition)"))
-        assertEquals(12, Scanner.leadingInt("12/14"))
-        assertEquals(1999, Scanner.parseYear("1999-01-01"))
+        assertEquals(12, dev.surco.data.ScanRules.leadingInt("12/14"))
+        assertEquals(1999, dev.surco.data.ScanRules.parseYear("1999-01-01"))
     }
 
     /** Si un paso falla, vuelca al logcat lo que hay en pantalla (para poder diagnosticarlo desde CI). */

@@ -1,11 +1,10 @@
 package dev.surco.data
 
-import android.content.Context
-import android.net.Uri
-import android.provider.DocumentsContract
 import dev.surco.net.LrcLib
-import dev.surco.tags.TagWriter
-import kotlinx.coroutines.Dispatchers
+import dev.surco.tags.TagEditor
+import dev.surco.util.Charsets1252
+import dev.surco.util.IoDispatcher
+import dev.surco.util.nowMillis
 import kotlinx.coroutines.withContext
 
 /**
@@ -13,21 +12,21 @@ import kotlinx.coroutines.withContext
  * caché → archivo .lrc junto a la canción → letra incrustada en las etiquetas → LRCLIB (internet).
  */
 class LyricsRepository(
-    private val context: Context,
     private val dao: LyricsDao,
     private val prefs: Prefs,
-    private val tags: TagWriter,
+    private val scanner: LibraryScanner,
+    private val tags: TagEditor,
     private val lrclib: LrcLib,
 ) {
-    suspend fun load(track: Track, force: Boolean = false): Lyrics = withContext(Dispatchers.IO) {
+    suspend fun load(track: Track, force: Boolean = false): Lyrics = withContext(IoDispatcher) {
         if (!force) {
             dao.get(track.uri)?.let { cached ->
-                val fresh = cached.source != "none" || System.currentTimeMillis() - cached.fetchedAt < RETRY_NONE_MS
+                val fresh = cached.source != "none" || nowMillis() - cached.fetchedAt < RETRY_NONE_MS
                 if (fresh) return@withContext cached.toLyrics()
             }
         }
         val found = fromSidecar(track) ?: fromTags(track) ?: fromLrcLib(track)
-        val entry = found ?: LyricsEntry(track.uri, null, null, "none", System.currentTimeMillis())
+        val entry = found ?: LyricsEntry(track.uri, null, null, "none", nowMillis())
         dao.put(entry)
         entry.toLyrics()
     }
@@ -35,15 +34,15 @@ class LyricsRepository(
     /** Guarda una letra escrita a mano (o la quita si está vacía). */
     suspend fun saveManual(track: Track, text: String) {
         val t = text.trim()
-        val entry = if (t.isEmpty()) LyricsEntry(track.uri, null, null, "none", System.currentTimeMillis())
-        else if (LrcParser.isSynced(t)) LyricsEntry(track.uri, t, null, "manual", System.currentTimeMillis())
-        else LyricsEntry(track.uri, null, t, "manual", System.currentTimeMillis())
+        val entry = if (t.isEmpty()) LyricsEntry(track.uri, null, null, "none", nowMillis())
+        else if (LrcParser.isSynced(t)) LyricsEntry(track.uri, t, null, "manual", nowMillis())
+        else LyricsEntry(track.uri, null, t, "manual", nowMillis())
         dao.put(entry)
     }
 
     /** Incrusta la letra actual en el archivo de audio. */
     suspend fun embed(track: Track, text: String) {
-        tags.write(Uri.parse(track.uri), track.fileName, dev.surco.tags.TagEdits(lyrics = text))
+        tags.write(track.uri, track.fileName, dev.surco.tags.TagEdits(lyrics = text))
     }
 
     private fun LyricsEntry.toLyrics(): Lyrics {
@@ -61,31 +60,20 @@ class LyricsRepository(
 
     private fun entryFromText(track: Track, text: String, source: String): LyricsEntry? {
         if (text.isBlank()) return null
-        return if (LrcParser.isSynced(text)) LyricsEntry(track.uri, text, null, source, System.currentTimeMillis())
-        else LyricsEntry(track.uri, null, text, source, System.currentTimeMillis())
+        return if (LrcParser.isSynced(text)) LyricsEntry(track.uri, text, null, source, nowMillis())
+        else LyricsEntry(track.uri, null, text, source, nowMillis())
     }
 
-    private fun fromSidecar(track: Track): LyricsEntry? = runCatching {
-        val tree = prefs.current.treeUri?.let(Uri::parse) ?: return null
-        val base = track.fileName.substringBeforeLast('.').lowercase()
-        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, track.folderId)
-        val proj = arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-        var lrcId: String? = null
-        context.contentResolver.query(children, proj, null, null, null)?.use { c ->
-            while (c.moveToNext()) {
-                val name = c.getString(1) ?: continue
-                if (name.lowercase() == "$base.lrc") { lrcId = c.getString(0); break }
-            }
-        }
-        val id = lrcId ?: return null
-        val bytes = context.contentResolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))
-            ?.use { it.readBytes() } ?: return null
-        entryFromText(track, decode(bytes), "lrc")
-    }.getOrNull()
+    private suspend fun fromSidecar(track: Track): LyricsEntry? {
+        val root = prefs.current.treeUri ?: return null
+        val name = track.fileName.substringBeforeLast('.') + ".lrc"
+        val bytes = runCatching { scanner.readSibling(root, track, name) }.getOrNull() ?: return null
+        return entryFromText(track, Charsets1252.decodeText(bytes), "lrc")
+    }
 
     private suspend fun fromTags(track: Track): LyricsEntry? {
         if (track.size > MAX_TAG_READ) return null
-        val text = runCatching { tags.readLyrics(Uri.parse(track.uri), track.fileName) }.getOrNull() ?: return null
+        val text = runCatching { tags.readLyrics(track.uri, track.fileName) }.getOrNull() ?: return null
         return entryFromText(track, text, "tag")
     }
 
@@ -96,19 +84,13 @@ class LyricsRepository(
             album = track.album.takeIf { it != UNKNOWN_ALBUM },
             durationSec = (track.durationMs / 1000).toInt(),
         ) ?: return null
-        val now = System.currentTimeMillis()
+        val now = nowMillis()
         return when {
             r.instrumental -> LyricsEntry(track.uri, null, null, "instrumental", now)
             !r.synced.isNullOrBlank() -> LyricsEntry(track.uri, r.synced, r.plain, "lrclib", now)
             !r.plain.isNullOrBlank() -> LyricsEntry(track.uri, null, r.plain, "lrclib", now)
             else -> null
         }
-    }
-
-    private fun decode(bytes: ByteArray): String {
-        val utf = String(bytes, Charsets.UTF_8)
-        // Archivos .lrc antiguos en Latin-1/Windows-1252: si no es UTF-8 válido aparece el carácter de reemplazo.
-        return if ('�' in utf) String(bytes, charset("windows-1252")) else utf.removePrefix("﻿")
     }
 
     companion object {

@@ -2,15 +2,15 @@ package dev.surco.data
 
 import dev.surco.i18n.S
 
-import android.net.Uri
 import dev.surco.net.CoverSearch
 import dev.surco.net.LastFm
 import dev.surco.net.LastFmException
-import dev.surco.net.scrobble
+import dev.surco.net.toScrobbleItem
 import dev.surco.tags.TagEdits
-import dev.surco.tags.TagWriter
+import dev.surco.tags.TagEditor
+import dev.surco.util.IoDispatcher
+import dev.surco.util.nowMillis
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,9 +33,9 @@ data class SearchResults(
 class Repository(
     val dao: LibraryDao,
     val prefs: Prefs,
-    val scanner: Scanner,
+    val scanner: LibraryScanner,
     private val art: ArtStore,
-    private val tags: TagWriter,
+    private val tags: TagEditor,
     val covers: CoverSearch,
     val lastFm: LastFm,
     private val appScope: CoroutineScope,
@@ -46,7 +46,7 @@ class Repository(
     fun rescan(): Job? {
         val tree = prefs.current.treeUri ?: return null
         return appScope.launch {
-            val result = scanner.scan(Uri.parse(tree))
+            val result = scanner.scan(tree)
             if (result is ScanState.Done) {
                 if (prefs.current.autoCoversAfterScan) fillMissingCovers()
                 if (prefs.current.artistImages) fetchArtistImages()
@@ -56,17 +56,17 @@ class Repository(
 
     // ---------------- Me gusta / listas ----------------
     suspend fun setLiked(uri: String, liked: Boolean) {
-        if (liked) dao.like(Liked(uri, System.currentTimeMillis())) else dao.unlike(uri)
+        if (liked) dao.like(Liked(uri, nowMillis())) else dao.unlike(uri)
     }
 
     suspend fun createPlaylist(name: String): Long {
-        val now = System.currentTimeMillis()
+        val now = nowMillis()
         return dao.insertPlaylist(Playlist(name = name.trim().ifBlank { S.newPlaylist }, createdAt = now, updatedAt = now))
     }
 
     suspend fun addToPlaylist(id: Long, uris: List<String>) {
         var pos = dao.maxPosition(id) + 1
-        val now = System.currentTimeMillis()
+        val now = nowMillis()
         uris.forEach { dao.insertEntry(PlaylistEntry(playlistId = id, trackUri = it, position = pos++, addedAt = now)) }
         dao.touchPlaylist(id, now)
     }
@@ -83,7 +83,7 @@ class Repository(
     }
 
     suspend fun rememberSearch(type: String, ref: String, title: String, subtitle: String, artPath: String?) {
-        dao.upsertSearchRecent(SearchRecent("$type:$ref", type, ref, title, subtitle, artPath, System.currentTimeMillis()))
+        dao.upsertSearchRecent(SearchRecent("$type:$ref", type, ref, title, subtitle, artPath, nowMillis()))
     }
 
     /** Convierte cualquier imagen a JPEG razonable (≤1200 px) o null si no es válida. */
@@ -92,11 +92,11 @@ class Repository(
     // ---------------- Edición de etiquetas ----------------
     /** Edita una canción. Devuelve la canción actualizada. */
     suspend fun editTrack(track: Track, edits: TagEdits): Track {
-        tags.write(Uri.parse(track.uri), track.fileName, edits)
+        tags.write(track.uri, track.fileName, edits)
         val albumArtist = edits.albumArtist ?: track.albumArtist
         val album = (edits.album ?: track.album).ifBlank { UNKNOWN_ALBUM }
         val artist = (edits.artist ?: track.artist).ifBlank { albumArtist.ifBlank { UNKNOWN_ARTIST } }
-        val newKey = Scanner.albumKeyFor(albumArtist, album, track.folderId)
+        val newKey = ScanRules.albumKeyFor(albumArtist, album, track.folderId)
         val updated = track.copy(
             title = (edits.title ?: track.title).ifBlank { track.fileName.substringBeforeLast('.') },
             artist = artist,
@@ -104,9 +104,9 @@ class Repository(
             albumArtist = albumArtist,
             groupArtist = albumArtist.ifBlank { artist },
             albumKey = newKey,
-            year = edits.year?.let { Scanner.parseYear(it) } ?: track.year,
-            trackNumber = edits.trackNumber?.let { Scanner.leadingInt(it) } ?: track.trackNumber,
-            discNumber = edits.discNumber?.let { Scanner.leadingInt(it).coerceAtLeast(1) } ?: track.discNumber,
+            year = edits.year?.let { ScanRules.parseYear(it) } ?: track.year,
+            trackNumber = edits.trackNumber?.let { ScanRules.leadingInt(it) } ?: track.trackNumber,
+            discNumber = edits.discNumber?.let { ScanRules.leadingInt(it).coerceAtLeast(1) } ?: track.discNumber,
             genre = edits.genre?.trim() ?: track.genre,
             // Fuerza una relectura en el próximo escaneo para capturar el nuevo tamaño/fecha.
             lastModified = -1,
@@ -145,7 +145,7 @@ class Repository(
             dao.updateAlbumArt(newKey, null)
             art.delete(oldArt)
         } else {
-            val path = withContext(Dispatchers.IO) { art.writeAlbumArt(newKey, cover) }
+            val path = withContext(IoDispatcher) { art.writeAlbumArt(newKey, cover) }
             dao.updateAlbumArt(newKey, path)
             if (oldArt != path) art.delete(oldArt)
         }
@@ -154,17 +154,17 @@ class Repository(
 
     /** Pone una portada al álbum: la guarda en caché y, si [embed], la incrusta en los archivos. */
     suspend fun setAlbumCover(albumKey: String, imageBytes: ByteArray, embed: Boolean): List<String> {
-        val jpeg = withContext(Dispatchers.IO) { art.toJpeg(imageBytes) } ?: return listOf(S.invalidImage)
+        val jpeg = withContext(IoDispatcher) { art.toJpeg(imageBytes) } ?: return listOf(S.invalidImage)
         val tracks = dao.albumTracksOnce(albumKey)
         val oldArt = tracks.firstOrNull { it.artPath != null }?.artPath
-        val path = withContext(Dispatchers.IO) { art.writeAlbumArt(albumKey, jpeg) }
+        val path = withContext(IoDispatcher) { art.writeAlbumArt(albumKey, jpeg) }
         dao.updateAlbumArt(albumKey, path)
         if (oldArt != null && oldArt != path) art.delete(oldArt)
         val errors = mutableListOf<String>()
         if (embed) {
             tracks.forEach { t ->
                 try {
-                    tags.write(Uri.parse(t.uri), t.fileName, TagEdits(cover = jpeg))
+                    tags.write(t.uri, t.fileName, TagEdits(cover = jpeg))
                 } catch (e: Exception) {
                     errors += "${t.fileName}: ${e.message}"
                 }
@@ -215,7 +215,7 @@ class Repository(
             _artistJob.value = JobProgress(true, i, names.size, name)
             val url = covers.artistPicture(name)
             val path = url?.let { covers.download(it) }?.let { art.toJpeg(it, 800) }?.let { art.writeArtistImage(name, it) }
-            dao.upsertArtistImage(ArtistImage(name, path, System.currentTimeMillis()))
+            dao.upsertArtistImage(ArtistImage(name, path, nowMillis()))
             delay(250)
         }
         _artistJob.value = JobProgress(false, names.size, names.size, S.done)
@@ -247,7 +247,7 @@ class Repository(
             val batch = dao.pendingScrobbles()
             if (batch.isEmpty()) return@withLock true
             try {
-                val result = lastFm.scrobble(batch)
+                val result = lastFm.scrobble(batch.map { it.toScrobbleItem() })
                 dao.deleteScrobbles(batch.map { it.id })
                 _lastFmError.value = if (result.tooOld > 0) S.scrobblesTooOld(result.tooOld) else null
             } catch (e: LastFmException) {
@@ -277,7 +277,7 @@ class Repository(
     /** Días que lleva esperando el scrobble pendiente más antiguo (null si no hay). */
     suspend fun oldestPendingDays(): Long? {
         val ts = dao.oldestPendingScrobble().first() ?: return null
-        return (System.currentTimeMillis() / 1000 - ts) / 86_400
+        return (nowMillis() / 1000 - ts) / 86_400
     }
 
     fun enqueueScrobbleAsync(t: Track, startedAtSec: Long) {

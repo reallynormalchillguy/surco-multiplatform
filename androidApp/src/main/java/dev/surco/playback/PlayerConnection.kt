@@ -21,38 +21,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-data class PlayerUiState(
-    val connected: Boolean = false,
-    val mediaId: String? = null,
-    val isPlaying: Boolean = false,
-    val position: Long = 0,
-    val duration: Long = 0,
-    val shuffle: Boolean = false,
-    val repeat: Int = Player.REPEAT_MODE_OFF,
-    /** "tipo|nombre", p. ej. "álbum|Sol.Hz" */
-    val source: String = "",
-    val queue: List<String> = emptyList(),
-    val queueIndex: Int = -1,
-    /** Índices de la cola en el orden en que sonarán (respeta el modo aleatorio). */
-    val upNext: List<Int> = emptyList(),
-)
-
 /** Puente entre la interfaz y el servicio de reproducción (vía MediaController). */
-class PlayerConnection(private val context: Context) {
+class PlayerConnection(private val context: Context) : PlayerController {
 
     private var future: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var ticker: Job? = null
     private val _state = MutableStateFlow(PlayerUiState())
-    val state: StateFlow<PlayerUiState> = _state.asStateFlow()
+    override val state: StateFlow<PlayerUiState> = _state.asStateFlow()
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = refresh()
     }
 
     /** Sólo para las capturas de pantalla automáticas (CI). */
-    fun debugSetState(s: PlayerUiState) { _state.value = s }
+    override fun debugSetState(s: PlayerUiState) { _state.value = s }
 
     /** Órdenes que llegaron mientras el controlador no estaba conectado; se ejecutan al conectar. */
     private val pending = ArrayList<(MediaController) -> Unit>()
@@ -143,7 +127,7 @@ class PlayerConnection(private val context: Context) {
 
     // ---------- Acciones ----------
 
-    fun play(tracks: List<Track>, startIndex: Int = 0, source: String, shuffle: Boolean = false) {
+    override fun play(tracks: List<Track>, startIndex: Int, source: String, shuffle: Boolean) {
         if (tracks.isEmpty()) return
         val items = tracks.map { it.toMediaItem(source) }
         withController { c ->
@@ -155,7 +139,7 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
-    fun togglePlay() = withController { c ->
+    override fun togglePlay() = withController { c ->
         if (c.isPlaying) c.pause() else {
             if (c.playbackState == Player.STATE_IDLE) c.prepare()
             if (c.playbackState == Player.STATE_ENDED) c.seekTo(0, 0)
@@ -163,21 +147,21 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
-    fun next() = withController { it.seekToNext() }
+    override fun next() = withController { it.seekToNext() }
 
     /** Como en todos los reproductores: si han pasado más de 3 s, vuelve al principio de la canción. */
-    fun previous() = withController { c ->
+    override fun previous() = withController { c ->
         if (c.currentPosition > 3000 || !c.hasPreviousMediaItem()) c.seekTo(0) else c.seekToPreviousMediaItem()
     }
 
-    fun seekTo(ms: Long) {
+    override fun seekTo(ms: Long) {
         _state.update { it.copy(position = ms) }
         withController { it.seekTo(ms) }
     }
 
-    fun toggleShuffle() = withController { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+    override fun toggleShuffle() = withController { it.shuffleModeEnabled = !it.shuffleModeEnabled }
 
-    fun cycleRepeat() = withController {
+    override fun cycleRepeat() = withController {
         it.repeatMode = when (it.repeatMode) {
             Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
             Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
@@ -185,7 +169,7 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
-    fun playNext(track: Track) = withController { c ->
+    override fun playNext(track: Track) = withController { c ->
         if (c.mediaItemCount == 0) {
             c.setMediaItems(listOf(track.toMediaItem("cola|Cola")))
             c.prepare(); c.play()
@@ -194,7 +178,7 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
-    fun enqueue(tracks: List<Track>) = withController { c ->
+    override fun enqueue(tracks: List<Track>) = withController { c ->
         if (c.mediaItemCount == 0) {
             c.setMediaItems(tracks.map { it.toMediaItem("cola|Cola") })
             c.prepare(); c.play()
@@ -203,18 +187,18 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
-    fun skipToQueueIndex(index: Int) = withController { c ->
+    override fun skipToQueueIndex(index: Int) = withController { c ->
         if (index in 0 until c.mediaItemCount) {
             c.seekTo(index, 0L)
             c.play()
         }
     }
 
-    fun removeFromQueue(index: Int) = withController { c ->
+    override fun removeFromQueue(index: Int) = withController { c ->
         if (index in 0 until c.mediaItemCount) c.removeMediaItem(index)
     }
 
-    fun moveInQueue(from: Int, to: Int) = withController { c ->
+    override fun moveInQueue(from: Int, to: Int) = withController { c ->
         if (from in 0 until c.mediaItemCount && to in 0 until c.mediaItemCount) c.moveMediaItem(from, to)
     }
 }
