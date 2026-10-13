@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.palette.graphics.Palette
 import coil3.PlatformContext
-import coil3.imageLoader
+import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
@@ -84,7 +84,7 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
     val bmp = if (path.startsWith("http")) {
         runCatching {
             val req = ImageRequest.Builder(context).data(path).allowHardware(false).size(160).build()
-            (context.imageLoader.execute(req) as? SuccessResult)?.image?.toBitmap()
+            (SingletonImageLoader.get(context).execute(req) as? SuccessResult)?.image?.toBitmap()
         }.getOrNull()
     } else {
         BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 8 })

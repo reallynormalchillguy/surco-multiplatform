@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import coil3.PlatformContext
-import coil3.imageLoader
+import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.size.Size
@@ -50,7 +50,7 @@ actual fun figtreeFamily(): FontFamily = FontFamily(
 actual suspend fun extractArtColor(context: PlatformContext, path: String): Color? = runCatching {
     val data: Any = if (path.startsWith("http")) path else path.toPath()
     val req = ImageRequest.Builder(context).data(data).size(Size(64, 64)).build()
-    val bmp = (context.imageLoader.execute(req) as? SuccessResult)?.image?.toBitmap() ?: return@runCatching null
+    val bmp = (SingletonImageLoader.get(context).execute(req) as? SuccessResult)?.image?.toBitmap() ?: return@runCatching null
     val pixels = ArrayList<Int>()
     val step = maxOf(1, minOf(bmp.width, bmp.height) / 24)
     var y = 0

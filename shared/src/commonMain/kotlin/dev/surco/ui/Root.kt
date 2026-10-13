@@ -56,7 +56,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
+import androidx.savedstate.read
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -254,37 +256,37 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int) {
                     composable("library") { LibraryScreen() }
                     composable("settings") { SettingsScreen() }
                     composable("online_artist/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
-                        OnlineArtistScreen(it.arguments?.getLong("id") ?: 0L)
+                        OnlineArtistScreen(it.longArg("id"))
                     }
                     composable("discover/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
-                        DiscoverAlbumScreen(it.arguments?.getLong("id") ?: 0L)
+                        DiscoverAlbumScreen(it.longArg("id"))
                     }
                     composable(
                         "soulseek?q={q}",
                         listOf(navArgument("q") { type = NavType.StringType; defaultValue = "" }),
-                    ) { SoulseekScreen(it.arguments?.getString("q").orEmpty()) }
+                    ) { SoulseekScreen(it.stringArg("q")) }
                     composable("liked") { LikedScreen() }
                     composable("recent") { RecentScreen() }
                     composable("album/{key}", listOf(navArgument("key") { type = NavType.StringType })) {
-                        AlbumScreen(it.arguments?.getString("key").orEmpty())
+                        AlbumScreen(it.stringArg("key"))
                     }
                     composable("artist/{name}", listOf(navArgument("name") { type = NavType.StringType })) {
-                        ArtistScreen(it.arguments?.getString("name").orEmpty())
+                        ArtistScreen(it.stringArg("name"))
                     }
                     composable("genre/{name}", listOf(navArgument("name") { type = NavType.StringType })) {
-                        GenreScreen(it.arguments?.getString("name").orEmpty())
+                        GenreScreen(it.stringArg("name"))
                     }
                     composable("playlist/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
-                        PlaylistScreen(it.arguments?.getLong("id") ?: 0L)
+                        PlaylistScreen(it.longArg("id"))
                     }
                     composable("edit_track/{uri}", listOf(navArgument("uri") { type = NavType.StringType })) {
-                        TrackEditorScreen(it.arguments?.getString("uri").orEmpty())
+                        TrackEditorScreen(it.stringArg("uri"))
                     }
                     composable("edit_album/{key}", listOf(navArgument("key") { type = NavType.StringType })) {
-                        AlbumEditorScreen(it.arguments?.getString("key").orEmpty())
+                        AlbumEditorScreen(it.stringArg("key"))
                     }
                     composable("covers/{key}", listOf(navArgument("key") { type = NavType.StringType })) {
-                        CoverSearchScreen(it.arguments?.getString("key").orEmpty())
+                        CoverSearchScreen(it.stringArg("key"))
                     }
                 }
             }
@@ -388,6 +390,12 @@ fun rememberFolderPicker(container: SurcoCore): () -> Unit {
         container.repository.rescan()
     }
 }
+
+private fun NavBackStackEntry.longArg(key: String): Long =
+    arguments?.read { if (contains(key)) getLong(key) else 0L } ?: 0L
+
+private fun NavBackStackEntry.stringArg(key: String): String =
+    arguments?.read { if (contains(key)) getStringOrNull(key) else null }.orEmpty()
 
 /** Codifica un texto para usarlo dentro de una ruta de navegación. */
 fun encodeArg(s: String): String = s.encodeURLParameter()

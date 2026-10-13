@@ -3,7 +3,6 @@ package dev.surco.ui
 import dev.surco.i18n.S
 
 import androidx.compose.foundation.Canvas
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.fadeIn
