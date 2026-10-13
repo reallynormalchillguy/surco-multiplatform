@@ -371,7 +371,7 @@ fun PlaylistScreen(id: Long) {
     if (renaming) {
         NameDialog(S.renamePlaylist, p.name, onDismiss = { renaming = false }) { name ->
             renaming = false
-            actions.scope.launch { dao.renamePlaylist(id, name.ifBlank { p.name }, System.currentTimeMillis()) }
+            actions.scope.launch { dao.renamePlaylist(id, name.ifBlank { p.name }, dev.surco.util.nowMillis()) }
         }
     }
     if (deleting) {

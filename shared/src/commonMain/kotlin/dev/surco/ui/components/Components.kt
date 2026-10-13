@@ -2,7 +2,6 @@ package dev.surco.ui.components
 
 import dev.surco.i18n.S
 
-import android.graphics.BitmapFactory
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -56,17 +55,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.palette.graphics.Palette
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import coil.imageLoader
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import dev.surco.ui.extractArtColor
+import okio.Path.Companion.toPath
 import dev.surco.data.AlbumRow
 import dev.surco.data.ArtistRow
 import dev.surco.data.Track
 import dev.surco.ui.theme.SurcoColors
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.io.File
 
 // ---------------------------------------------------------------- Imágenes
 
@@ -85,7 +81,7 @@ fun ArtImage(
     ) {
         if (path != null) {
             AsyncImage(
-                model = if (path.startsWith("http")) path else File(path),
+                model = if (path.startsWith("http")) path else path.toPath(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -133,14 +129,11 @@ private val colorCache = HashMap<String, Color>()
 /** Color dominante (oscuro) de una portada (archivo local o URL), para fondos y el mini reproductor. */
 @Composable
 fun rememberArtColor(path: String?, fallback: Color = Color(0xFF3A3A3A)): Color {
-    val context = LocalContext.current
+    val context = LocalPlatformContext.current
     var color by remember(path) { mutableStateOf(path?.let { colorCache[it] } ?: fallback) }
     LaunchedEffect(path) {
         if (path != null && colorCache[path] == null) {
-            val c = withContext(Dispatchers.IO) {
-                if (path.startsWith("http")) urlBitmap(context, path)?.let { extractColor(it) }
-                else BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 8 })?.let { extractColor(it) }
-            }
+            val c = extractArtColor(context, path)
             if (c != null) {
                 colorCache[path] = c
                 color = c
@@ -149,19 +142,6 @@ fun rememberArtColor(path: String?, fallback: Color = Color(0xFF3A3A3A)): Color 
     }
     return animateColorAsState(color, tween(600), label = "artColor").value
 }
-
-private suspend fun urlBitmap(context: android.content.Context, url: String): android.graphics.Bitmap? = runCatching {
-    val req = coil.request.ImageRequest.Builder(context).data(url).allowHardware(false).size(160).build()
-    val result = context.imageLoader.execute(req) as? coil.request.SuccessResult ?: return null
-    (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
-}.getOrNull()
-
-private fun extractColor(bmp: android.graphics.Bitmap): Color? = runCatching {
-    val p = Palette.from(bmp).maximumColorCount(16).generate()
-    val swatch = p.darkVibrantSwatch ?: p.vibrantSwatch ?: p.mutedSwatch ?: p.dominantSwatch ?: return null
-    // Oscurecemos un poco para que el texto blanco siempre se lea.
-    lerp(Color(swatch.rgb), Color.Black, 0.25f)
-}.getOrNull()
 
 // ---------------------------------------------------------------- Textos y chips
 

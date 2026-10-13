@@ -12,6 +12,7 @@ plugins {
  */
 val ktor = "3.1.3"
 val room = "2.7.1"
+val coil = "3.2.0"
 
 kotlin {
     androidTarget {
@@ -26,7 +27,17 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
+            api(compose.materialIconsExtended)
+            api(compose.ui)
+            api(compose.animation)
+            implementation(compose.components.resources)
+            api("org.jetbrains.androidx.navigation:navigation-compose:2.9.0-beta03")
+            api("io.coil-kt.coil3:coil-compose:$coil")
+            implementation("io.coil-kt.coil3:coil-network-ktor3:$coil")
+            implementation("com.squareup.okio:okio:3.11.0")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             api("io.ktor:ktor-client-core:$ktor")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
@@ -34,6 +45,8 @@ kotlin {
         }
         androidMain.dependencies {
             implementation("io.ktor:ktor-client-okhttp:$ktor")
+            implementation("androidx.activity:activity-compose:1.10.1")
+            implementation("androidx.palette:palette-ktx:1.0.0")
         }
         iosMain.dependencies {
             implementation("io.ktor:ktor-client-darwin:$ktor")
@@ -45,6 +58,12 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
         }
     }
+}
+
+compose.resources {
+    publicResClass = false
+    packageOfResClass = "dev.surco.resources"
+    generateResClass = always
 }
 
 android {

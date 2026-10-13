@@ -2,10 +2,6 @@ package dev.surco.ui
 
 import dev.surco.i18n.S
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,17 +58,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import dev.surco.data.Track
 import dev.surco.net.CoverResult
 import dev.surco.tags.TagEdits
 import dev.surco.ui.components.ArtImage
 import dev.surco.ui.theme.SurcoColors
-import kotlinx.coroutines.Dispatchers
+import dev.surco.util.IoDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -226,7 +221,6 @@ fun TrackEditorScreen(uri: String) {
 @Composable
 fun AlbumEditorScreen(albumKey: String) {
     val actions = LocalActions.current
-    val context = LocalContext.current
     val dao = actions.repo.dao
     val album by remember(albumKey) { dao.album(albumKey) }.collectAsState(initial = null)
     var tracks by remember { mutableStateOf<List<Track>>(emptyList()) }
@@ -262,15 +256,10 @@ fun AlbumEditorScreen(albumKey: String) {
         if (albumArtist.isBlank() && "albumArtist" !in mixed) albumArtist = list.firstOrNull()?.groupArtist ?: ""
     }
 
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri: Uri? ->
-        if (uri != null) {
-            actions.scope.launch {
-                val bytes = withContext(Dispatchers.IO) {
-                    runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
-                }
-                val jpeg = bytes?.let { withContext(Dispatchers.IO) { actions.repo.normalizeImage(it) } }
-                if (jpeg != null) newCover = jpeg else actions.toast(S.couldNotReadImage)
-            }
+    val pickImage = rememberImagePicker { bytes ->
+        actions.scope.launch {
+            val jpeg = bytes?.let { withContext(IoDispatcher) { actions.repo.normalizeImage(it) } }
+            if (jpeg != null) newCover = jpeg else actions.toast(S.couldNotReadImage)
         }
     }
 
@@ -331,7 +320,7 @@ fun AlbumEditorScreen(albumKey: String) {
                     Icon(Icons.Filled.ImageSearch, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(S.internet)
                 }
                 OutlinedButton(
-                    onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    onClick = { pickImage() },
                     enabled = !saving,
                 ) {
                     Icon(Icons.Filled.PhotoLibrary, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(S.gallery)

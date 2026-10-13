@@ -67,7 +67,6 @@ import dev.surco.ui.components.SectionTitle
 import dev.surco.ui.components.SurcoChip
 import dev.surco.ui.components.TrackRow
 import dev.surco.ui.theme.SurcoColors
-import java.time.LocalDate
 import kotlin.random.Random
 
 private val similarCache = HashMap<String, List<String>>()
@@ -193,7 +192,7 @@ private fun HomeFeed() {
     }
     val diveBackIn = remember(albumStats, albumByKey) { diveBackIn(albumStats, albumByKey) }
     val recommended = remember(albums, statByKey) {
-        val rnd = Random(LocalDate.now().toEpochDay())
+        val rnd = Random(dev.surco.util.nowMillis() / 86_400_000L)
         val unplayed = albums.filter { statByKey[it.albumKey] == null }
         (unplayed.ifEmpty { albums }).shuffled(rnd).take(10)
     }
@@ -302,7 +301,7 @@ private fun PlaylistMosaic(id: Long, modifier: Modifier) {
 }
 
 private fun diveBackIn(stats: List<PlayStat>, byKey: Map<String, AlbumRow>): List<AlbumRow> {
-    val twoDaysAgo = System.currentTimeMillis() - 2L * 24 * 3600 * 1000
+    val twoDaysAgo = dev.surco.util.nowMillis() - 2L * 24 * 3600 * 1000
     val old = stats.filter { it.lastPlayed < twoDaysAgo }.sortedByDescending { it.plays }
     val pick = old.ifEmpty { stats.filter { it.plays >= 2 }.sortedByDescending { it.plays } }
     return pick.mapNotNull { byKey[it.key] }.take(12)
@@ -324,7 +323,7 @@ private fun buildQuickItems(
         cands += Cand(p.updatedAt, QuickItem("p${p.id}", p.name, 1, emptyList()) { actions.openPlaylist(p.id) })
     }
     // Los álbumes recientes ocupan el resto; usamos un tiempo decreciente para conservar su orden.
-    val now = System.currentTimeMillis()
+    val now = dev.surco.util.nowMillis()
     recentAlbums.take(8).forEachIndexed { i, a ->
         cands += Cand(now - 1000L * (i + 1), QuickItem("a${a.albumKey}", a.album, 2, listOfNotNull(a.artPath)) { actions.openAlbum(a.albumKey) })
     }

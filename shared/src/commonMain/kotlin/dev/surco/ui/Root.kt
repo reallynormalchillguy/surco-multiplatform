@@ -2,11 +2,6 @@ package dev.surco.ui
 
 import dev.surco.i18n.S
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -58,7 +53,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -69,16 +63,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import dev.surco.AppContainer
+import dev.surco.app.SurcoCore
+import kotlinx.coroutines.Dispatchers
+import kotlin.time.TimeSource
 import dev.surco.data.Track
 import dev.surco.playback.PlayerUiState
 import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import io.ktor.http.encodeURLParameter
 
 /** Acciones globales accesibles desde cualquier pantalla. */
 class AppActions(
-    val container: AppContainer,
+    val container: SurcoCore,
     val nav: NavHostController,
     val scope: CoroutineScope,
     private val snackbar: SnackbarHostState,
@@ -100,36 +97,38 @@ class AppActions(
     fun go(route: String) {
         // La navegación sólo funciona en el hilo principal: si nos llaman desde otro
         // (p. ej. tras esperar a la base de datos), la pasamos allí.
-        if (android.os.Looper.myLooper() != android.os.Looper.getMainLooper()) {
-            mainHandler.post { go(route) }
-            return
-        }
-        val now = android.os.SystemClock.uptimeMillis()
+        scope.launch(Dispatchers.Main.immediate) { goNow(route) }
+    }
+
+    private val clock = TimeSource.Monotonic.markNow()
+
+    private fun goNow(route: String) {
+        val now = clock.elapsedNow().inWholeMilliseconds
         if (route == lastRoute && now - lastNavAt < 600) return
         lastRoute = route
         lastNavAt = now
         runCatching { nav.navigate(route) { launchSingleTop = true } }
-            .onFailure { android.util.Log.w("Surco", "No se pudo navegar a $route", it) }
+            .onFailure { println("Surco: no se pudo navegar a $route: $it") }
     }
 
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-
-    fun openAlbum(key: String) = go("album/${Uri.encode(key)}")
-    fun openArtist(name: String) = go("artist/${Uri.encode(name)}")
+    fun openAlbum(key: String) = go("album/${encodeArg(key)}")
+    fun openArtist(name: String) = go("artist/${encodeArg(name)}")
     fun openPlaylist(id: Long) = go("playlist/$id")
     fun openLiked() = go("liked")
-    fun openGenre(name: String) = go("genre/${Uri.encode(name)}")
-    fun editTrack(uri: String) = go("edit_track/${Uri.encode(uri)}")
-    fun editAlbum(key: String) = go("edit_album/${Uri.encode(key)}")
-    fun searchCovers(key: String) = go("covers/${Uri.encode(key)}")
+    fun openGenre(name: String) = go("genre/${encodeArg(name)}")
+    fun editTrack(uri: String) = go("edit_track/${encodeArg(uri)}")
+    fun editAlbum(key: String) = go("edit_album/${encodeArg(key)}")
+    fun searchCovers(key: String) = go("covers/${encodeArg(key)}")
     fun openSettings() = go("settings")
-    fun openSoulseek(query: String = "") = go("soulseek?q=${Uri.encode(query)}")
+    fun openSoulseek(query: String = "") = go("soulseek?q=${encodeArg(query)}")
     fun openDiscover(id: Long) = go("discover/$id")
     fun openOnlineArtist(id: Long) = go("online_artist/$id")
     fun openPlayer() = onOpenPlayer()
 
     /** Cambia de pestaña igual que la barra inferior. */
-    fun openTab(route: String) = mainHandler.post { openTabNow(route) }
+    fun openTab(route: String) {
+        scope.launch(Dispatchers.Main) { openTabNow(route) }
+    }
 
     private fun openTabNow(route: String) = nav.navigate(route) {
         popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -165,7 +164,7 @@ private val tabs = listOf(
 )
 
 @Composable
-fun SurcoRoot(container: AppContainer, openPlayerSignal: Int) {
+fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int) {
     val settings by container.prefs.settings.collectAsState()
     if (settings.treeUri == null) {
         OnboardingScreen(container)
@@ -315,7 +314,6 @@ private fun tabLabel(route: String) = when (route) {
 }
 
 /** Pestaña a la que pertenece una ruta: la de la raíz más cercana en la pila. */
-@android.annotation.SuppressLint("RestrictedApi")
 private fun tabOf(nav: NavHostController): String {
     val roots = tabs.map { it.route }.toSet()
     val stack = nav.currentBackStack.value
@@ -380,28 +378,16 @@ private fun BottomTabs(nav: NavHostController) {
 
 /** Selector de carpeta reutilizable (onboarding y ajustes). */
 @Composable
-fun rememberFolderPicker(container: AppContainer): () -> Unit {
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) {
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            runCatching { context.contentResolver.takePersistableUriPermission(uri, flags) }
-                .onFailure {
-                    runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                }
-            // Soltamos el permiso de la carpeta anterior, si la había.
-            val old = container.prefs.current.treeUri
-            if (old != null && old != uri.toString()) {
-                runCatching {
-                    context.contentResolver.releasePersistableUriPermission(
-                        Uri.parse(old),
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                    )
-                }
-            }
-            container.prefs.update { it.copy(treeUri = uri.toString()) }
-            container.repository.rescan()
-        }
+fun rememberFolderPicker(container: SurcoCore): () -> Unit {
+    val release = rememberFolderReleaser()
+    return rememberDirectoryPicker { root ->
+        // Soltamos el permiso de la carpeta anterior, si la había.
+        val old = container.prefs.current.treeUri
+        if (old != null && old != root) release(old)
+        container.prefs.update { it.copy(treeUri = root) }
+        container.repository.rescan()
     }
-    return { launcher.launch(null) }
 }
+
+/** Codifica un texto para usarlo dentro de una ruta de navegación. */
+fun encodeArg(s: String): String = s.encodeURLParameter()

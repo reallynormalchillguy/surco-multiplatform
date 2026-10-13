@@ -33,6 +33,8 @@ class PlatformParts(
     /** El escáner necesita la base de datos y el almacén de portadas. */
     val scanner: (LibraryDao, ArtStore) -> LibraryScanner,
     val userAgent: String,
+    /** Versión visible en Ajustes. */
+    val appVersion: String = "",
     val lastfmKey: String = "",
     val lastfmSecret: String = "",
     /** Programa un reintento de los scrobbles pendientes para cuando haya conexión. */
@@ -44,6 +46,7 @@ class PlatformParts(
  * se construye aquí. Cada plataforma añade su reproductor y su servicio de Soulseek.
  */
 abstract class SurcoCore(parts: PlatformParts) {
+    val appVersion = parts.appVersion
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     /** Cliente común (Ktor) para las APIs públicas: Deezer, iTunes, MusicBrainz, LRCLIB y Last.fm. */
     val api = surcoHttpClient(parts.userAgent)

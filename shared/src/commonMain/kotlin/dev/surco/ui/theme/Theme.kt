@@ -6,14 +6,14 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.surco.R
+import dev.surco.ui.figtreeFamily
 
 object SurcoColors {
     val Background = Color(0xFF101010)
@@ -36,14 +36,6 @@ object SurcoShapes {
     val Gutter = 16.dp    // margen lateral de todas las pantallas
 }
 
-val Figtree = FontFamily(
-    Font(R.font.figtree_regular, FontWeight.Normal),
-    Font(R.font.figtree_medium, FontWeight.Medium),
-    Font(R.font.figtree_semibold, FontWeight.SemiBold),
-    Font(R.font.figtree_bold, FontWeight.Bold),
-    Font(R.font.figtree_extrabold, FontWeight.ExtraBold),
-)
-
 private val scheme = darkColorScheme(
     primary = SurcoColors.Accent,
     onPrimary = SurcoColors.OnAccent,
@@ -65,32 +57,34 @@ private val scheme = darkColorScheme(
     error = SurcoColors.Error,
 )
 
-private fun style(size: Int, weight: FontWeight, spacing: Double = 0.0, line: Int? = null) = TextStyle(
-    fontFamily = Figtree,
+private fun style(family: FontFamily, size: Int, weight: FontWeight, spacing: Double = 0.0, line: Int? = null) = TextStyle(
+    fontFamily = family,
     fontSize = size.sp,
     fontWeight = weight,
     letterSpacing = spacing.sp,
     lineHeight = (line ?: (size * 1.3).toInt()).sp,
 )
 
-private val typography = Typography(
-    displaySmall = style(34, FontWeight.ExtraBold, -1.0),
-    headlineLarge = style(30, FontWeight.ExtraBold, -0.8),
-    headlineMedium = style(26, FontWeight.Bold, -0.6),
-    headlineSmall = style(22, FontWeight.Bold, -0.4),
-    titleLarge = style(20, FontWeight.Bold, -0.2),
-    titleMedium = style(16, FontWeight.Bold),
-    titleSmall = style(14, FontWeight.Bold),
-    bodyLarge = style(16, FontWeight.Medium),
-    bodyMedium = style(14, FontWeight.Medium),
-    bodySmall = style(13, FontWeight.Medium),
-    labelLarge = style(14, FontWeight.SemiBold),
-    labelMedium = style(12, FontWeight.SemiBold),
-    labelSmall = style(11, FontWeight.SemiBold, 0.2),
+private fun typography(f: FontFamily) = Typography(
+    displaySmall = style(f, 34, FontWeight.ExtraBold, -1.0),
+    headlineLarge = style(f, 30, FontWeight.ExtraBold, -0.8),
+    headlineMedium = style(f, 26, FontWeight.Bold, -0.6),
+    headlineSmall = style(f, 22, FontWeight.Bold, -0.4),
+    titleLarge = style(f, 20, FontWeight.Bold, -0.2),
+    titleMedium = style(f, 16, FontWeight.Bold),
+    titleSmall = style(f, 14, FontWeight.Bold),
+    bodyLarge = style(f, 16, FontWeight.Medium),
+    bodyMedium = style(f, 14, FontWeight.Medium),
+    bodySmall = style(f, 13, FontWeight.Medium),
+    labelLarge = style(f, 14, FontWeight.SemiBold),
+    labelMedium = style(f, 12, FontWeight.SemiBold),
+    labelSmall = style(f, 11, FontWeight.SemiBold, 0.2),
 )
 
 @Composable
 fun SurcoTheme(content: @Composable () -> Unit) {
+    val family = figtreeFamily()
+    val typography = remember(family) { typography(family) }
     MaterialTheme(colorScheme = scheme, typography = typography) {
         // Color de texto por defecto: blanco. Sin esto, lo que queda fuera de un Surface/Scaffold
         // (p. ej. el reproductor a pantalla completa) salía en negro.

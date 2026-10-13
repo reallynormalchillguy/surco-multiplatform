@@ -109,7 +109,7 @@ private fun DiscoverCard(a: DiscoverAlbum, onClick: () -> Unit) {
 // ======================================================================= Página de álbum recomendado
 
 /** Fichas ya cargadas (también la usan las capturas automáticas). */
-internal val discoverDetailCache = HashMap<Long, Deezer.AlbumDetail>()
+val discoverDetailCache = HashMap<Long, Deezer.AlbumDetail>()
 
 @Composable
 fun DiscoverAlbumScreen(id: Long) {

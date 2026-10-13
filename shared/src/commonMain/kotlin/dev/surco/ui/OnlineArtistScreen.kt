@@ -60,7 +60,7 @@ import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import java.util.Locale
+import dev.surco.util.fmt
 
 /** Todo lo que se muestra en el perfil de un artista de internet. */
 data class OnlineArtist(
@@ -71,13 +71,13 @@ data class OnlineArtist(
 )
 
 /** Cachés en memoria (también las usan las pruebas automáticas para no depender de la red). */
-internal val onlineArtistCache = HashMap<Long, OnlineArtist>()
-internal val onlineSearchCache = HashMap<String, List<Deezer.Artist>>()
+val onlineArtistCache = HashMap<Long, OnlineArtist>()
+val onlineSearchCache = HashMap<String, List<Deezer.Artist>>()
 
 fun formatFans(n: Int): String {
     val v = when {
-        n >= 1_000_000 -> String.format(Locale.US, "%.1fM", n / 1_000_000.0).replace(".0M", "M")
-        n >= 1_000 -> String.format(Locale.US, "%.0fK", n / 1_000.0)
+        n >= 1_000_000 -> "${(n / 1_000_000.0).fmt(1)}M".replace(".0M", "M")
+        n >= 1_000 -> "${(n / 1_000.0).fmt(0)}K"
         else -> n.toString()
     }
     return S.fans(v)

@@ -337,7 +337,7 @@ private fun SyncedFull(lyrics: Lyrics.Synced, position: Long, onSeek: (Long) -> 
 
     // Sigue la canción salvo que el usuario haya movido la lista hace menos de 3 s.
     LaunchedEffect(current) {
-        if (System.currentTimeMillis() - lastTouch < 3000) return@LaunchedEffect
+        if (dev.surco.util.nowMillis() - lastTouch < 3000) return@LaunchedEffect
         val target = (current - 2).coerceAtLeast(0)
         if (firstScroll == 0) { listState.scrollToItem(target); firstScroll = 1 } else listState.animateScrollToItem(target)
     }
@@ -351,7 +351,7 @@ private fun SyncedFull(lyrics: Lyrics.Synced, position: Long, onSeek: (Long) -> 
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
-                    lastTouch = System.currentTimeMillis()
+                    lastTouch = dev.surco.util.nowMillis()
                 }
             },
     ) {

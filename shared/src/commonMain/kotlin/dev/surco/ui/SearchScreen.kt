@@ -197,7 +197,7 @@ private fun RecentRow(r: SearchRecent) {
 }
 
 private fun openRecent(actions: AppActions, r: SearchRecent) {
-    actions.scope.launch { actions.repo.dao.upsertSearchRecent(r.copy(at = System.currentTimeMillis())) }
+    actions.scope.launch { actions.repo.dao.upsertSearchRecent(r.copy(at = dev.surco.util.nowMillis())) }
     when (r.type) {
         "artist" -> actions.openArtist(r.ref)
         "album" -> actions.openAlbum(r.ref)

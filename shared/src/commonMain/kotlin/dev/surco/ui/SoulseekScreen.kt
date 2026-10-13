@@ -1,11 +1,8 @@
 package dev.surco.ui
 
 import dev.surco.i18n.S
+import dev.surco.util.fmt
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,7 +62,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -80,7 +76,6 @@ import dev.surco.slsk.TransferState
 import dev.surco.slsk.UserResult
 import dev.surco.ui.components.SurcoChip
 import dev.surco.ui.theme.SurcoColors
-import java.util.Locale
 
 /** Resultados agrupados por carpeta remota (normalmente, un álbum). */
 private data class FolderGroup(
@@ -146,13 +141,13 @@ private fun qualityOf(files: List<SlskFile>): String {
 
 private fun khz(hz: Int): String {
     val k = hz / 1000.0
-    return if (k % 1.0 == 0.0) k.toInt().toString() else String.format(Locale.US, "%.1f", k)
+    return if (k % 1.0 == 0.0) k.toInt().toString() else k.fmt(1)
 }
 
 fun formatBytes(b: Long): String = when {
-    b >= 1L shl 30 -> String.format(Locale.US, "%.1f GB", b / (1L shl 30).toDouble())
-    b >= 1L shl 20 -> String.format(Locale.US, "%.0f MB", b / (1L shl 20).toDouble())
-    b >= 1L shl 10 -> String.format(Locale.US, "%.0f KB", b / 1024.0)
+    b >= 1L shl 30 -> "${(b / (1L shl 30).toDouble()).fmt(1)} GB"
+    b >= 1L shl 20 -> "${(b / (1L shl 20).toDouble()).fmt(0)} MB"
+    b >= 1L shl 10 -> "${(b / 1024.0).fmt(0)} KB"
     else -> "$b B"
 }
 
@@ -171,17 +166,7 @@ fun SoulseekScreen(initialQuery: String) {
 
     LaunchedEffect(Unit) { manager.ensureConnected() }
 
-    val context = LocalContext.current
-    val pickDir = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            }
-            actions.repo.prefs.update { it.copy(slskDir = uri.toString()) }
-        }
-    }
+    val pickDir = rememberDirectoryPicker { root -> actions.repo.prefs.update { it.copy(slskDir = root) } }
 
     Column(Modifier.fillMaxSize()) {
         // ---- Cabecera
@@ -199,7 +184,7 @@ fun SoulseekScreen(initialQuery: String) {
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, S.options, tint = Color.White) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text(S.downloadsFolder) }, onClick = { menu = false; pickDir.launch(null) })
+                    DropdownMenuItem(text = { Text(S.downloadsFolder) }, onClick = { menu = false; pickDir() })
                     if (settings.slskDir != null) {
                         DropdownMenuItem(
                             text = { Text(S.useMusicFolder) },

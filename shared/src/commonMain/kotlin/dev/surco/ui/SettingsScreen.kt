@@ -2,8 +2,6 @@ package dev.surco.ui
 
 import dev.surco.i18n.S
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,14 +50,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
+import dev.surco.app.SurcoCore
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.surco.AppContainer
 import dev.surco.data.JobProgress
 import dev.surco.data.ScanState
 import dev.surco.data.ScrobbleMode
@@ -80,7 +78,7 @@ fun SettingsScreen() {
     val coverJob by repo.coverJob.collectAsState()
     val artistJob by repo.artistJob.collectAsState()
     val pickFolder = rememberFolderPicker(container)
-    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -192,7 +190,7 @@ fun SettingsScreen() {
                     Spacer(Modifier.height(12.dp))
                     when {
                         !settings.lastfmReady -> ApiKeysForm(onOpenLink = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.last.fm/api/account/create")))
+                            runCatching { uriHandler.openUri("https://www.last.fm/api/account/create") }
                         })
                         settings.lastfmLoggedIn -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -206,7 +204,7 @@ fun SettingsScreen() {
                                 style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
                             )
                             val oldest by remember { repo.dao.oldestPendingScrobble() }.collectAsState(initial = null)
-                            val days = oldest?.let { (System.currentTimeMillis() / 1000 - it) / 86_400 }
+                            val days = oldest?.let { (dev.surco.util.nowMillis() / 1000 - it) / 86_400 }
                             if (days != null && days >= 10) {
                                 Text(S.scrobblesAgeWarning(days), style = MaterialTheme.typography.bodySmall, color = SurcoColors.Error)
                             }
@@ -266,7 +264,7 @@ fun SettingsScreen() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent)
                     Spacer(Modifier.width(10.dp))
-                    Text("Surco ${dev.surco.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium)
+                    Text("Surco ${container.appVersion}", style = MaterialTheme.typography.titleMedium)
                 }
                 Text(
                     S.aboutText,
@@ -281,7 +279,7 @@ fun SettingsScreen() {
 
 private fun folderName(tree: String?): String {
     if (tree == null) return S.noFolder
-    val decoded = Uri.decode(tree.substringAfterLast("/"))
+    val decoded = folderLabel(tree)
     val path = decoded.substringAfter(':', decoded)
     val volume = decoded.substringBefore(':', "")
     val vol = if (volume == "primary") S.internalStorage else volume
@@ -437,7 +435,7 @@ private fun LoginForm() {
 // ================================================================ Bienvenida
 
 @Composable
-fun OnboardingScreen(container: AppContainer) {
+fun OnboardingScreen(container: SurcoCore) {
     val pick = rememberFolderPicker(container)
     Column(
         Modifier
