@@ -129,6 +129,9 @@ class SoulseekStressTest {
     fun socketWithHighDescriptorDoesNotKillTheApp() = runTest(timeout = 60.seconds) {
         withContext(Dispatchers.Default) {
             setFdLimit(4096)
+            // Servidor que acepta la conexión a nivel TCP (cola del kernel) sin llamar nunca a accept().
+            val listener = aSocket(SelectorManager(Dispatchers.Default)).tcp().bind("127.0.0.1", 0)
+            val port = (listener.localAddress as InetSocketAddress).port
             val dummies = (0 until 1030).map { platform.posix.open("/dev/null", platform.posix.O_RDONLY) }
             println("Descriptor más alto ocupado: ${dummies.max()}")
             try {
@@ -136,14 +139,14 @@ class SoulseekStressTest {
                     override val tempDir = "/tmp"
                     override suspend fun save(t: Transfer, tempPath: String) = t.name
                 }
-                // Puerto cerrado: basta con que el cliente cree el socket y lo registre en el selector.
-                val client = SoulseekCore(sink, {}, serverHost = "127.0.0.1", serverPort = 9, listenPorts = IntRange.EMPTY)
+                val client = SoulseekCore(sink, {}, serverHost = "127.0.0.1", serverPort = port, listenPorts = IntRange.EMPTY)
                 client.connect("surco_test", "x")
                 val st = withTimeout(20_000) { client.state.first { it is SlskState.Failed } }
                 println("Estado tras el fallo: $st")
                 client.disconnect()
             } finally {
                 dummies.forEach { platform.posix.close(it) }
+                listener.close()
             }
         }
     }
