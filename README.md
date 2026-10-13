@@ -1,33 +1,41 @@
 # Surco (multiplataforma)
 
-Surco para **Android e iOS** desde un único código Kotlin (Kotlin Multiplatform + Compose Multiplatform).
-La app de Android original sigue en el repositorio `surco` hasta que esta versión la iguale.
+Surco para **Android e iPhone** desde un único código Kotlin (Kotlin Multiplatform + Compose Multiplatform):
+la misma interfaz, la misma biblioteca, los mismos scrobbles y el mismo cliente de Soulseek.
+
+## Instalar en iPhone (SideStore)
+
+1. En el iPhone, abre la release **«ios-latest»** de este repositorio y descarga `Surco.ipa`.
+2. En SideStore: **My Apps → +** y elige `Surco.ipa` (o «Abrir con… SideStore» desde Archivos).
+3. Primera vez: en Surco, elige tu carpeta de música (por ejemplo, una carpeta de «En mi iPhone»).
+
+Con un Apple ID gratuito, SideStore renueva la firma cada 7 días (lo hace solo si está configurado).
 
 ## Estructura
 
 ```
-shared/       Código común (Android + iOS): textos, letras, protocolo de Soulseek, MD5…
-  commonMain/   Kotlin puro
-  androidMain/  Implementaciones para Android (zlib de Java…)
-  iosMain/      Implementaciones para iOS (libz…)
-androidApp/   App de Android (usa `shared`)
-iosApp/       App de iOS (próximamente)
+shared/       Casi todo: interfaz (Compose), biblioteca (Room), red (Ktor), letras, Last.fm,
+              Soulseek, lector/escritor de etiquetas…
+  commonMain/   Kotlin común
+  androidMain/  Selectores, tipografía y colores de portada en Android
+  iosMain/      App de iOS: AVFoundation, escáner, etiquetas, Soulseek, selectores nativos
+androidApp/   App de Android: Media3, SAF, jaudiotagger, servicio de descargas
+iosApp/       Proyecto de Xcode (XcodeGen) que envuelve el framework `Shared`
 ```
 
-## Plan
+## Diferencias que impone iOS
 
-1. **Hecho:** separar el código común (textos, letras, protocolo de Soulseek, MD5) y compilarlo para iPhone.
-2. Red común con Ktor (Last.fm, Deezer, LRCLIB, sockets de Soulseek) y base de datos Room multiplataforma.
-3. Interfaz compartida con Compose Multiplatform.
-4. App de iOS: reproducción con AVFoundation, etiquetas con TagLib, acceso a carpetas, pantalla de bloqueo.
-5. IPA sin firmar en CI para instalar con SideStore.
+- Edición de etiquetas: FLAC y MP3 (M4A/ALAC se leen, pero no se editan aún).
+- iOS no reproduce OGG/Opus con AVFoundation.
+- Las descargas de Soulseek siguen unos segundos en segundo plano; con la app cerrada se pausan.
 
 ## CI
 
 Cada push a `main`:
-- compila el APK de Android (artefacto `Surco-apk`), pruebas unitarias y capturas → rama `ci`;
-- prueba la app en un emulador Android → rama `ci-device`;
-- compila el código común para iPhone y ejecuta sus pruebas en el simulador de iOS (Mac de GitHub) → rama `ci-ios`.
+- APK de Android (artefacto `Surco-apk`), pruebas unitarias y capturas → rama `ci`;
+- emulador Android → rama `ci-device`;
+- pruebas del código común en el simulador de iOS → rama `ci-ios`;
+- **.ipa sin firmar** → release `ios-latest`, y capturas reales en el simulador de iPhone → rama `ci-ios-app`.
 
 La firma de Android usa una clave fija (`signing/surco.jks`) para que las actualizaciones se instalen encima.
 

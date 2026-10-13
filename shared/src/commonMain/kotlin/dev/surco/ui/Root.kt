@@ -72,6 +72,7 @@ import dev.surco.data.Track
 import dev.surco.playback.PlayerUiState
 import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import io.ktor.http.encodeURLParameter
 
@@ -204,7 +205,11 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
     }
 
     // Ruta inicial opcional (capturas automáticas de iOS).
-    LaunchedEffect(initialRoute) { initialRoute?.let { if (it in tabs.map { t -> t.route }) actions.openTab(it) else actions.go(it) } }
+    LaunchedEffect(initialRoute) {
+        val route = initialRoute ?: return@LaunchedEffect
+        nav.currentBackStackEntryFlow.first() // espera a que exista el grafo de navegación
+        if (route in tabs.map { t -> t.route }) actions.openTab(route) else actions.go(route)
+    }
 
     CompositionLocalProvider(
         LocalActions provides actions,
