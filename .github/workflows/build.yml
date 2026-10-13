@@ -1,0 +1,156 @@
+name: Compilar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar
+        id: build
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
+
+      - uses: actions/upload-artifact@v4
+        if: steps.build.outcome == 'success'
+        with:
+          name: Surco-apk
+          path: androidApp/build/outputs/apk/release/*.apk
+
+      - name: Capturas de pantalla
+        id: shots
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew testDebugUnitTest --stacktrace 2>&1 | tee test.log
+
+      # Publica el log y las capturas en la rama `ci` para poder revisarlos sin descargar artefactos.
+      - name: Publicar informe
+        if: always()
+        run: |
+          R=$RUNNER_TEMP/report
+          mkdir -p $R
+          [ -f build.log ] && tail -c 300000 build.log > $R/build.log
+          [ -f test.log ] && tail -c 300000 test.log > $R/test.log
+          cp -r androidApp/build/screens $R/screens 2>/dev/null || true
+          cp androidApp/build/test-results/testDebugUnitTest/*.xml shared/build/test-results/testDebugUnitTest/*.xml $R/ 2>/dev/null || true
+          printf "sha=%s\nbuild=%s\nshots=%s\nrun=%s\n" "$GITHUB_SHA" "${{ steps.build.outcome }}" "${{ steps.shots.outcome }}" "$GITHUB_RUN_ID" > $R/STATUS
+          cd $R
+          git init -q -b ci
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "Informe de $GITHUB_SHA"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci
+
+  # Prueba de humo en un Android de verdad: detecta fallos que sólo ocurren en el dispositivo.
+  device-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Activar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Compilar pruebas
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew :androidApp:assembleDebug :androidApp:assembleDebugAndroidTest 2>&1 | tee compile-tests.log
+
+      - name: Pruebas en emulador
+        timeout-minutes: 35
+        run: bash scripts/device-test.sh
+
+      - name: Publicar informe del dispositivo
+        if: always()
+        run: |
+          R=$RUNNER_TEMP/device
+          mkdir -p $R
+          [ -f device.log ] && tail -c 200000 device.log > $R/device.log
+          [ -f compile-tests.log ] && grep -E "^e: |error:|FAILED" compile-tests.log | head -100 > $R/compile-errors.log
+          for f in phases.log sdk.log emulator.log; do [ -f $f ] && tail -c 60000 $f > $R/$f; done
+          [ -d device-shots ] && find device-shots -name '*.png' -exec cp {} $R/ \; || true
+          [ -f logcat.txt ] && grep -E "AndroidRuntime|FATAL|Surco|SURCO|TestRunner|Exception" -A30 logcat.txt | tail -c 300000 > $R/logcat.txt
+          cp androidApp/build/outputs/androidTest-results/connected/debug/*.xml $R/ 2>/dev/null || true
+          cp androidApp/build/outputs/androidTest-results/connected/*.xml $R/ 2>/dev/null || true
+          printf "sha=%s\nexit=%s\nrun=%s\n" "$GITHUB_SHA" "$(cat device.exit 2>/dev/null || echo none)" "$GITHUB_RUN_ID" > $R/STATUS
+          cd $R
+          git init -q -b ci-device
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "Pruebas en dispositivo de $GITHUB_SHA"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-device
+
+  # Código común compilado para iPhone y pruebas en el simulador de iOS (necesita un Mac).
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar y probar en el simulador de iPhone
+        id: ios
+        continue-on-error: true
+        run: |
+          chmod +x gradlew
+          xcodebuild -version > ios-env.log 2>&1 || true
+          xcrun simctl list devices available >> ios-env.log 2>&1 || true
+          set -o pipefail
+          ./gradlew :shared:iosSimulatorArm64Test :shared:linkDebugFrameworkIosArm64 --stacktrace 2>&1 | tee ios.log
+
+      - name: Publicar informe de iOS
+        if: always()
+        run: |
+          R=$RUNNER_TEMP/ios
+          mkdir -p $R
+          [ -f ios.log ] && tail -c 250000 ios.log > $R/ios.log
+          [ -f ios.log ] && grep -E "^e: |error:|FAILED|warning: .*deprecated" ios.log | head -200 > $R/ios-errors.log || true
+          [ -f ios-env.log ] && cp ios-env.log $R/
+          find shared/build/test-results -name '*.xml' -exec cp {} $R/ \; 2>/dev/null || true
+          printf "sha=%s\nios=%s\nrun=%s\n" "$GITHUB_SHA" "${{ steps.ios.outcome }}" "$GITHUB_RUN_ID" > $R/STATUS
+          cd $R
+          git init -q -b ci-ios
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "iOS de $GITHUB_SHA"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-ios
