@@ -67,6 +67,11 @@ compose.resources {
 }
 
 android {
+    // El detector NullSafeMutableLiveData de lifecycle 2.9 hace fallar el lint de AGP 8.7.
+    lint {
+        disable += "NullSafeMutableLiveData"
+        checkReleaseBuilds = false
+    }
     namespace = "dev.surco.shared"
     compileSdk = 35
     defaultConfig { minSdk = 26 }

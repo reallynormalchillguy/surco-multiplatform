@@ -18,6 +18,11 @@ val lastfmKey: String = localProps.getProperty("lastfm.apiKey") ?: System.getenv
 val lastfmSecret: String = localProps.getProperty("lastfm.secret") ?: System.getenv("LASTFM_SECRET") ?: ""
 
 android {
+    // El detector NullSafeMutableLiveData de lifecycle 2.9 hace fallar el lint de AGP 8.7.
+    lint {
+        disable += "NullSafeMutableLiveData"
+        checkReleaseBuilds = false
+    }
     namespace = "dev.surco"
     compileSdk = 35
 
