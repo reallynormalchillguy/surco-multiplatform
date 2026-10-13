@@ -40,6 +40,7 @@ kotlin {
             implementation("com.squareup.okio:okio:3.11.0")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             api("io.ktor:ktor-client-core:$ktor")
+            implementation("io.ktor:ktor-network:$ktor")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
             api("androidx.room:room-runtime:$room")
         }
