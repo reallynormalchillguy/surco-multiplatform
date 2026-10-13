@@ -153,16 +153,18 @@ fun Track.qualityLabel(): String {
     return parts.joinToString(" · ")
 }
 
-private fun formatKhz(hz: Int): String {
-    val k = hz / 1000.0
-    return if (k % 1.0 == 0.0) k.toInt().toString() else String.format(java.util.Locale.US, "%.1f", k)
+/** 44100 → «44.1», 48000 → «48». */
+internal fun formatKhz(hz: Int): String {
+    val tenths = (hz + 50) / 100 // redondeo a décimas de kHz
+    return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
 }
 
+/** Milisegundos → «m:ss» o «h:mm:ss». */
 fun Long.formatDuration(): String {
     val total = this / 1000
     val h = total / 3600
     val m = (total % 3600) / 60
     val s = total % 60
-    return if (h > 0) String.format(java.util.Locale.US, "%d:%02d:%02d", h, m, s)
-    else String.format(java.util.Locale.US, "%d:%02d", m, s)
+    fun two(n: Long) = n.toString().padStart(2, '0')
+    return if (h > 0) "$h:${two(m)}:${two(s)}" else "$m:${two(s)}"
 }

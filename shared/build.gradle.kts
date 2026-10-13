@@ -3,6 +3,7 @@ plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.compose")
+    id("com.google.devtools.ksp")
 }
 
 /**
@@ -10,6 +11,7 @@ plugins {
  * Poco a poco irá absorbiendo también la red, la base de datos y la interfaz.
  */
 val ktor = "3.1.3"
+val room = "2.7.1"
 
 kotlin {
     androidTarget {
@@ -28,12 +30,14 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
             api("io.ktor:ktor-client-core:$ktor")
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+            api("androidx.room:room-runtime:$room")
         }
         androidMain.dependencies {
             implementation("io.ktor:ktor-client-okhttp:$ktor")
         }
         iosMain.dependencies {
             implementation("io.ktor:ktor-client-darwin:$ktor")
+            implementation("androidx.sqlite:sqlite-bundled:2.5.1")
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -50,5 +54,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+// Room genera el código de la base de datos para cada plataforma.
+dependencies {
+    listOf("kspAndroid", "kspIosArm64", "kspIosSimulatorArm64").forEach {
+        add(it, "androidx.room:room-compiler:$room")
     }
 }
