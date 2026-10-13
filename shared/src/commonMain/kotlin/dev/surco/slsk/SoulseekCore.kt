@@ -9,6 +9,7 @@ import io.ktor.network.sockets.InetSocketAddress
 import io.ktor.network.sockets.ServerSocket
 import io.ktor.network.sockets.Socket
 import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.isClosed
 import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
 import io.ktor.utils.io.ByteReadChannel
@@ -217,9 +218,12 @@ class SoulseekCore(
 
     private suspend fun startListener(): Int {
         listener?.let { if (!it.isClosed) return (it.localAddress as InetSocketAddress).port }
-        val ss = listenPorts.asSequence()
-            .mapNotNull { p -> runCatching { aSocket(selector).tcp().bind("0.0.0.0", p) }.getOrNull() }
-            .firstOrNull() ?: aSocket(selector).tcp().bind("0.0.0.0", 0)
+        var bound: ServerSocket? = null
+        for (p in listenPorts) {
+            bound = runCatching { aSocket(selector).tcp().bind("0.0.0.0", p) }.getOrNull()
+            if (bound != null) break
+        }
+        val ss = bound ?: aSocket(selector).tcp().bind("0.0.0.0", 0)
         listener = ss
         scope.launch {
             while (!ss.isClosed) {
