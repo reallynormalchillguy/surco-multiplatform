@@ -119,4 +119,32 @@ class SoulseekStressTest {
             serverSocket.close()
         }
     }
+
+    /**
+     * Reproduce el cierre de iOS: el selector de Ktor en Kotlin/Native usa select() y lanza una excepción
+     * (sin capturar → la app se cierra) si un socket recibe un descriptor ≥ FD_SETSIZE (1024).
+     * Ocupamos ~1030 descriptores y luego el cliente intenta conectarse.
+     */
+    @Test
+    fun socketWithHighDescriptorDoesNotKillTheApp() = runTest(timeout = 60.seconds) {
+        withContext(Dispatchers.Default) {
+            setFdLimit(4096)
+            val dummies = (0 until 1030).map { platform.posix.open("/dev/null", platform.posix.O_RDONLY) }
+            println("Descriptor más alto ocupado: ${dummies.max()}")
+            try {
+                val sink = object : DownloadSink {
+                    override val tempDir = "/tmp"
+                    override suspend fun save(t: Transfer, tempPath: String) = t.name
+                }
+                // Puerto cerrado: basta con que el cliente cree el socket y lo registre en el selector.
+                val client = SoulseekCore(sink, {}, serverHost = "127.0.0.1", serverPort = 9, listenPorts = IntRange.EMPTY)
+                client.connect("surco_test", "x")
+                val st = withTimeout(20_000) { client.state.first { it is SlskState.Failed } }
+                println("Estado tras el fallo: $st")
+                client.disconnect()
+            } finally {
+                dummies.forEach { platform.posix.close(it) }
+            }
+        }
+    }
 }
