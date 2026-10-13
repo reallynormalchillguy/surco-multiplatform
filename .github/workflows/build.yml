@@ -135,6 +135,10 @@ jobs:
           xcodebuild -version > ios-env.log 2>&1 || true
           xcrun simctl list devices available >> ios-env.log 2>&1 || true
           set -o pipefail
+          # KSP (Room) necesita la distribución de Kotlin/Native ya descargada; en un runner limpio
+          # no lo está cuando KSP se ejecuta, así que la preparamos antes.
+          ./gradlew commonizeNativeDistribution 2>&1 | tee ios-prep.log || true
+          ls ~/.konan >> ios-env.log 2>&1 || true
           ./gradlew :shared:iosSimulatorArm64Test :shared:linkDebugFrameworkIosArm64 --stacktrace 2>&1 | tee ios.log
 
       - name: Publicar informe de iOS
@@ -145,6 +149,7 @@ jobs:
           [ -f ios.log ] && tail -c 250000 ios.log > $R/ios.log
           [ -f ios.log ] && grep -E "^e: |error:|FAILED|warning: .*deprecated" ios.log | head -200 > $R/ios-errors.log || true
           [ -f ios-env.log ] && cp ios-env.log $R/
+          [ -f ios-prep.log ] && tail -c 30000 ios-prep.log > $R/ios-prep.log
           find shared/build/test-results -name '*.xml' -exec cp {} $R/ \; 2>/dev/null || true
           printf "sha=%s\nios=%s\nrun=%s\n" "$GITHUB_SHA" "${{ steps.ios.outcome }}" "$GITHUB_RUN_ID" > $R/STATUS
           cd $R
