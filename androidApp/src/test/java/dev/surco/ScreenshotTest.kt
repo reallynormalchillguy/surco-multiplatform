@@ -109,6 +109,8 @@ class ScreenshotTest {
     )
 
     private fun seed() = runBlocking {
+        // Sin fundido: en Robolectric el reloj de animaciones no avanza y las portadas salían a medias.
+        coil3.SingletonImageLoader.setUnsafe(coil3.ImageLoader.Builder(app).build())
         val c = app.container
         val dao = c.db.dao()
         val now = System.currentTimeMillis()
@@ -155,7 +157,7 @@ class ScreenshotTest {
     }
 
     private fun settle() {
-        repeat(8) {
+        repeat(14) {
             Thread.sleep(300)
             compose.waitForIdle()
         }
