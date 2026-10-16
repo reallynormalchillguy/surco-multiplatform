@@ -108,6 +108,13 @@ class PlayerConnection(private val context: Context) : PlayerController {
                 i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, c.shuffleModeEnabled)
             }
         }
+        var prevIdx = C.INDEX_UNSET
+        var nextIdx = C.INDEX_UNSET
+        if (!tl.isEmpty && c.currentMediaItemIndex != C.INDEX_UNSET) {
+            val rep = if (c.repeatMode == Player.REPEAT_MODE_ALL) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
+            nextIdx = tl.getNextWindowIndex(c.currentMediaItemIndex, rep, c.shuffleModeEnabled)
+            prevIdx = tl.getPreviousWindowIndex(c.currentMediaItemIndex, rep, c.shuffleModeEnabled)
+        }
         _state.value = PlayerUiState(
             connected = true,
             mediaId = c.currentMediaItem?.mediaId,
@@ -120,6 +127,8 @@ class PlayerConnection(private val context: Context) : PlayerController {
             queue = queue,
             queueIndex = c.currentMediaItemIndex,
             upNext = upNext,
+            prevIndex = prevIdx,
+            nextIndex = nextIdx,
         )
     }
 
@@ -152,6 +161,11 @@ class PlayerConnection(private val context: Context) : PlayerController {
     /** Como en todos los reproductores: si han pasado más de 3 s, vuelve al principio de la canción. */
     override fun previous() = withController { c ->
         if (c.currentPosition > 3000 || !c.hasPreviousMediaItem()) c.seekTo(0) else c.seekToPreviousMediaItem()
+    }
+
+    /** Siempre a la canción anterior (sin el «volver al principio» del botón): para el gesto de deslizar. */
+    override fun previousTrack() = withController { c ->
+        if (c.hasPreviousMediaItem()) c.seekToPreviousMediaItem()
     }
 
     override fun seekTo(ms: Long) {

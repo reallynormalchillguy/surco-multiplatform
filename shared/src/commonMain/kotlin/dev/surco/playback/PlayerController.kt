@@ -24,6 +24,9 @@ data class PlayerUiState(
     val queueIndex: Int = -1,
     /** Índices de la cola en el orden en que sonarán (respeta el modo aleatorio). */
     val upNext: List<Int> = emptyList(),
+    /** Canción anterior y siguiente al deslizar (respetan aleatorio y repetir todo); -1 si no hay. */
+    val prevIndex: Int = -1,
+    val nextIndex: Int = -1,
 )
 
 /** Lo que la interfaz puede pedirle al reproductor de la plataforma (Media3 en Android, AVFoundation en iOS). */
@@ -34,6 +37,8 @@ interface PlayerController {
     fun next()
     /** Si han pasado más de 3 s, vuelve al principio de la canción. */
     fun previous()
+    /** Siempre a la canción anterior (sin volver al principio): para el gesto de deslizar. */
+    fun previousTrack()
     fun seekTo(ms: Long)
     fun toggleShuffle()
     fun cycleRepeat()

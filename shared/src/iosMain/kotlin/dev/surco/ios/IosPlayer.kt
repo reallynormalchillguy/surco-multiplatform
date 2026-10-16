@@ -124,6 +124,12 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
         if (positionMs() > 3000 || pos == 0) seekTo(0) else { pos--; load(true) }
     }
 
+    override fun previousTrack() {
+        if (order.isEmpty()) return
+        if (pos > 0) { pos--; load(true) }
+        else if (repeat == Repeat.ALL) { pos = order.size - 1; load(true) }
+    }
+
     override fun seekTo(ms: Long) {
         _state.update { it.copy(position = ms) }
         player.seekToTime(CMTimeMakeWithSeconds(ms / 1000.0, 1000))
@@ -358,6 +364,8 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
             queue = queue.map { it.uri },
             queueIndex = order.getOrNull(pos) ?: -1,
             upNext = if (pos < 0) emptyList() else order.drop(pos + 1).take(500),
+            prevIndex = order.getOrNull(pos - 1) ?: (if (repeat == Repeat.ALL && pos >= 0) order.lastOrNull() else null) ?: -1,
+            nextIndex = order.getOrNull(pos + 1) ?: (if (repeat == Repeat.ALL && pos >= 0) order.firstOrNull() else null) ?: -1,
         )
     }
 

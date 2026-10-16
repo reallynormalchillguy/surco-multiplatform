@@ -4,6 +4,7 @@ import dev.surco.i18n.S
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -90,6 +91,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -148,27 +150,17 @@ fun MiniPlayer(onOpen: () -> Unit) {
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.padding(start = 8.dp, top = 8.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            ArtImage(track.artPath, Modifier.size(42.dp))
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    buildString { append(track.title); append(" • "); append(track.artist) },
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        track.qualityLabel().ifBlank { track.album },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = SurcoColors.Accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+            // Portada y título: deslizar a los lados cambia de canción, como en Spotify.
+            val (prevTrack, nextTrack) = rememberNeighbourTracks()
+            SwipeTracks(
+                current = track,
+                previous = prevTrack,
+                next = nextTrack,
+                onNext = { actions.player.next() },
+                onPrevious = { actions.player.previousTrack() },
+                modifier = Modifier.weight(1f).clipToBounds(),
+                gap = 16.dp,
+            ) { t -> if (t != null) MiniTrackInfo(t) }
             IconButton(onClick = { actions.toggleLike(track.uri, liked) }) {
                 if (liked) Icon(Icons.Filled.CheckCircle, S.removeFavourite, tint = SurcoColors.Accent)
                 else Icon(Icons.Outlined.AddCircleOutline, S.addFavourite, tint = Color.White)
@@ -194,6 +186,34 @@ fun MiniPlayer(onOpen: () -> Unit) {
             Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(Color.White))
         }
     }
+}
+
+/** Portada pequeña + título · artista + calidad (lo que se desliza en el mini reproductor). */
+@Composable
+private fun MiniTrackInfo(track: Track) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            ArtImage(track.artPath, Modifier.size(42.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    buildString { append(track.title); append(" • "); append(track.artist) },
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        track.qualityLabel().ifBlank { track.album },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SurcoColors.Accent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
 }
 
 // ======================================================================= Pantalla completa
@@ -300,21 +320,43 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(28.dp))
-                ArtImage(
-                    track?.artPath,
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
-                    RoundedCornerShape(SurcoShapes.Cover),
-                )
+                // Portada: deslizar a la izquierda/derecha cambia de canción (con animación).
+                val (prevTrack, nextTrack) = rememberNeighbourTracks()
+                SwipeTracks(
+                    current = track,
+                    previous = prevTrack,
+                    next = nextTrack,
+                    onNext = { actions.player.next() },
+                    onPrevious = { actions.player.previousTrack() },
+                    modifier = Modifier.fillMaxWidth(),
+                    gap = 24.dp,
+                ) { t ->
+                    ArtImage(
+                        t?.artPath,
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
+                        RoundedCornerShape(SurcoShapes.Cover),
+                    )
+                }
             }
 
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                 Spacer(Modifier.height(32.dp))
-                // --- Título y artista
+                // --- Título y artista (con fundido al cambiar de canción)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
+                    androidx.compose.animation.AnimatedContent(
+                        targetState = track,
+                        contentKey = { it?.uri },
+                        transitionSpec = {
+                            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) togetherWith
+                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+                        },
+                        modifier = Modifier.weight(1f),
+                        label = "titulo",
+                    ) { track ->
+                    Column(Modifier.fillMaxWidth()) {
                         Text(
                             track?.title ?: "",
                             style = MaterialTheme.typography.headlineSmall,
@@ -332,6 +374,7 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                                 track?.let { onClose(); actions.openArtist(it.groupArtist) }
                             },
                         )
+                    }
                     }
                     if (track != null) {
                         val liked = track.uri in LocalLiked.current

@@ -20,6 +20,9 @@ import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -334,5 +337,27 @@ class DeviceSmokeTest {
         tap(compose.onNodeWithTag("swatch_background"), "editar_fondo")
         tap(compose.firstDesc(S.resetPalette))
         assertEquals("", c.prefs.current.palette)
+    }
+
+    @Test
+    fun swipingTheCoverChangesTheSong() = dumpingOnFailure {
+        val c = app.container
+        tap(compose.onNodeWithTag("tab_library"))
+        tap(compose.first("Raíz"))
+        tap(compose.firstDesc(S.play))
+        compose.waitUntil(10_000) { c.player.state.value.mediaId == "content://fake/0/1" && c.player.state.value.nextIndex >= 0 }
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("track_swipe")).fetchSemanticsNodes().isNotEmpty() }
+        // Mini reproductor: a la izquierda → siguiente
+        compose.onAllNodes(hasTestTag("track_swipe"))[0].performTouchInput { swipeLeft() }
+        compose.waitUntil(5_000) { c.player.state.value.mediaId == "content://fake/0/2" }
+        shot("deslizar_siguiente")
+        // Reproductor completo: a la derecha → anterior
+        tap(compose.onNodeWithTag("mini_player"))
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("track_swipe")).fetchSemanticsNodes().size >= 2 }
+        compose.onAllNodes(hasTestTag("track_swipe")).fetchSemanticsNodes()
+        compose.onAllNodes(hasTestTag("track_swipe"))[1].performTouchInput { swipeRight() }
+        compose.waitUntil(5_000) { c.player.state.value.mediaId == "content://fake/0/1" }
+        shot("deslizar_anterior")
+        back()
     }
 }
