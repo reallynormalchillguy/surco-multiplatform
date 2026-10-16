@@ -312,7 +312,9 @@ class DeviceSmokeTest {
         compose.onNodeWithTag("delete_step2").performClick()   // demasiado pronto: no hace nada
         settle()
         assertEquals(6, runBlocking { c.db.dao().albumTracksOnce(key).size })
-        Thread.sleep(2_500)
+        // La cuenta atrás usa el reloj de Compose, que en las pruebas avanza a mano.
+        compose.mainClock.advanceTimeBy(2_500)
+        Thread.sleep(500)
         tap(compose.onNodeWithTag("delete_step2"), "borrado")
         compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("delete_step2")).fetchSemanticsNodes().isEmpty() }
         // Estas canciones son de mentira (no hay archivos ni proveedor de documentos): como no se puede
