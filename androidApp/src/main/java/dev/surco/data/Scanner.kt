@@ -194,9 +194,11 @@ class Scanner(
             DocumentsContract.Document.COLUMN_MIME_TYPE,
         )
         val uri = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
-        return context.contentResolver.query(uri, proj, null, null, null)?.use { c ->
-            buildList { while (c.moveToNext()) add(Child(c.getString(0) ?: continue, c.getString(1) ?: "", c.getString(2) ?: "")) }
-        }
+        return runCatching {
+            context.contentResolver.query(uri, proj, null, null, null)?.use { c ->
+                buildList { while (c.moveToNext()) add(Child(c.getString(0) ?: continue, c.getString(1) ?: "", c.getString(2) ?: "")) }
+            }
+        }.getOrNull()
     }
 
     private fun deleteDoc(tree: Uri, id: String): Boolean = runCatching {
@@ -214,16 +216,31 @@ class Scanner(
             val cr = context.contentResolver
             val deleted = ArrayList<String>()
             val failed = ArrayList<String>()
+            val listings = HashMap<String, Set<String>?>()
             for (t in tracks) {
                 val uri = Uri.parse(t.uri)
                 val ok = runCatching { DocumentsContract.deleteDocument(cr, uri) }.getOrDefault(false)
-                // Si ya no existía, cuenta como borrada.
-                val gone = ok || runCatching { cr.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null)?.use { it.count == 0 } ?: true }.getOrDefault(false)
+                // Si no se pudo borrar, sólo cuenta como borrada si su carpeta se puede leer y ya no está en ella
+                // (un proveedor caído o sin permiso NO significa que el archivo no exista).
+                val gone = ok || run {
+                    val ids = listings.getOrPut(t.folderId) { children(tree, t.folderId)?.map { it.id }?.toSet() }
+                    val id = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
+                    ids != null && id != null && id !in ids
+                }
                 if (gone) deleted += t.uri else failed += t.fileName
             }
+            // Limpieza de carpetas: lo mejor posible. Si falla, los archivos ya borrados siguen contando
+            // como borrados (para quitarlos de la biblioteca); nunca se deja la biblioteca a medias.
+            var removedFolders = 0
+            runCatching { removedFolders = pruneFolders(tree, tracks, deleted.toHashSet()) }
+            DeleteResult(deleted, failed, removedFolders)
+        }
+    }
+
+    private fun pruneFolders(tree: Uri, tracks: List<Track>, deletedSet: Set<String>): Int {
+            val cr = context.contentResolver
             val rootId = DocumentsContract.getTreeDocumentId(tree)
             var removedFolders = 0
-            val deletedSet = deleted.toHashSet()
             for (folder in tracks.map { it.folderId }.distinct()) {
                 val bases = tracks.filter { it.folderId == folder && it.uri in deletedSet }
                     .map { it.fileName.substringBeforeLast('.').lowercase() }.toSet()
@@ -232,7 +249,8 @@ class Scanner(
                     .forEach { deleteDoc(tree, it.id) }
                 if (folder == rootId) continue
                 val left = children(tree, folder) ?: continue
-                if (left.any { it.isDir || ScanRules.isAudio(it.name, it.mime) }) continue
+                // Sólo si lo que queda es «basura» de álbum conocida; cualquier otra cosa (vídeo, PDF, .zip…) la conserva.
+                if (left.any { it.isDir || !ScanRules.isAlbumLeftover(it.name) }) continue
                 // La carpeta del álbum ya no tiene música: fuera, con lo que quede (portada, .cue, .log…).
                 val path = runCatching {
                     DocumentsContract.findDocumentPath(cr, DocumentsContract.buildDocumentUriUsingTree(tree, folder))?.path
@@ -252,8 +270,7 @@ class Scanner(
                     }
                 }
             }
-            DeleteResult(deleted, failed, removedFolders)
-        }
+            return removedFolders
     }
 
     override suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray? = withContext(Dispatchers.IO) {

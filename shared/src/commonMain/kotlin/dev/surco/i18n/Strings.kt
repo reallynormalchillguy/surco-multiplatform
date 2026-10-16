@@ -470,6 +470,10 @@ object S {
         "Se borrarán # canciones de «$name» de $artist de tu dispositivo. No hay papelera.",
     )
     val deleteForever get() = t("Delete forever", "Borrar para siempre")
+    fun albumSpansFolders(count: Int) = t(
+        "Careful: these songs are spread across $count different folders.",
+        "Ojo: estas canciones están repartidas en $count carpetas distintas.",
+    )
     val keepAlbum get() = t("Keep it", "Conservarlo")
     val deleting get() = t("Deleting…", "Borrando…")
     fun albumDeleted(name: String) = t("“$name” deleted", "«$name» borrado")

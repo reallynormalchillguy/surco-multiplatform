@@ -314,11 +314,13 @@ class DeviceSmokeTest {
         assertEquals(6, runBlocking { c.db.dao().albumTracksOnce(key).size })
         Thread.sleep(2_500)
         tap(compose.onNodeWithTag("delete_step2"), "borrado")
-        compose.waitUntil(10_000) { runBlocking { c.db.dao().albumTracksOnce(key).isEmpty() } }
-        compose.waitUntil(10_000) { grainInQueue() == 0 }
-        // La página del álbum borrado se cierra sola
-        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("album_more")).fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(10_000) { compose.onAllNodes(hasTestTag("delete_step2")).fetchSemanticsNodes().isEmpty() }
+        // Estas canciones son de mentira (no hay archivos ni proveedor de documentos): como no se puede
+        // comprobar que se hayan borrado, NO deben desaparecer de la biblioteca ni de la cola.
+        assertEquals(6, runBlocking { c.db.dao().albumTracksOnce(key).size })
+        assertEquals(6, grainInQueue())
         shot("tras_borrar")
+        back()
 
         // Paleta de colores: sortear y volver a la original
         tap(compose.onNodeWithTag("tab_home"))

@@ -65,7 +65,9 @@ import dev.surco.net.Deezer
 import dev.surco.ui.components.ArtImage
 import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // ================================================================ Menú de álbum
 
@@ -185,6 +187,11 @@ fun DeleteAlbumDialogs(
                 text = {
                     Column {
                         Text(S.deleteAlbumFinal(tracks.size, albumName, artist))
+                        val folders = tracks.map { it.folderId }.distinct().size
+                        if (folders > 1) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(S.albumSpansFolders(folders), color = SurcoColors.Error, style = MaterialTheme.typography.bodyMedium)
+                        }
                         if (busy) {
                             Spacer(Modifier.height(12.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -204,9 +211,10 @@ fun DeleteAlbumDialogs(
                             busy = true
                             actions.scope.launch {
                                 try {
-                                    // Primero fuera de la cola, para no seguir reproduciendo un archivo que ya no existe.
-                                    actions.player.removeFromQueue(tracks.map { it.uri })
-                                    val r = actions.repo.deleteAlbum(albumKey)
+                                    // Sin cancelación: si la pantalla se recrea a mitad, la biblioteca debe quedar al día
+                                    // con lo que ya se borró del dispositivo.
+                                    val r = withContext(NonCancellable) { actions.repo.deleteAlbum(albumKey) }
+                                    actions.player.removeFromQueue(r.deleted)
                                     actions.toast(
                                         if (r.failed.isEmpty()) S.albumDeleted(albumName)
                                         else S.albumDeletedPartly(r.deleted.size, r.failed.size)

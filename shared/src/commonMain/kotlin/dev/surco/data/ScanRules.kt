@@ -48,6 +48,22 @@ object ScanRules {
     fun isImage(name: String) = name.substringAfterLast('.', "").lowercase() in IMAGE_EXT
 
     /**
+     * Lo que puede quedar en la carpeta de un álbum y se puede borrar con ella (portadas, .cue, .log…).
+     * Si queda cualquier otra cosa (vídeos, PDF, .zip, formatos raros), la carpeta se conserva.
+     */
+    private val LEFTOVER_EXT = setOf(
+        "jpg", "jpeg", "png", "webp", "gif", "bmp", "cue", "log", "nfo", "txt", "m3u", "m3u8", "pls",
+        "lrc", "sfv", "md5", "accurip",
+    )
+    private val LEFTOVER_NAMES = setOf(".ds_store", "thumbs.db", "desktop.ini")
+
+    fun isAlbumLeftover(name: String): Boolean {
+        val n = name.lowercase()
+        if (n in LEFTOVER_NAMES || n.startsWith("._")) return true
+        return n.substringAfterLast('.', "") in LEFTOVER_EXT && !n.startsWith(".")
+    }
+
+    /**
      * Clave de agrupación de un álbum. Si hay "artista del álbum" se usa junto al título;
      * si no, se agrupa por carpeta + título para que los recopilatorios sin etiquetar no se rompan
      * en un álbum por artista.

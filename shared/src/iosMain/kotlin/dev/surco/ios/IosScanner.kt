@@ -88,7 +88,11 @@ class IosScanner(private val dao: LibraryDao, private val art: ArtStore) : Libra
 
     private fun walk(base: NSURL, audio: MutableList<Doc>, covers: MutableMap<String, MutableList<Pair<String, NSURL>>>) {
         val keys = listOf(NSURLIsDirectoryKey, NSURLFileSizeKey, NSURLContentModificationDateKey)
-        val e = NSFileManager.defaultManager.enumeratorAtURL(base, keys, NSDirectoryEnumerationSkipsHiddenFiles, null) ?: return
+        // Si no se puede leer la carpeta (permiso perdido, ubicación desconectada…), se aborta:
+        // de lo contrario parecería vacía y se borraría toda la biblioteca.
+        if (NSFileManager.defaultManager.contentsOfDirectoryAtPath(base.path ?: "", null) == null) error(S.folderUnavailable)
+        val e = NSFileManager.defaultManager.enumeratorAtURL(base, keys, NSDirectoryEnumerationSkipsHiddenFiles, null)
+            ?: error(S.folderUnavailable)
         while (true) {
             val url = e.nextObject() as? NSURL ?: break
             val values = url.resourceValuesForKeys(keys, null) ?: continue
@@ -157,37 +161,48 @@ class IosScanner(private val dao: LibraryDao, private val art: ArtStore) : Libra
     override suspend fun deleteTracks(root: String, tracks: List<Track>): DeleteResult = mutex.withLock {
         withContext(IoDispatcher) {
             val base = IosLibrary.resolve(root) ?: error(S.folderUnavailable)
-            val rootPath = (base.path ?: error(S.folderUnavailable)).trimEnd('/')
+            // Rutas canónicas: /var y /private/var son la misma carpeta.
+            fun canon(path: String) = (NSURL.fileURLWithPath(path).URLByResolvingSymlinksInPath?.path ?: path).trimEnd('/')
+            val rootPath = canon(base.path ?: error(S.folderUnavailable))
             val fm = NSFileManager.defaultManager
+            /** Contenido de una carpeta, o null si no se puede leer (¡no es lo mismo que vacía!). */
+            fun list(dir: String): List<String>? = fm.contentsOfDirectoryAtPath(dir, null)?.mapNotNull { it as? String }
+            fun isDir(path: String) = (fm.attributesOfItemAtPath(path, null)?.get(NSFileType) as? String) == NSFileTypeDirectory
+            fun inside(path: String) = path.startsWith("$rootPath/")
+            /** Sistema y metadatos que no cuentan; un marcador de iCloud («.Canción.flac.icloud») SÍ cuenta. */
+            fun ignorable(name: String) = name == ".DS_Store" || name.startsWith("._")
+
             val deleted = ArrayList<String>()
             val failed = ArrayList<String>()
             for (t in tracks) {
-                val path = NSURL.URLWithString(t.uri)?.path
+                val path = NSURL.URLWithString(t.uri)?.path?.let(::canon)
                 when {
-                    path == null || !path.startsWith("$rootPath/") -> failed += t.fileName
-                    !fm.fileExistsAtPath(path) -> deleted += t.uri       // ya no estaba: cuenta como borrada
-                    fm.removeItemAtPath(path, null) -> deleted += t.uri
+                    path == null || !inside(path) -> failed += t.fileName
+                    fm.fileExistsAtPath(path) -> if (fm.removeItemAtPath(path, null)) deleted += t.uri else failed += t.fileName
+                    // No existe: sólo cuenta como borrada si su carpeta se puede leer (con acceso de verdad).
+                    list(path.substringBeforeLast('/')) != null -> deleted += t.uri
                     else -> failed += t.fileName
                 }
             }
-            fun list(dir: String) = fm.contentsOfDirectoryAtPath(dir, null)?.mapNotNull { it as? String }.orEmpty()
-            fun isDir(path: String) = (fm.attributesOfItemAtPath(path, null)?.get(NSFileType) as? String) == NSFileTypeDirectory
             var removedFolders = 0
             val deletedSet = deleted.toHashSet()
-            for (folder in tracks.map { it.folderId.trimEnd('/') }.distinct()) {
-                val bases = tracks.filter { it.folderId.trimEnd('/') == folder && it.uri in deletedSet }
+            for (folder in tracks.map { canon(it.folderId) }.distinct()) {
+                if (!inside(folder)) continue
+                val bases = tracks.filter { canon(it.folderId) == folder && it.uri in deletedSet }
                     .map { it.fileName.substringBeforeLast('.').lowercase() }.toSet()
-                list(folder).filter { it.lowercase().endsWith(".lrc") && it.substringBeforeLast('.').lowercase() in bases }
-                    .forEach { fm.removeItemAtPath("$folder/$it", null) }
-                if (folder == rootPath || !folder.startsWith("$rootPath/")) continue
-                val left = list(folder)
-                if (left.any { ScanRules.isAudio(it, "") || isDir("$folder/$it") }) continue
-                // La carpeta del álbum ya no tiene música: fuera, con lo que quede (portada, .cue, .log…).
+                list(folder)?.filter { it.lowercase().endsWith(".lrc") && it.substringBeforeLast('.').lowercase() in bases }
+                    ?.forEach { fm.removeItemAtPath("$folder/$it", null) }
+                val left = list(folder) ?: continue
+                // Sólo si lo que queda es «basura» de álbum conocida (portadas, .cue, .log…). Cualquier otra cosa,
+                // carpetas incluidas (también ocultas) o marcadores de iCloud, la conserva.
+                if (left.any { !ignorable(it) && (isDir("$folder/$it") || !ScanRules.isAlbumLeftover(it)) }) continue
                 if (!fm.removeItemAtPath(folder, null)) continue
                 removedFolders++
-                // Carpetas de arriba (p. ej. la del artista) sólo si quedan vacías (sin contar ocultos).
+                // Carpetas de arriba (p. ej. la del artista) sólo si quedan vacías de verdad.
                 var up = folder.substringBeforeLast('/')
-                while (up.startsWith("$rootPath/") && list(up).none { !it.startsWith(".") }) {
+                while (inside(up)) {
+                    val content = list(up) ?: break
+                    if (content.any { !ignorable(it) }) break
                     if (!fm.removeItemAtPath(up, null)) break
                     removedFolders++
                     up = up.substringBeforeLast('/')

@@ -108,4 +108,14 @@ class NewFeaturesTest {
         val (h, s, v) = Palette.toHsv(c)
         assertEquals("1ED760", Palette.hex(Palette.hsv(h, s, v)))
     }
+
+    @Test
+    fun onlyKnownLeftoversLetAnAlbumFolderBeDeleted() {
+        listOf("cover.jpg", "Folder.PNG", "rip.log", "album.cue", "info.nfo", ".DS_Store", "._01.flac", "Thumbs.db").forEach {
+            assertTrue(dev.surco.data.ScanRules.isAlbumLeftover(it), it)
+        }
+        listOf("video.mp4", "booklet.pdf", "extras.zip", "01.dff", ".01 Song.flac.icloud", "notes.docx").forEach {
+            assertTrue(!dev.surco.data.ScanRules.isAlbumLeftover(it), it)
+        }
+    }
 }

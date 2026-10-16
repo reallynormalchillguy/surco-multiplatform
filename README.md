@@ -23,6 +23,13 @@ androidApp/   App de Android: Media3, SAF, jaudiotagger, servicio de descargas
 iosApp/       Proyecto de Xcode (XcodeGen) que envuelve el framework `Shared`
 ```
 
+## Novedades de la versión 1.2 (Android e iPhone)
+
+Borrar álbumes (con doble confirmación), escaneo automático, completar datos de álbum desde MusicBrainz y Deezer,
+paletas de color aleatorias y editables, cambiar la foto de un artista, poner un álbum entero en la cola y
+letras que ya no necesitan recarga forzada. En iPhone, el escaneo automático revisa la carpeta al volver a la app
+y cada 45 s mientras está abierta (iOS no avisa a las apps de cambios en Archivos).
+
 ## Diferencias que impone iOS
 
 - Edición de etiquetas: FLAC y MP3 (M4A/ALAC se leen, pero no se editan aún).
