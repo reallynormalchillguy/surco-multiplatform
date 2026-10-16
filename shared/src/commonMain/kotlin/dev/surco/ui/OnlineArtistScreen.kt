@@ -163,7 +163,7 @@ fun OnlineArtistScreen(id: Long) {
     if (d == null) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (failed) S.couldNotLoadArtist else S.loading, color = SurcoColors.TextSecondary, modifier = Modifier.padding(32.dp), textAlign = TextAlign.Center)
@@ -183,7 +183,7 @@ fun OnlineArtistScreen(id: Long) {
                     .statusBarsPadding(),
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
                 }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     ArtImage(a.picture, Modifier.size(200.dp), CircleShape, Icons.Filled.Person)
@@ -227,9 +227,9 @@ fun OnlineArtistScreen(id: Long) {
                             onClick = { actions.openSoulseek(Discovery.soulseekQuery(a.name, "")) },
                             modifier = Modifier.fillMaxWidth().height(44.dp).testTag("online_artist_soulseek"),
                         ) {
-                            Icon(Icons.Filled.CloudDownload, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.CloudDownload, null, tint = SurcoColors.TextPrimary, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(S.searchArtistOnSoulseek, color = Color.White)
+                            Text(S.searchArtistOnSoulseek, color = SurcoColors.TextPrimary)
                         }
                     }
                 }

@@ -70,14 +70,29 @@ import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.launch
 
 /** Estado de la letra de [track]. Cambiar [nonce] fuerza una nueva búsqueda. */
+/** Esperas entre reintentos automáticos cuando no se puede contactar con LRCLIB (-1 = rendirse). */
+private val LYRICS_RETRY_DELAYS_MS = longArrayOf(3_000, 10_000, 30_000, -1)
+
 @Composable
 fun rememberLyrics(track: Track?, nonce: Int): Lyrics {
     val repo = LocalActions.current.container.lyrics
     val uri = track?.uri
     val value by produceState<Lyrics>(Lyrics.Loading, uri, nonce) {
         value = Lyrics.Loading
-        value = if (track == null) Lyrics.None
-        else runCatching { repo.load(track, force = nonce > 0) }.getOrDefault(Lyrics.None)
+        if (track == null) { value = Lyrics.None; return@produceState }
+        // Si falla la red, se reintenta solo (sin guardar «sin letra»): antes había que forzar la recarga.
+        for ((attempt, wait) in LYRICS_RETRY_DELAYS_MS.withIndex()) {
+            val r = try {
+                repo.load(track, force = nonce > 0 && attempt == 0)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                Lyrics.Failed
+            }
+            if (r != Lyrics.Failed) { value = r; return@produceState }
+            if (wait < 0) { value = Lyrics.Failed; return@produceState }
+            kotlinx.coroutines.delay(wait)
+        }
     }
     return value
 }
@@ -116,6 +131,7 @@ fun LyricsCard(
         when (lyrics) {
             Lyrics.Loading -> CardMessage(S.searchingLyrics)
             Lyrics.None -> CardMessage(S.lyricsNotFound)
+            Lyrics.Failed -> CardMessage(S.lyricsOffline)
             Lyrics.Instrumental -> CardMessage(S.instrumental)
             is Lyrics.Plain -> {
                 lyrics.lines.take(10).forEach { line ->
@@ -253,11 +269,12 @@ fun LyricsFullScreen(
                 }
                 Lyrics.Loading -> FullMessage(S.searchingLyrics)
                 Lyrics.Instrumental -> FullMessage(S.instrumental)
-                Lyrics.None -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(S.noLyrics, style = MaterialTheme.typography.headlineSmall)
+                Lyrics.None, Lyrics.Failed -> Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    val failed = lyrics == Lyrics.Failed
+                    Text(if (failed) S.lyricsOfflineTitle else S.noLyrics, style = MaterialTheme.typography.headlineSmall)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        S.noLyricsAnywhere,
+                        if (failed) S.lyricsOfflineBody else S.noLyricsAnywhere,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.75f),
                     )

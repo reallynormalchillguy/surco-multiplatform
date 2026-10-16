@@ -44,9 +44,15 @@ class AndroidArtStore(context: Context) : ArtStore {
     }
 
     override fun writeArtistImage(name: String, jpeg: ByteArray): String {
-        val f = File(artistDir, "${md5(name)}.jpg")
+        val f = File(artistDir, "${md5(name)}_${System.currentTimeMillis()}.jpg")
         f.writeBytes(jpeg)
         return f.absolutePath
+    }
+
+    override fun deleteArtistImage(path: String?) {
+        if (path == null) return
+        val f = File(path)
+        if (f.parentFile == artistDir) f.delete()
     }
 
     override fun delete(path: String?) {

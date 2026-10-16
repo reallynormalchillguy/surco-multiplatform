@@ -4,9 +4,13 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -15,16 +19,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.surco.ui.figtreeFamily
 
+/**
+ * Colores de la interfaz. Salen de la paleta activa (estado de Compose): al cambiarla en Ajustes,
+ * toda la app se redibuja al momento con los colores nuevos.
+ */
 object SurcoColors {
-    val Background = Color(0xFF101010)
-    val Surface = Color(0xFF1A1A1A)
-    val SurfaceHigh = Color(0xFF262626)
-    val SurfaceHigher = Color(0xFF333333)
-    val TextPrimary = Color(0xFFFFFFFF)
-    val TextSecondary = Color(0xFFB3B3B3)
-    val TextTertiary = Color(0xFF7A7A7A)
-    val Accent = Color(0xFF1ED760)
-    val OnAccent = Color(0xFF000000)
+    var palette by mutableStateOf(Palette.Default)
+
+    val Background: Color get() = palette.background
+    val Surface: Color get() = palette.surface
+    val SurfaceHigh: Color get() = palette.surfaceHigh
+    val SurfaceHigher: Color get() = palette.surfaceHigher
+    val TextPrimary: Color get() = palette.text
+    val TextSecondary: Color get() = palette.textSecondary
+    val TextTertiary: Color get() = palette.textTertiary
+    val Accent: Color get() = palette.accent
+    val OnAccent: Color get() = palette.onAccent
     val Error = Color(0xFFF15E6C)
 }
 
@@ -36,24 +46,24 @@ object SurcoShapes {
     val Gutter = 16.dp    // margen lateral de todas las pantallas
 }
 
-private val scheme = darkColorScheme(
-    primary = SurcoColors.Accent,
-    onPrimary = SurcoColors.OnAccent,
-    secondary = SurcoColors.Accent,
-    onSecondary = SurcoColors.OnAccent,
-    background = SurcoColors.Background,
-    onBackground = SurcoColors.TextPrimary,
-    surface = SurcoColors.Background,
-    onSurface = SurcoColors.TextPrimary,
-    surfaceVariant = SurcoColors.SurfaceHigh,
-    onSurfaceVariant = SurcoColors.TextSecondary,
-    surfaceContainer = SurcoColors.Surface,
-    surfaceContainerHigh = SurcoColors.SurfaceHigh,
-    surfaceContainerHighest = SurcoColors.SurfaceHigher,
-    surfaceContainerLow = SurcoColors.Surface,
-    surfaceContainerLowest = SurcoColors.Background,
-    outline = SurcoColors.TextTertiary,
-    outlineVariant = SurcoColors.SurfaceHigher,
+private fun schemeFor(p: Palette) = (if (p.isLight) lightColorScheme() else darkColorScheme()).copy(
+    primary = p.accent,
+    onPrimary = p.onAccent,
+    secondary = p.accent,
+    onSecondary = p.onAccent,
+    background = p.background,
+    onBackground = p.text,
+    surface = p.background,
+    onSurface = p.text,
+    surfaceVariant = p.surfaceHigh,
+    onSurfaceVariant = p.textSecondary,
+    surfaceContainer = p.surface,
+    surfaceContainerHigh = p.surfaceHigh,
+    surfaceContainerHighest = p.surfaceHigher,
+    surfaceContainerLow = p.surface,
+    surfaceContainerLowest = p.background,
+    outline = p.textTertiary,
+    outlineVariant = p.surfaceHigher,
     error = SurcoColors.Error,
 )
 
@@ -85,6 +95,8 @@ private fun typography(f: FontFamily) = Typography(
 fun SurcoTheme(content: @Composable () -> Unit) {
     val family = figtreeFamily()
     val typography = remember(family) { typography(family) }
+    val palette = SurcoColors.palette
+    val scheme = remember(palette) { schemeFor(palette) }
     MaterialTheme(colorScheme = scheme, typography = typography) {
         // Color de texto por defecto: blanco. Sin esto, lo que queda fuera de un Surface/Scaffold
         // (p. ej. el reproductor a pantalla completa) salía en negro.

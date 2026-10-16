@@ -1,6 +1,7 @@
 package dev.surco.app
 
 import dev.surco.data.AppFiles
+import dev.surco.data.AutoScan
 import dev.surco.data.ArtStore
 import dev.surco.data.Discovery
 import dev.surco.data.KeyValueStore
@@ -14,6 +15,7 @@ import dev.surco.net.CoverSearch
 import dev.surco.net.Deezer
 import dev.surco.net.LastFm
 import dev.surco.net.LrcLib
+import dev.surco.net.MetadataSearch
 import dev.surco.net.PrefsLastFmAccount
 import dev.surco.net.surcoHttpClient
 import dev.surco.playback.PlayerController
@@ -22,6 +24,10 @@ import dev.surco.tags.TagEditor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /** Piezas que aporta cada plataforma. */
 class PlatformParts(
@@ -67,6 +73,20 @@ abstract class SurcoCore(parts: PlatformParts) {
     val lyrics = LyricsRepository(db.lyrics(), prefs, scanner, parts.tags, LrcLib(api))
     val deezer = Deezer(api)
     val discovery = Discovery(parts.files, db.dao(), deezer, appScope)
+    val metadata = MetadataSearch(api)
+    val autoScan = AutoScan(prefs, repository, appScope)
+
+    /**
+     * Arranque común, una vez creado el reproductor de la plataforma: precarga la letra de cada canción
+     * que empieza a sonar, para que al abrir el reproductor ya esté lista.
+     */
+    fun startBackgroundWork() {
+        appScope.launch {
+            player.state.map { it.mediaId }.distinctUntilChanged().filterNotNull().collect { id ->
+                db.dao().track(id)?.let(lyrics::prefetch)
+            }
+        }
+    }
 
     abstract val player: PlayerController
     abstract val soulseek: SoulseekService

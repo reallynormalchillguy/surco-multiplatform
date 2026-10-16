@@ -32,7 +32,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -44,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -101,7 +105,7 @@ fun CollectionScreen(
                     .statusBarsPadding()
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
                 }
                 Column(Modifier.padding(horizontal = 16.dp)) { header() }
                 Row(
@@ -131,7 +135,7 @@ fun CollectionScreen(
                         Icon(
                             if (playingHere && state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                             S.play,
-                            tint = Color.Black,
+                            tint = SurcoColors.OnAccent,
                             modifier = Modifier.size(32.dp),
                         )
                     }
@@ -186,6 +190,12 @@ fun AlbumScreen(albumKey: String) {
     val tracks by tracksFlow.collectAsState(initial = emptyList())
     val a = album
     val color = rememberArtColor(a?.artPath)
+    // Si el álbum desaparece estando abierto (p. ej. se acaba de borrar), volvemos atrás.
+    var loaded by remember(albumKey) { mutableStateOf(false) }
+    LaunchedEffect(a == null) {
+        if (a != null) loaded = true
+        else if (loaded) actions.nav.popBackStack()
+    }
 
     if (a == null) {
         Box(Modifier.fillMaxSize().statusBarsPadding(), contentAlignment = Alignment.Center) {
@@ -233,11 +243,14 @@ fun AlbumScreen(albumKey: String) {
             IconButton(onClick = { actions.editAlbum(a.albumKey) }) {
                 Icon(Icons.Filled.Edit, S.editAlbum, tint = SurcoColors.TextSecondary)
             }
-            IconButton(onClick = { actions.searchCovers(a.albumKey) }) {
-                Icon(Icons.Filled.ImageSearch, S.findCover, tint = SurcoColors.TextSecondary)
+            IconButton(
+                onClick = { actions.player.enqueue(tracks); actions.toast(S.albumAddedToQueue(tracks.size)) },
+                enabled = tracks.isNotEmpty(),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.QueueMusic, S.addAlbumToQueue, tint = SurcoColors.TextSecondary)
             }
-            IconButton(onClick = { actions.addToPlaylist(tracks) }) {
-                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, S.addToPlaylist, tint = SurcoColors.TextSecondary)
+            IconButton(onClick = { actions.albumMenu(a.albumKey) }, modifier = Modifier.testTag("album_more")) {
+                Icon(Icons.Filled.MoreVert, S.moreOptions, tint = SurcoColors.TextSecondary)
             }
         },
         footer = {
@@ -281,12 +294,19 @@ fun ArtistScreen(name: String) {
         source = source,
         color = color,
         header = {
-            ArtImage(
-                image,
-                Modifier.size(200.dp).align(Alignment.CenterHorizontally),
-                CircleShape,
-                Icons.Filled.Person,
-            )
+            Box(
+                Modifier.size(200.dp).align(Alignment.CenterHorizontally)
+                    .clickable { actions.artistPicture(name) }.testTag("artist_photo"),
+            ) {
+                ArtImage(image, Modifier.size(200.dp), CircleShape, Icons.Filled.Person)
+                Box(
+                    Modifier.align(Alignment.BottomEnd).padding(8.dp).size(38.dp).clip(CircleShape)
+                        .background(SurcoColors.SurfaceHigher),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.PhotoCamera, S.changeArtistPhoto, tint = SurcoColors.TextPrimary, modifier = Modifier.size(20.dp))
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Text(name, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Text(
@@ -301,7 +321,7 @@ fun ArtistScreen(name: String) {
         },
         toolbar = {
             TextButton(onClick = { actions.play(tracks, 0, source) }) {
-                Text(S.playAll(tracks.size), color = Color.White)
+                Text(S.playAll(tracks.size), color = SurcoColors.TextPrimary)
             }
         },
         footer = {
@@ -439,7 +459,7 @@ fun RecentScreen() {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.statusBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { actions.nav.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Text(S.recents, style = MaterialTheme.typography.headlineSmall)
         }

@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import dev.surco.app.SurcoCore
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -83,7 +84,7 @@ fun SettingsScreen() {
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { actions.nav.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Text(S.settings, style = MaterialTheme.typography.titleLarge)
         }
@@ -132,6 +133,38 @@ fun SettingsScreen() {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = pickFolder) { Text(S.changeFolder) }
                     AccentButton(S.scanAgain, enabled = scan !is ScanState.Running) { repo.rescan() }
+                }
+                Spacer(Modifier.height(8.dp))
+                SwitchRow(S.autoScan, S.autoScanDesc, settings.autoScan) { v ->
+                    repo.prefs.update { it.copy(autoScan = v) }
+                }
+            }
+
+            // ================= Apariencia
+            Header(S.appearance)
+            Card {
+                Row(
+                    Modifier.fillMaxWidth().clickable { actions.openPalette() }.testTag("open_palette"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(S.colorPalette, style = MaterialTheme.typography.titleSmall)
+                        Text(S.colorPaletteDesc, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SurcoColors.palette.base.forEach { c ->
+                            Box(Modifier.size(26.dp).clip(CircleShape).background(SurcoColors.SurfaceHigher).padding(2.dp).clip(CircleShape).background(c))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AccentButton(S.shufflePalette) {
+                        val p = dev.surco.ui.theme.Palette.random()
+                        repo.prefs.update { it.copy(palette = p.encode()) }
+                    }
+                    OutlinedButton(onClick = { actions.openPalette() }) { Text(S.customize) }
                 }
             }
 

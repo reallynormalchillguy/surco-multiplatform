@@ -10,6 +10,8 @@ sealed interface Lyrics {
     data object Loading : Lyrics
     data object None : Lyrics
     data object Instrumental : Lyrics
+    /** No se pudo preguntar a LRCLIB (sin conexión, tiempo agotado, servidor caído). No se guarda en caché. */
+    data object Failed : Lyrics
     data class Synced(val lines: List<LyricLine>, val source: String, val raw: String) : Lyrics
     data class Plain(val lines: List<String>, val source: String, val raw: String) : Lyrics
 }

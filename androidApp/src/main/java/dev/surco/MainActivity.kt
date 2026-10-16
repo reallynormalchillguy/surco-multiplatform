@@ -44,6 +44,12 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            // Con una paleta clara, los iconos de la barra de estado pasan a oscuros (y al revés).
+            val light = dev.surco.ui.theme.SurcoColors.palette.isLight
+            androidx.compose.runtime.LaunchedEffect(light) {
+                val style = if (light) SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT) else SystemBarStyle.dark(Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
             SurcoTheme {
                 SurcoRoot(container = container, openPlayerSignal = openPlayerSignal.intValue)
                 CrashDialog()
@@ -76,6 +82,8 @@ class MainActivity : ComponentActivity() {
         (application as SurcoApp).container.player.connect()
         // Si quedaron scrobbles pendientes (p. ej. de escuchar sin conexión), se intentan enviar ya.
         (application as SurcoApp).container.repository.flushScrobblesAsync()
+        // Música copiada mientras la app estaba en segundo plano.
+        (application as SurcoApp).container.autoScan.onForeground()
     }
 
     override fun onStop() {

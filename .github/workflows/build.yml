@@ -237,6 +237,7 @@ jobs:
           shot 04_buscar --surco-demo --surco-route=search
           shot 05_reproductor --surco-demo --surco-player
           shot 06_ajustes --surco-demo --surco-route=settings
+          shot 07_paleta --surco-demo --surco-route=palette
           xcrun simctl spawn "$DEV" log show --last 5m --predicate 'process == "Surco"' --style compact > ../ios-shots/system.log 2>&1 || true
 
       - name: Publicar informe de la app de iOS

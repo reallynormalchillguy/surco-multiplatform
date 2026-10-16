@@ -3,6 +3,7 @@ package dev.surco
 import dev.surco.app.PlatformParts
 import dev.surco.app.SurcoCore
 import dev.surco.data.AppFiles
+import dev.surco.data.DeleteResult
 import dev.surco.data.ArtStore
 import dev.surco.data.LibraryScanner
 import dev.surco.data.MemoryStore
@@ -16,6 +17,7 @@ import dev.surco.tags.TagEdits
 import dev.surco.tags.TagEditor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import io.ktor.client.engine.mock.respond
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,11 +35,19 @@ class RepositoryTest {
         override fun toJpeg(bytes: ByteArray, max: Int) = bytes.takeIf { it.isNotEmpty() }
         override fun writeAlbumArt(albumKey: String, jpeg: ByteArray) = "/art/$albumKey"
         override fun writeArtistImage(name: String, jpeg: ByteArray) = "/artists/$name"
+        override fun deleteArtistImage(path: String?) {}
         override fun delete(path: String?) {}
         override fun exists(path: String?) = path != null
     }
 
     private class FakeScanner : LibraryScanner {
+        val deletedFiles = mutableListOf<String>()
+        override suspend fun deleteTracks(root: String, tracks: List<Track>): DeleteResult {
+            // La pista 3 está «protegida»: simula un archivo que no se deja borrar.
+            val (ok, ko) = tracks.partition { !it.fileName.startsWith("03") }
+            deletedFiles += ok.map { it.uri }
+            return DeleteResult(ok.map { it.uri }, ko.map { it.fileName }, 1)
+        }
         override val state = MutableStateFlow<ScanState>(ScanState.Idle)
         override suspend fun scan(root: String): ScanState = ScanState.Done(0, 0, 0)
         override suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray? =
@@ -96,5 +106,62 @@ class RepositoryTest {
         core.prefs.update { it.copy(treeUri = "root") }
         val lyrics = core.lyrics.load(track(1))
         assertTrue(lyrics is dev.surco.data.Lyrics.Synced, "letra del .lrc de al lado: $lyrics")
+    }
+
+    @Test
+    fun deletingAnAlbumRemovesItsSongsEverywhere() = runTest {
+        val repo = core.repository
+        repo.dao.upsertTracks(listOf(track(1), track(2), track(3)))
+        repo.setLiked(track(1).uri, true)
+        val pl = repo.createPlaylist("x")
+        repo.addToPlaylist(pl, listOf(track(1).uri, track(2).uri))
+        core.prefs.update { it.copy(treeUri = "root") }
+
+        val r = repo.deleteAlbum("aa:a|al")
+        assertEquals(listOf(track(1).uri, track(2).uri), r.deleted)
+        assertEquals(listOf("03.flac"), r.failed)
+        // Lo que no se pudo borrar sigue en la biblioteca; lo borrado desaparece de listas y «Me gusta».
+        assertEquals(listOf(track(3).uri), repo.dao.albumTracksOnce("aa:a|al").map { it.uri })
+        assertEquals(0, repo.dao.playlist(pl).first()!!.trackCount)
+        assertTrue(repo.dao.likedUris().first().isEmpty())
+    }
+
+    @Test
+    fun albumInfoFromTheInternetIsWrittenToEachSong() = runTest {
+        val repo = core.repository
+        val local = listOf(
+            track(1).copy(title = "01", album = dev.surco.data.UNKNOWN_ALBUM, albumKey = "f:root|x"),
+            track(2).copy(title = "02", album = dev.surco.data.UNKNOWN_ALBUM, albumKey = "f:root|x"),
+        )
+        repo.dao.upsertTracks(local)
+        val info = dev.surco.data.AlbumInfo(
+            dev.surco.data.AlbumCandidate("MusicBrainz", "id", "Disco", "A", 2001, 2, null),
+            "Disco", "A", 2001, "Rock",
+            listOf(dev.surco.data.RemoteTrack(1, 1, "Uno", "A", 100_000), dev.surco.data.RemoteTrack(1, 2, "Dos", "A", 100_000)),
+            coverUrl = null,
+        )
+        val plans = dev.surco.data.AlbumMatcher.plan(local, info, dev.surco.data.AlbumInfoChoice())
+        val (key, errors) = repo.applyAlbumInfo("f:root|x", plans, null) { _, _ -> }
+        assertTrue(errors.isEmpty())
+        assertEquals("aa:a|disco", key)
+        assertEquals(listOf("Uno", "Dos"), repo.dao.albumTracksOnce(key).map { it.title })
+        assertEquals("Rock", tags.writes.last().second.genre)
+    }
+
+    @Test
+    fun lyricsNetworkFailureIsNotCachedAsMissing() = runTest {
+        var online = false
+        val http = io.ktor.client.HttpClient(io.ktor.client.engine.mock.MockEngine { req ->
+            if (!online) throw RuntimeException("sin red")
+            if (req.url.encodedPath.endsWith("/get")) respond("""{"syncedLyrics":"[00:01.00]hola","plainLyrics":"hola"}""", io.ktor.http.HttpStatusCode.OK)
+            else respond("[]", io.ktor.http.HttpStatusCode.OK)
+        })
+        val lyrics = dev.surco.data.LyricsRepository(core.db.lyrics(), core.prefs, FakeScanner(), FakeTags(), dev.surco.net.LrcLib(http))
+        val t = track(5)
+        assertEquals(dev.surco.data.Lyrics.Failed, lyrics.load(t))
+        assertEquals(null, core.db.lyrics().get(t.uri), "un fallo de red no se guarda como «sin letra»")
+        online = true
+        val again = lyrics.load(t)
+        assertTrue(again is dev.surco.data.Lyrics.Synced, "la siguiente carga, sin forzar, la encuentra: $again")
     }
 }

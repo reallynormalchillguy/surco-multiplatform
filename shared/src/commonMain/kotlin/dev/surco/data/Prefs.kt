@@ -2,6 +2,8 @@ package dev.surco.data
 
 import dev.surco.i18n.I18n
 import dev.surco.i18n.Lang
+import dev.surco.ui.theme.Palette
+import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +35,10 @@ data class Settings(
     val language: String = "en",
     /** Recomendaciones de música nueva en Inicio (Deezer). */
     val discover: Boolean = true,
+    /** Reescanear solo cuando aparecen archivos o carpetas nuevos en la carpeta de música. */
+    val autoScan: Boolean = true,
+    /** Paleta de colores de la interfaz ("" = la original). Ver [dev.surco.ui.theme.Palette.encode]. */
+    val palette: String = "",
 ) {
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
     val lastfmLoggedIn get() = lastfmReady && lastfmSession.isNotBlank()
@@ -77,6 +83,8 @@ class Prefs(
         slskFormat = str("slskFormat", "all"),
         language = str("language", "en"),
         discover = store.bool("discover", true),
+        autoScan = store.bool("autoScan", true),
+        palette = str("palette", ""),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -94,6 +102,7 @@ class Prefs(
                 "slskDir" to s.slskDir,
                 "slskFormat" to s.slskFormat,
                 "language" to s.language,
+                "palette" to s.palette,
             ),
             bools = mapOf(
                 "embedCovers" to s.embedCovers,
@@ -103,6 +112,7 @@ class Prefs(
                 "libSortRecent" to s.librarySortRecent,
                 "slskSubfolders" to s.slskSubfolders,
                 "discover" to s.discover,
+                "autoScan" to s.autoScan,
             ),
         )
         applyLanguage(s)
@@ -110,6 +120,8 @@ class Prefs(
 
     private fun applyLanguage(s: Settings) {
         I18n.lang = if (s.language == "es") Lang.ES else Lang.EN
+        val p = Palette.decode(s.palette)
+        if (SurcoColors.palette != p) SurcoColors.palette = p
     }
 
     init {

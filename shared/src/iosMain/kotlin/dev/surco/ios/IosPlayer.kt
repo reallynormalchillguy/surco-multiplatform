@@ -161,6 +161,30 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
         publish()
     }
 
+    override fun playNext(tracks: List<Track>) {
+        if (tracks.isEmpty()) return
+        if (queue.isEmpty()) return play(tracks, 0, "cola|Cola")
+        val cur = order.getOrNull(pos) ?: return
+        if (shuffle) {
+            val first = queue.size
+            queue = queue + tracks
+            order = order.toMutableList().apply { addAll(pos + 1, tracks.indices.map { first + it }) }
+        } else {
+            queue = queue.toMutableList().apply { addAll(cur + 1, tracks) }
+            order = queue.indices.toList()
+            pos = cur
+        }
+        publish()
+    }
+
+    override fun removeFromQueue(uris: Collection<String>) {
+        val gone = uris.toHashSet()
+        // De atrás adelante: los índices de delante no cambian al quitar.
+        for (i in queue.indices.reversed()) {
+            if (queue.getOrNull(i)?.uri in gone) removeFromQueue(i)
+        }
+    }
+
     override fun enqueue(tracks: List<Track>) {
         if (tracks.isEmpty()) return
         if (queue.isEmpty()) return play(tracks, 0, "cola|Cola")

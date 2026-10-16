@@ -176,6 +176,15 @@ object S {
     fun lyricsSavedIn(file: String) = t("Lyrics saved to $file", "Letra guardada en $file")
     fun couldNotSave(msg: String?) = t("Couldn't save: ${msg.orEmpty()}", "No se pudo guardar: ${msg.orEmpty()}")
     val noLyrics get() = t("No lyrics", "Sin letra")
+    val lyricsOffline get() = t(
+        "Couldn't reach the lyrics service.\nTap to try again.",
+        "No se pudo conectar con el servicio de letras.\nToca para volver a intentarlo.",
+    )
+    val lyricsOfflineTitle get() = t("Couldn't load lyrics", "No se pudo cargar la letra")
+    val lyricsOfflineBody get() = t(
+        "The lyrics service didn't answer. Check your connection and search again.",
+        "El servicio de letras no respondió. Comprueba la conexión y vuelve a buscar.",
+    )
     val noLyricsAnywhere get() = t(
         "Not in a .lrc file, the tags, or LRCLIB.",
         "No está en un archivo .lrc, ni en las etiquetas, ni en LRCLIB.",
@@ -438,4 +447,104 @@ object S {
     val missingLastfmKeys get() = t("The Last.fm API key or secret is missing", "Falta la API key o el secret de Last.fm")
     val emptyLastfmReply get() = t("Empty reply from Last.fm", "Respuesta vacía de Last.fm")
     fun invalidLastfmReply(code: Int) = t("Invalid reply from Last.fm ($code)", "Respuesta inválida de Last.fm ($code)")
+
+    // ------------------------------------------------------------------ Álbum: cola y borrado
+    val addAlbumToQueue get() = t("Add album to queue", "Añadir álbum a la cola")
+    fun albumAddedToQueue(count: Int) = n(count, "1 song added to the queue", "# songs added to the queue", "1 canción añadida a la cola", "# canciones añadidas a la cola")
+    val albumWillPlayNext get() = t("The album will play next", "El álbum sonará a continuación")
+    val deleteAlbum get() = t("Delete album from device", "Borrar álbum del dispositivo")
+    fun deleteAlbumQuestion(name: String) = t("Delete “$name”?", "¿Borrar «$name»?")
+    fun deleteAlbumWarning(count: Int) = n(
+        count,
+        "This permanently deletes its 1 file from your device, and its folder if no music is left in it. It can't be undone.",
+        "This permanently deletes its # files from your device, and its folder if no music is left in it. It can't be undone.",
+        "Se borrará para siempre su archivo del dispositivo, y su carpeta si no le queda música. No se puede deshacer.",
+        "Se borrarán para siempre sus # archivos del dispositivo, y su carpeta si no le queda música. No se puede deshacer.",
+    )
+    val deleteAlbumSure get() = t("Are you sure?", "¿Seguro?")
+    fun deleteAlbumFinal(count: Int, name: String, artist: String) = n(
+        count,
+        "1 song of “$name” by $artist will be erased from your device. There is no recycle bin.",
+        "# songs of “$name” by $artist will be erased from your device. There is no recycle bin.",
+        "Se borrará 1 canción de «$name» de $artist de tu dispositivo. No hay papelera.",
+        "Se borrarán # canciones de «$name» de $artist de tu dispositivo. No hay papelera.",
+    )
+    val deleteForever get() = t("Delete forever", "Borrar para siempre")
+    val keepAlbum get() = t("Keep it", "Conservarlo")
+    val deleting get() = t("Deleting…", "Borrando…")
+    fun albumDeleted(name: String) = t("“$name” deleted", "«$name» borrado")
+    fun albumDeletedPartly(deleted: Int, failed: Int) = t(
+        "$deleted files deleted; $failed couldn't be deleted",
+        "$deleted archivos borrados; $failed no se pudieron borrar",
+    )
+    val couldNotDelete get() = t("Couldn't delete the album", "No se pudo borrar el álbum")
+
+    // ------------------------------------------------------------------ Datos del álbum desde internet
+    val fillFromInternet get() = t("Fill in info from the internet", "Completar datos desde internet")
+    val fillFromInternetHelp get() = t(
+        "Search MusicBrainz and Deezer by album and artist. You'll see every change before anything is saved.",
+        "Busca en MusicBrainz y Deezer por álbum y artista. Verás cada cambio antes de guardar nada.",
+    )
+    val noAlbumsFound get() = t("No albums found. Try other words.", "No se encontraron álbumes. Prueba con otras palabras.")
+    fun pickTheEdition(local: Int) = t(
+        "Pick the edition that matches yours (you have $local songs; editions with the same count are highlighted).",
+        "Elige la edición que coincide con la tuya (tienes $local canciones; se resaltan las que tienen las mismas).",
+    )
+    val couldNotLoadAlbumInfo get() = t("Couldn't load that album. Try another result.", "No se pudo cargar ese álbum. Prueba otro resultado.")
+    val reviewChanges get() = t("Review changes", "Revisar cambios")
+    fun matchedOf(matched: Int, total: Int) = t("$matched of $total songs matched", "$matched de $total canciones emparejadas")
+    val onlyFillEmpty get() = t("Only fill in what's missing", "Sólo completar lo que falta")
+    val onlyFillEmptyDesc get() = t("Keep the info your files already have", "Conserva los datos que ya tienen tus archivos")
+    val songTitles get() = t("Song titles", "Títulos de las canciones")
+    val trackAndDiscNumbers get() = t("Track and disc numbers", "Números de pista y disco")
+    val trackArtists get() = t("Song artists", "Artistas de cada canción")
+    val cover get() = t("Cover", "Portada")
+    val replacesCurrentCover get() = t("Replaces the current cover", "Sustituye la portada actual")
+    val albumHasNoCover get() = t("The album has no cover yet", "El álbum aún no tiene portada")
+    fun noMatchKeepsTitle(title: String) = t("No match · keeps “$title”", "Sin pareja · se queda «$title»")
+    fun applyToSongs(count: Int) = n(count, "Save changes to 1 song", "Save changes to # songs", "Guardar cambios en 1 canción", "Guardar cambios en # canciones")
+    val applyCoverOnly get() = t("Save cover", "Guardar portada")
+    fun couldNotEditSomeCount(count: Int) = n(count, "1 file couldn't be edited", "# files couldn't be edited", "No se pudo editar 1 archivo", "No se pudieron editar # archivos")
+
+    // ------------------------------------------------------------------ Foto de artista
+    fun artistPhotoOf(name: String) = t("Photo of $name", "Foto de $name")
+    val changeArtistPhoto get() = t("Change photo", "Cambiar foto")
+    val chooseFromGallery get() = t("Choose from gallery", "Elegir de la galería")
+    val searchOnline get() = t("Search online", "Buscar en internet")
+    val useAutomaticPhoto get() = t("Use the automatic photo", "Usar la foto automática")
+    val chooseAPhoto get() = t("Choose a photo", "Elige una foto")
+    val artistPhotoUpdated get() = t("Artist photo updated", "Foto del artista actualizada")
+    val noArtistPhotoFound get() = t("No photos found", "No se encontraron fotos")
+    val saving get() = t("Saving…", "Guardando…")
+
+    // ------------------------------------------------------------------ Paleta de colores
+    val appearance get() = t("Appearance", "Apariencia")
+    val colorPalette get() = t("Color palette", "Paleta de colores")
+    val colorPaletteDesc get() = t("Shuffle a random palette or pick each color", "Sortea una paleta al azar o elige cada color")
+    val shufflePalette get() = t("Shuffle", "Sortear")
+    val customize get() = t("Customize", "Personalizar")
+    val undo get() = t("Undo", "Deshacer")
+    val resetPalette get() = t("Back to the original colors", "Volver a los colores originales")
+    val tapColorToEdit get() = t("Tap a color to edit it", "Toca un color para editarlo")
+    val colorAccent get() = t("Accent", "Acento")
+    val colorBackground get() = t("Background", "Fondo")
+    val colorSurface get() = t("Cards", "Tarjetas")
+    val colorText get() = t("Text", "Texto")
+    val hue get() = t("Hue", "Tono")
+    val saturation get() = t("Saturation", "Saturación")
+    val brightness get() = t("Brightness", "Brillo")
+    val hexCode get() = t("Hex code", "Código hexadecimal")
+    val previewTitle get() = t("Good evening", "Buenas tardes")
+    val previewSong get() = t("Song title", "Título de la canción")
+    val previewArtist get() = t("Artist • Album", "Artista • Álbum")
+    val previewCaption get() = t("This is how Surco will look", "Así se verá Surco")
+    val lowContrastText get() = t("Text may be hard to read on this background", "El texto puede costar de leer sobre este fondo")
+    val lowContrastAccent get() = t("The accent color barely stands out from the background", "El color de acento apenas se distingue del fondo")
+
+    // ------------------------------------------------------------------ Escaneo automático
+    val autoScan get() = t("Scan automatically", "Escanear automáticamente")
+    val autoScanDesc get() = t(
+        "Add new songs and folders to the library as soon as they appear in your music folder",
+        "Añade a la biblioteca las canciones y carpetas nuevas en cuanto aparecen en tu carpeta de música",
+    )
 }

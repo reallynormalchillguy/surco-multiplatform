@@ -14,6 +14,7 @@ struct SurcoApp: App {
         }
         .onChange(of: phase) { newPhase in
             if newPhase == .active { IosApp.shared.onForeground() }
+            if newPhase == .background { IosApp.shared.onBackground() }
         }
     }
 }

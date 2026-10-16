@@ -313,6 +313,7 @@ fun TrackRow(
 }
 
 /** Fila genérica de biblioteca/búsqueda: imagen + título + subtítulo + acción a la derecha. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryRow(
     title: String,
@@ -323,12 +324,13 @@ fun LibraryRow(
     artSize: Dp = 64.dp,
     pinned: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     art: @Composable (Modifier) -> Unit,
 ) {
     Row(
         modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

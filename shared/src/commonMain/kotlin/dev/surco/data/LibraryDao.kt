@@ -96,6 +96,12 @@ interface LibraryDao {
     @Upsert
     suspend fun upsertArtistImage(img: ArtistImage)
 
+    @Query("SELECT * FROM artist_images WHERE name = :name")
+    suspend fun artistImage(name: String): ArtistImage?
+
+    @Query("DELETE FROM artist_images WHERE name = :name")
+    suspend fun deleteArtistImage(name: String)
+
     // ---------- Géneros ----------
     @Query("SELECT genre, COUNT(*) AS trackCount, MAX(artPath) AS artPath FROM tracks WHERE genre != '' GROUP BY genre ORDER BY trackCount DESC")
     fun genres(): Flow<List<GenreRow>>
@@ -187,6 +193,16 @@ interface LibraryDao {
 
     @Query("DELETE FROM playlist_entries WHERE playlistId = :id AND trackUri = :uri")
     suspend fun removeEntry(id: Long, uri: String)
+
+    /** Quita canciones borradas del dispositivo de todas las listas, de «Me gusta» y de la caché de letras. */
+    @Query("DELETE FROM playlist_entries WHERE trackUri IN (:uris)")
+    suspend fun removeEntriesForTracks(uris: List<String>)
+
+    @Query("DELETE FROM liked WHERE trackUri IN (:uris)")
+    suspend fun unlikeAll(uris: List<String>)
+
+    @Query("DELETE FROM lyrics WHERE trackUri IN (:uris)")
+    suspend fun deleteLyrics(uris: List<String>)
 
     // ---------- Scrobbles ----------
     @Insert

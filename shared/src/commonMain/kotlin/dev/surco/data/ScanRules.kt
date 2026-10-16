@@ -16,7 +16,16 @@ interface LibraryScanner {
     suspend fun scan(root: String): ScanState
     /** Lee un archivo que está junto a la canción (p. ej. su .lrc), o null si no existe. */
     suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray?
+    /**
+     * Borra del dispositivo, para siempre, los archivos de estas canciones (y su .lrc). Después quita
+     * la carpeta del álbum si ya no le queda música (con su portada, .cue, .log…) y las carpetas
+     * superiores que hayan quedado vacías. Nunca toca la carpeta raíz de la biblioteca.
+     */
+    suspend fun deleteTracks(root: String, tracks: List<Track>): DeleteResult
 }
+
+/** Resultado de borrar canciones del dispositivo (URIs borradas, archivos que no se pudieron borrar). */
+data class DeleteResult(val deleted: List<String>, val failed: List<String>, val foldersRemoved: Int)
 
 /** Reglas comunes del escaneo: qué es audio, cómo se agrupan los álbumes, cómo se leen números… */
 object ScanRules {

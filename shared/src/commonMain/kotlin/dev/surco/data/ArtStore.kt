@@ -9,7 +9,10 @@ interface ArtStore {
     fun toJpeg(bytes: ByteArray, max: Int = 1200): ByteArray?
     /** Devuelve la ruta del archivo guardado. */
     fun writeAlbumArt(albumKey: String, jpeg: ByteArray): String
+    /** Cada foto nueva lleva otro nombre: así la caché de imágenes no sigue enseñando la anterior. */
     fun writeArtistImage(name: String, jpeg: ByteArray): String
+    /** Borra una foto de artista antigua (sólo si es nuestra). */
+    fun deleteArtistImage(path: String?)
     /** Borra una portada antigua (sólo si es nuestra). */
     fun delete(path: String?)
     fun exists(path: String?): Boolean

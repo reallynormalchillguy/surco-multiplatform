@@ -28,6 +28,10 @@ class IosContainer : SurcoCore(
 ) {
     override val player = IosPlayer(appScope, repository)
     override val soulseek: SoulseekService = IosSoulseek(prefs, repository, appScope)
+
+    init {
+        startBackgroundWork()
+    }
 }
 
 private fun bundleString(key: String): String = (NSBundle.mainBundle.objectForInfoDictionaryKey(key) as? String).orEmpty()
@@ -44,10 +48,20 @@ object IosApp {
     /** Al volver a primer plano: enviar scrobbles pendientes; la primera vez, además, reescanear. */
     fun onForeground() {
         container.repository.flushScrobblesAsync()
+        if (IosDemo.enabled) return
         if (!started) {
             started = true
-            if (!IosDemo.enabled) container.repository.rescan()
+            container.repository.rescan()
         }
+        // Escaneo automático: al volver a la app y, mientras está abierta, cada poco tiempo
+        // (iOS no avisa a las apps cuando cambia una carpeta de Archivos).
+        container.autoScan.onForeground()
+        container.autoScan.startPolling()
+    }
+
+    /** La app pasa a segundo plano: se deja de revisar la carpeta. */
+    fun onBackground() {
+        container.autoScan.stopPolling()
     }
 }
 

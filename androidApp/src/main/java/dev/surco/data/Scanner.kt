@@ -183,6 +183,79 @@ class Scanner(
         )
     }
 
+    private data class Child(val id: String, val name: String, val mime: String) {
+        val isDir get() = mime == DocumentsContract.Document.MIME_TYPE_DIR
+    }
+
+    private fun children(tree: Uri, parentId: String): List<Child>? {
+        val proj = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+        )
+        val uri = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentId)
+        return context.contentResolver.query(uri, proj, null, null, null)?.use { c ->
+            buildList { while (c.moveToNext()) add(Child(c.getString(0) ?: continue, c.getString(1) ?: "", c.getString(2) ?: "")) }
+        }
+    }
+
+    private fun deleteDoc(tree: Uri, id: String): Boolean = runCatching {
+        DocumentsContract.deleteDocument(context.contentResolver, DocumentsContract.buildDocumentUriUsingTree(tree, id))
+    }.getOrDefault(false)
+
+    /**
+     * Borra del dispositivo, para siempre, los archivos de estas canciones (y su .lrc). Después quita
+     * la carpeta del álbum si ya no le queda música (con su portada, .cue, .log…) y las carpetas
+     * superiores que hayan quedado vacías. Nunca toca la carpeta raíz de la biblioteca.
+     */
+    override suspend fun deleteTracks(root: String, tracks: List<Track>): DeleteResult = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val tree = Uri.parse(root)
+            val cr = context.contentResolver
+            val deleted = ArrayList<String>()
+            val failed = ArrayList<String>()
+            for (t in tracks) {
+                val uri = Uri.parse(t.uri)
+                val ok = runCatching { DocumentsContract.deleteDocument(cr, uri) }.getOrDefault(false)
+                // Si ya no existía, cuenta como borrada.
+                val gone = ok || runCatching { cr.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID), null, null, null)?.use { it.count == 0 } ?: true }.getOrDefault(false)
+                if (gone) deleted += t.uri else failed += t.fileName
+            }
+            val rootId = DocumentsContract.getTreeDocumentId(tree)
+            var removedFolders = 0
+            val deletedSet = deleted.toHashSet()
+            for (folder in tracks.map { it.folderId }.distinct()) {
+                val bases = tracks.filter { it.folderId == folder && it.uri in deletedSet }
+                    .map { it.fileName.substringBeforeLast('.').lowercase() }.toSet()
+                val kids = children(tree, folder) ?: continue
+                kids.filter { it.name.lowercase().endsWith(".lrc") && it.name.substringBeforeLast('.').lowercase() in bases }
+                    .forEach { deleteDoc(tree, it.id) }
+                if (folder == rootId) continue
+                val left = children(tree, folder) ?: continue
+                if (left.any { it.isDir || ScanRules.isAudio(it.name, it.mime) }) continue
+                // La carpeta del álbum ya no tiene música: fuera, con lo que quede (portada, .cue, .log…).
+                val path = runCatching {
+                    DocumentsContract.findDocumentPath(cr, DocumentsContract.buildDocumentUriUsingTree(tree, folder))?.path
+                }.getOrNull()
+                if (!deleteDoc(tree, folder)) continue
+                removedFolders++
+                // Carpetas de arriba (p. ej. la del artista) sólo si quedan completamente vacías.
+                if (path != null) {
+                    val idx = path.indexOf(folder)
+                    var i = (if (idx >= 0) idx else path.size - 1) - 1
+                    while (i >= 0) {
+                        val up = path[i]
+                        if (up == rootId || !path.subList(0, i + 1).contains(rootId)) break
+                        if (children(tree, up)?.isEmpty() != true || !deleteDoc(tree, up)) break
+                        removedFolders++
+                        i--
+                    }
+                }
+            }
+            DeleteResult(deleted, failed, removedFolders)
+        }
+    }
+
     override suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray? = withContext(Dispatchers.IO) {
         runCatching {
             val tree = Uri.parse(root)

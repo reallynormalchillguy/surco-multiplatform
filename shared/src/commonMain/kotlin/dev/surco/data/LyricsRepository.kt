@@ -5,6 +5,15 @@ import dev.surco.tags.TagEditor
 import dev.surco.util.Charsets1252
 import dev.surco.util.IoDispatcher
 import dev.surco.util.nowMillis
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -18,17 +27,58 @@ class LyricsRepository(
     private val tags: TagEditor,
     private val lrclib: LrcLib,
 ) {
-    suspend fun load(track: Track, force: Boolean = false): Lyrics = withContext(IoDispatcher) {
-        if (!force) {
-            dao.get(track.uri)?.let { cached ->
-                val fresh = cached.source != "none" || nowMillis() - cached.fetchedAt < RETRY_NONE_MS
-                if (fresh) return@withContext cached.toLyrics()
-            }
+    /** Búsquedas en curso por canción: si el reproductor y la precarga piden la misma, se hace una sola vez. */
+    private val inFlight = HashMap<String, Deferred<Lyrics>>()
+    private val inFlightLock = Mutex()
+    private val scope = CoroutineScope(SupervisorJob() + IoDispatcher)
+
+    /**
+     * Devuelve la letra de [track]. Un fallo de red NUNCA se guarda como «sin letra»: se devuelve
+     * [Lyrics.Failed] para que la interfaz vuelva a intentarlo sola.
+     */
+    suspend fun load(track: Track, force: Boolean = false): Lyrics {
+        if (!force) cached(track)?.let { return it }
+        val job = inFlightLock.withLock {
+            inFlight[track.uri]?.takeIf { !force && it.isActive } ?: scope.async {
+                val me = coroutineContext[Job]
+                try { fetch(track) } finally {
+                    withContext(NonCancellable) {
+                        inFlightLock.withLock { if (inFlight[track.uri] === me) inFlight.remove(track.uri) }
+                    }
+                }
+            }.also { inFlight[track.uri] = it }
         }
-        val found = fromSidecar(track) ?: fromTags(track) ?: fromLrcLib(track)
-        val entry = found ?: LyricsEntry(track.uri, null, null, "none", nowMillis())
+        // La búsqueda sigue aunque se cierre la pantalla: así el resultado queda en caché para la próxima vez.
+        return job.await()
+    }
+
+    /** Busca en segundo plano la letra de la canción que empieza a sonar, para tenerla lista al abrir el reproductor. */
+    fun prefetch(track: Track) {
+        scope.launch { runCatching { load(track) } }
+    }
+
+    private suspend fun cached(track: Track): Lyrics? = withContext(IoDispatcher) {
+        val c = dao.get(track.uri) ?: return@withContext null
+        val fresh = c.source != "none" || nowMillis() - c.fetchedAt < RETRY_NONE_MS
+        if (fresh) c.toLyrics() else null
+    }
+
+    private suspend fun fetch(track: Track): Lyrics {
+        val local = fromSidecar(track) ?: fromTags(track)
+        if (local != null) { dao.put(local); return local.toLyrics() }
+        val entry = when (val r = fromLrcLib(track)) {
+            Remote.Failed -> return Lyrics.Failed
+            Remote.NotFound -> LyricsEntry(track.uri, null, null, "none", nowMillis())
+            is Remote.Found -> r.entry
+        }
         dao.put(entry)
-        entry.toLyrics()
+        return entry.toLyrics()
+    }
+
+    private sealed interface Remote {
+        data class Found(val entry: LyricsEntry) : Remote
+        data object NotFound : Remote
+        data object Failed : Remote
     }
 
     /** Guarda una letra escrita a mano (o la quita si está vacía). */
@@ -77,25 +127,30 @@ class LyricsRepository(
         return entryFromText(track, text, "tag")
     }
 
-    private suspend fun fromLrcLib(track: Track): LyricsEntry? {
-        val r = lrclib.find(
-            artist = track.artist.takeIf { it != UNKNOWN_ARTIST } ?: return null,
+    private suspend fun fromLrcLib(track: Track): Remote {
+        val artist = track.artist.takeIf { it != UNKNOWN_ARTIST } ?: return Remote.NotFound
+        val r = when (val o = lrclib.find(
+            artist = artist,
             title = track.title,
             album = track.album.takeIf { it != UNKNOWN_ALBUM },
             durationSec = (track.durationMs / 1000).toInt(),
-        ) ?: return null
+        )) {
+            LrcLib.Outcome.Failed -> return Remote.Failed
+            LrcLib.Outcome.NotFound -> return Remote.NotFound
+            is LrcLib.Outcome.Found -> o.result
+        }
         val now = nowMillis()
         return when {
-            r.instrumental -> LyricsEntry(track.uri, null, null, "instrumental", now)
-            !r.synced.isNullOrBlank() -> LyricsEntry(track.uri, r.synced, r.plain, "lrclib", now)
-            !r.plain.isNullOrBlank() -> LyricsEntry(track.uri, null, r.plain, "lrclib", now)
-            else -> null
+            r.instrumental -> Remote.Found(LyricsEntry(track.uri, null, null, "instrumental", now))
+            !r.synced.isNullOrBlank() -> Remote.Found(LyricsEntry(track.uri, r.synced, r.plain, "lrclib", now))
+            !r.plain.isNullOrBlank() -> Remote.Found(LyricsEntry(track.uri, null, r.plain, "lrclib", now))
+            else -> Remote.NotFound
         }
     }
 
     companion object {
-        /** Si no se encontró letra, se vuelve a intentar pasada una semana. */
-        private const val RETRY_NONE_MS = 7L * 24 * 3600 * 1000
+        /** Si LRCLIB respondió que no la tiene, se vuelve a preguntar pasados 3 días (puede añadirse después). */
+        private const val RETRY_NONE_MS = 3L * 24 * 3600 * 1000
         private const val MAX_TAG_READ = 250L * 1024 * 1024
     }
 }

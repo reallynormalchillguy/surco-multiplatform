@@ -21,7 +21,10 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
+import dev.surco.data.AlbumCandidate
+import dev.surco.data.AlbumInfo
 import dev.surco.data.ArtistImage
+import dev.surco.data.RemoteTrack
 import dev.surco.data.DiscoverAlbum
 import dev.surco.data.DiscoverSection
 import dev.surco.data.Liked
@@ -180,6 +183,13 @@ class ScreenshotTest {
         compose.onRoot().captureRoboImage("build/screens/$name.png")
     }
 
+    /** Captura la pantalla entera, con diálogos y hojas inferiores (que van en otra ventana). */
+    @OptIn(com.github.takahirom.roborazzi.ExperimentalRoborazziApi::class)
+    private fun snapScreen(name: String) {
+        settle()
+        com.github.takahirom.roborazzi.captureScreenRoboImage("build/screens/$name.png")
+    }
+
     private val fakeLrc = (0 until 40).joinToString("\n") { i ->
         val t = i * 6
         "[%02d:%02d.00] %s".format(t / 60, t % 60, listOf(
@@ -229,7 +239,37 @@ class ScreenshotTest {
 
         compose.onAllNodesWithText("Raíz")[0].performClick()
         snap("04_album")
+
+        // Menú del álbum: cola, datos de internet y borrado con doble confirmación.
+        compose.onNodeWithTag("album_more").performClick()
+        snapScreen("04b_album_menu")
+        compose.onNodeWithTag("album_delete").performClick()
+        snapScreen("04c_borrar_aviso1")
+        compose.onNodeWithTag("delete_step1").performClick()
+        snapScreen("04d_borrar_aviso2")
+        compose.onNodeWithText(S.keepAlbum).performClick()
+        settle()
+
+        val raiz = runBlocking { c.db.dao().allTracksOnce().filter { it.album == "Raíz" }.sortedBy { it.trackNumber } }
+        val cand = AlbumCandidate("MusicBrainz", "mb1", "Raíz", "Carmen Duna", 2024, 8, fakeArt("mb1", 9), "CD · ES · Album")
+        c.metadata.debug = listOf(
+            cand,
+            AlbumCandidate("Deezer", "dz1", "Raíz (Deluxe)", "Carmen Duna", 0, 11, fakeArt("dz1", 7), "Album"),
+        ) to AlbumInfo(
+            cand, "Raíz", "Carmen Duna", 2024, "Flamenco",
+            raiz.mapIndexed { i, t -> RemoteTrack(1, i + 1, if (i % 3 == 0) t.title + " (Remasterizado)" else t.title, "Carmen Duna", t.durationMs) },
+            coverUrl = null,
+        )
+        compose.onNodeWithTag("album_more").performClick()
+        settle()
+        compose.onNodeWithTag("album_fill_info").performClick()
+        snap("04e_datos_internet")
+        compose.onAllNodes(hasTestTag("candidate"))[0].performClick()
+        snap("04f_datos_revision")
         compose.onNodeWithTag("tab_library").performClick()
+        compose.onNodeWithTag("tab_library").performClick()
+        settle()
+
 
         // Simula que suena una canción para ver el mini reproductor y el reproductor completo.
         val first = runBlocking { c.db.dao().allTracksOnce().first { it.album == "Night Transit" } }
@@ -270,10 +310,29 @@ class ScreenshotTest {
         compose.onAllNodesWithContentDescription(S.settings)[0].performClick()
         snap("11_ajustes")
 
+        // Paleta de colores: generador aleatorio y edición manual.
+        compose.onNodeWithTag("open_palette").performScrollTo().performClick()
+        snap("11b_paleta")
+        c.prefs.update { it.copy(palette = dev.surco.ui.theme.Palette.random(Random(42)).encode()) }
+        compose.onNodeWithTag("swatch_background").performClick()
+        snap("11c_paleta_sorteada")
+        compose.onNodeWithTag("tab_home").performClick()
+        snap("11d_inicio_con_paleta")
+        c.prefs.update { it.copy(palette = "") }
+
         // El mismo Inicio en español, para comprobar el cambio de idioma en caliente.
         c.prefs.update { it.copy(language = "es") }
         compose.onNodeWithTag("tab_home").performClick()
         snap("12_inicio_es")
+
+        // Foto de artista (al final: la hoja inferior se queda abierta).
+        c.prefs.update { it.copy(language = "en") }
+        compose.onNodeWithTag("tab_library").performClick()
+        settle()
+        compose.onAllNodesWithText("Carmen Duna")[0].performClick()
+        settle()
+        compose.onNodeWithTag("artist_photo").performClick()
+        snapScreen("13_foto_artista")
     }
 
     private fun fakeResults(): List<UserResult> {

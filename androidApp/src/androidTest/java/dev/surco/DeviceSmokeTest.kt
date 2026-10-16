@@ -291,4 +291,44 @@ class DeviceSmokeTest {
         compose.onAllNodes(hasText("Ajustes"))[0].assertExists()
         tap(compose.first("English"))
     }
+
+    @Test
+    fun albumQueueDeleteAndPalette() = dumpingOnFailure {
+        val c = app.container
+        val key = dev.surco.data.ScanRules.albumKeyFor("Halvorsen Trio", "Grain", "f3")
+        fun grainInQueue() = c.player.state.value.queue.count { it.startsWith("content://fake/3/") }
+
+        // Álbum entero a la cola
+        tap(compose.onNodeWithTag("tab_library"))
+        tap(compose.first("Grain"))
+        tap(compose.onNodeWithTag("album_more"), "menu_album")
+        tap(compose.onNodeWithTag("album_enqueue"), "album_en_cola")
+        compose.waitUntil(10_000) { grainInQueue() == 6 }
+
+        // Borrar: dos avisos; el segundo botón no responde hasta pasado un momento
+        tap(compose.onNodeWithTag("album_more"))
+        tap(compose.onNodeWithTag("album_delete"), "aviso_1")
+        tap(compose.onNodeWithTag("delete_step1"), "aviso_2")
+        compose.onNodeWithTag("delete_step2").performClick()   // demasiado pronto: no hace nada
+        settle()
+        assertEquals(6, runBlocking { c.db.dao().albumTracksOnce(key).size })
+        Thread.sleep(2_500)
+        tap(compose.onNodeWithTag("delete_step2"), "borrado")
+        compose.waitUntil(10_000) { runBlocking { c.db.dao().albumTracksOnce(key).isEmpty() } }
+        compose.waitUntil(10_000) { grainInQueue() == 0 }
+        // La página del álbum borrado se cierra sola
+        compose.waitUntil(5_000) { compose.onAllNodes(hasTestTag("album_more")).fetchSemanticsNodes().isEmpty() }
+        shot("tras_borrar")
+
+        // Paleta de colores: sortear y volver a la original
+        tap(compose.onNodeWithTag("tab_home"))
+        tap(compose.firstDesc(S.settings))
+        compose.onNodeWithTag("open_palette").performScrollTo()
+        tap(compose.onNodeWithTag("open_palette"), "paleta")
+        tap(compose.onNodeWithTag("palette_shuffle"), "paleta_sorteada")
+        org.junit.Assert.assertTrue(c.prefs.current.palette.isNotBlank())
+        tap(compose.onNodeWithTag("swatch_background"), "editar_fondo")
+        tap(compose.firstDesc(S.resetPalette))
+        assertEquals("", c.prefs.current.palette)
+    }
 }

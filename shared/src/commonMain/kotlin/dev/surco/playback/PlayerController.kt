@@ -38,7 +38,11 @@ interface PlayerController {
     fun toggleShuffle()
     fun cycleRepeat()
     fun playNext(track: Track)
+    /** Pone varias canciones (p. ej. un álbum entero) justo después de la que suena, en su orden. */
+    fun playNext(tracks: List<Track>)
     fun enqueue(tracks: List<Track>)
+    /** Quita de la cola todas las apariciones de estas canciones (p. ej. tras borrarlas del dispositivo). */
+    fun removeFromQueue(uris: Collection<String>)
     fun skipToQueueIndex(index: Int)
     fun removeFromQueue(index: Int)
     fun moveInQueue(from: Int, to: Int)

@@ -30,6 +30,9 @@ data class SearchResults(
     val tracks: List<Track> = emptyList(),
 )
 
+/** Marca (en `checkedAt`) de una foto de artista elegida por el usuario. */
+const val CUSTOM_ARTIST_IMAGE = Long.MAX_VALUE
+
 class Repository(
     val dao: LibraryDao,
     val prefs: Prefs,
@@ -43,15 +46,44 @@ class Repository(
     private val scheduleScrobbleRetry: () -> Unit = {},
 ) {
     // ---------------- Escaneo ----------------
-    fun rescan(): Job? {
+    /** Momento del último escaneo pedido, para no repetirlos seguidos. */
+    var lastRescanAt = 0L
+        private set
+
+    /**
+     * Escaneo incremental. [auto] = lo pide el escaneo automático: entonces sólo se buscan portadas
+     * si de verdad cambió algo (si no, cada aviso repetiría búsquedas por internet de álbumes sin portada).
+     */
+    fun rescan(auto: Boolean = false): Job? {
         val tree = prefs.current.treeUri ?: return null
+        lastRescanAt = nowMillis()
         return appScope.launch {
             val result = scanner.scan(tree)
             if (result is ScanState.Done) {
-                if (prefs.current.autoCoversAfterScan) fillMissingCovers()
-                if (prefs.current.artistImages) fetchArtistImages()
+                val changed = result.updated > 0 || result.removed > 0
+                if (prefs.current.autoCoversAfterScan && (!auto || changed)) fillMissingCovers()
+                if (prefs.current.artistImages && (!auto || changed)) fetchArtistImages()
             }
         }
+    }
+
+    /**
+     * Borra un álbum entero del dispositivo (para siempre) y de la biblioteca.
+     * Devuelve el resultado; las canciones que no se pudieron borrar siguen en la biblioteca.
+     */
+    suspend fun deleteAlbum(albumKey: String): DeleteResult {
+        val tree = prefs.current.treeUri ?: throw IllegalStateException(S.folderUnavailable)
+        val tracks = dao.albumTracksOnce(albumKey)
+        val oldArt = tracks.firstOrNull { it.artPath != null }?.artPath
+        val r = scanner.deleteTracks(tree, tracks)
+        r.deleted.chunked(500).forEach { chunk ->
+            dao.deleteTracks(chunk)
+            dao.removeEntriesForTracks(chunk)
+            dao.unlikeAll(chunk)
+            dao.deleteLyrics(chunk)
+        }
+        if (r.failed.isEmpty()) art.delete(oldArt)
+        return r
     }
 
     // ---------------- Me gusta / listas ----------------
@@ -152,6 +184,41 @@ class Repository(
         return newKey to errors
     }
 
+    /**
+     * Aplica los datos de un álbum de internet (ver [AlbumMatcher.plan]) y, si se pasa, su portada.
+     * Devuelve la nueva clave del álbum y los errores (archivo: motivo).
+     */
+    suspend fun applyAlbumInfo(
+        albumKey: String,
+        plans: List<TrackPlan>,
+        cover: ByteArray?,
+        onProgress: (Int, Int) -> Unit,
+    ): Pair<String, List<String>> {
+        val errors = mutableListOf<String>()
+        var newKey = albumKey
+        val todo = plans.filter { it.hasChanges }
+        todo.forEachIndexed { i, p ->
+            onProgress(i, todo.size)
+            try {
+                newKey = editTrack(
+                    p.track,
+                    TagEdits(
+                        title = p.title, artist = p.artist, album = p.album, albumArtist = p.albumArtist,
+                        year = p.year, trackNumber = p.trackNumber, discNumber = p.discNumber, genre = p.genre,
+                    ),
+                ).albumKey
+            } catch (e: Exception) {
+                errors += "${p.track.fileName}: ${e.message}"
+            }
+        }
+        onProgress(todo.size, todo.size)
+        if (cover != null) {
+            val errs = setAlbumCover(newKey, cover, prefs.current.embedCovers)
+            errors += errs
+        }
+        return newKey to errors
+    }
+
     /** Pone una portada al álbum: la guarda en caché y, si [embed], la incrusta en los archivos. */
     suspend fun setAlbumCover(albumKey: String, imageBytes: ByteArray, embed: Boolean): List<String> {
         val jpeg = withContext(IoDispatcher) { art.toJpeg(imageBytes) } ?: return listOf(S.invalidImage)
@@ -220,6 +287,29 @@ class Repository(
         }
         _artistJob.value = JobProgress(false, names.size, names.size, S.done)
     }
+
+    /** Pone una foto elegida por el usuario a un artista. Las fotos propias nunca se sustituyen solas. */
+    suspend fun setArtistImage(name: String, bytes: ByteArray): Boolean {
+        val jpeg = withContext(IoDispatcher) { art.toJpeg(bytes, 1000) } ?: return false
+        val old = dao.artistImage(name)?.path
+        val path = withContext(IoDispatcher) { art.writeArtistImage(name, jpeg) }
+        dao.upsertArtistImage(ArtistImage(name, path, CUSTOM_ARTIST_IMAGE))
+        if (old != null && old != path) art.deleteArtistImage(old)
+        return true
+    }
+
+    /** Vuelve a la foto automática (Deezer). Devuelve true si encontró una. */
+    suspend fun resetArtistImage(name: String): Boolean {
+        val old = dao.artistImage(name)?.path
+        val url = covers.artistPicture(name)
+        val path = url?.let { covers.download(it) }?.let { art.toJpeg(it, 800) }
+            ?.let { withContext(IoDispatcher) { art.writeArtistImage(name, it) } }
+        dao.upsertArtistImage(ArtistImage(name, path, nowMillis()))
+        if (old != null && old != path) art.deleteArtistImage(old)
+        return path != null
+    }
+
+    fun isCustomArtistImage(img: ArtistImage?) = img?.checkedAt == CUSTOM_ARTIST_IMAGE
 
     // ---------------- Scrobbling ----------------
     private val flushMutex = Mutex()

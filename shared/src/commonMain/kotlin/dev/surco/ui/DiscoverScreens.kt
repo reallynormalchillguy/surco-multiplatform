@@ -132,7 +132,7 @@ fun DiscoverAlbumScreen(id: Long) {
     if (d == null) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(if (failed) S.couldNotLoadAlbum else S.loading, color = SurcoColors.TextSecondary, modifier = Modifier.padding(32.dp))
@@ -152,7 +152,7 @@ fun DiscoverAlbumScreen(id: Long) {
                     .statusBarsPadding(),
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
                 }
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     ArtImage(
@@ -215,9 +215,9 @@ fun DiscoverAlbumScreen(id: Long) {
                         onClick = { actions.openSoulseek(album.artist) },
                         modifier = Modifier.fillMaxWidth().height(44.dp),
                     ) {
-                        Icon(Icons.Filled.Search, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Search, null, tint = SurcoColors.TextPrimary, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(S.searchArtistOnSoulseek, color = Color.White)
+                        Text(S.searchArtistOnSoulseek, color = SurcoColors.TextPrimary)
                     }
                     Spacer(Modifier.height(16.dp))
                     Text(S.tapSongToSearch, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextTertiary)

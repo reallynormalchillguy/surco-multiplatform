@@ -1,6 +1,7 @@
 package dev.surco.ios
 
 import dev.surco.data.ArtStore
+import dev.surco.data.DeleteResult
 import dev.surco.data.LibraryDao
 import dev.surco.data.LibraryScanner
 import dev.surco.data.ScanRules
@@ -27,6 +28,8 @@ import platform.Foundation.NSData
 import platform.Foundation.NSDate
 import platform.Foundation.NSDirectoryEnumerationSkipsHiddenFiles
 import platform.Foundation.NSFileManager
+import platform.Foundation.NSFileType
+import platform.Foundation.NSFileTypeDirectory
 import platform.Foundation.NSNumber
 import platform.Foundation.NSURL
 import platform.Foundation.NSURLContentModificationDateKey
@@ -150,6 +153,49 @@ class IosScanner(private val dao: LibraryDao, private val art: ArtStore) : Libra
         val sec = CMTimeGetSeconds(AVURLAsset(uRL = url, options = null).duration)
         if (sec.isNaN() || sec <= 0) 0L else (sec * 1000).toLong()
     }.getOrDefault(0L)
+
+    override suspend fun deleteTracks(root: String, tracks: List<Track>): DeleteResult = mutex.withLock {
+        withContext(IoDispatcher) {
+            val base = IosLibrary.resolve(root) ?: error(S.folderUnavailable)
+            val rootPath = (base.path ?: error(S.folderUnavailable)).trimEnd('/')
+            val fm = NSFileManager.defaultManager
+            val deleted = ArrayList<String>()
+            val failed = ArrayList<String>()
+            for (t in tracks) {
+                val path = NSURL.URLWithString(t.uri)?.path
+                when {
+                    path == null || !path.startsWith("$rootPath/") -> failed += t.fileName
+                    !fm.fileExistsAtPath(path) -> deleted += t.uri       // ya no estaba: cuenta como borrada
+                    fm.removeItemAtPath(path, null) -> deleted += t.uri
+                    else -> failed += t.fileName
+                }
+            }
+            fun list(dir: String) = fm.contentsOfDirectoryAtPath(dir, null)?.mapNotNull { it as? String }.orEmpty()
+            fun isDir(path: String) = (fm.attributesOfItemAtPath(path, null)?.get(NSFileType) as? String) == NSFileTypeDirectory
+            var removedFolders = 0
+            val deletedSet = deleted.toHashSet()
+            for (folder in tracks.map { it.folderId.trimEnd('/') }.distinct()) {
+                val bases = tracks.filter { it.folderId.trimEnd('/') == folder && it.uri in deletedSet }
+                    .map { it.fileName.substringBeforeLast('.').lowercase() }.toSet()
+                list(folder).filter { it.lowercase().endsWith(".lrc") && it.substringBeforeLast('.').lowercase() in bases }
+                    .forEach { fm.removeItemAtPath("$folder/$it", null) }
+                if (folder == rootPath || !folder.startsWith("$rootPath/")) continue
+                val left = list(folder)
+                if (left.any { ScanRules.isAudio(it, "") || isDir("$folder/$it") }) continue
+                // La carpeta del álbum ya no tiene música: fuera, con lo que quede (portada, .cue, .log…).
+                if (!fm.removeItemAtPath(folder, null)) continue
+                removedFolders++
+                // Carpetas de arriba (p. ej. la del artista) sólo si quedan vacías (sin contar ocultos).
+                var up = folder.substringBeforeLast('/')
+                while (up.startsWith("$rootPath/") && list(up).none { !it.startsWith(".") }) {
+                    if (!fm.removeItemAtPath(up, null)) break
+                    removedFolders++
+                    up = up.substringBeforeLast('/')
+                }
+            }
+            DeleteResult(deleted, failed, removedFolders)
+        }
+    }
 
     override suspend fun readSibling(root: String, track: Track, fileName: String): ByteArray? = withContext(IoDispatcher) {
         IosLibrary.resolve(root) ?: return@withContext null

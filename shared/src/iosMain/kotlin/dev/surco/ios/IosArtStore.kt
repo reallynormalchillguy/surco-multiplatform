@@ -46,9 +46,14 @@ class IosArtStore : ArtStore {
     }
 
     override fun writeArtistImage(name: String, jpeg: ByteArray): String {
-        val path = "${IosDirs.artists}/${Md5.hex(name)}.jpg"
+        val path = "${IosDirs.artists}/${Md5.hex(name)}_${nowMillis()}.jpg"
         jpeg.toNSData().writeToFile(path, true)
         return path
+    }
+
+    override fun deleteArtistImage(path: String?) {
+        if (path == null || !path.startsWith(IosDirs.artists)) return
+        NSFileManager.defaultManager.removeItemAtPath(path, null)
     }
 
     override fun delete(path: String?) {

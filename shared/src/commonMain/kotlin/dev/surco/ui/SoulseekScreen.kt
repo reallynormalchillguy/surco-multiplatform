@@ -175,14 +175,14 @@ fun SoulseekScreen(initialQuery: String) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = { actions.nav.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Column(Modifier.weight(1f)) {
                 Text("Soulseek", style = MaterialTheme.typography.headlineMedium)
                 StatusLine(state)
             }
             Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, S.options, tint = Color.White) }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, S.options, tint = SurcoColors.TextPrimary) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text(S.downloadsFolder) }, onClick = { menu = false; pickDir() })
                     if (settings.slskDir != null) {
@@ -488,7 +488,7 @@ private fun FolderCard(
                     IconButton(onClick = { onDownload(listOf(f)) }, enabled = !isQueued) {
                         Icon(
                             if (isQueued) Icons.Filled.CheckCircle else Icons.Filled.Download,
-                            S.download, tint = if (isQueued) SurcoColors.Accent else Color.White,
+                            S.download, tint = if (isQueued) SurcoColors.Accent else SurcoColors.TextPrimary,
                         )
                     }
                 }
@@ -645,7 +645,7 @@ private fun TransferRow(t: Transfer) {
                 Icon(Icons.Filled.Close, S.cancel, tint = SurcoColors.TextSecondary)
             }
             t.state == TransferState.FAILED || t.state == TransferState.CANCELLED -> IconButton(onClick = { manager.retry(t.id) }) {
-                Icon(Icons.Filled.Refresh, S.retry, tint = Color.White)
+                Icon(Icons.Filled.Refresh, S.retry, tint = SurcoColors.TextPrimary)
             }
             else -> Icon(Icons.Filled.CheckCircle, null, tint = SurcoColors.Accent, modifier = Modifier.padding(12.dp))
         }

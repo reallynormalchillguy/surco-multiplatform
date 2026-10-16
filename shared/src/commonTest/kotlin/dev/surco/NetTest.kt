@@ -93,12 +93,52 @@ class NetTest {
             if (req.url.encodedPath.endsWith("/get")) HttpStatusCode.NotFound to """{"code":404}"""
             else HttpStatusCode.OK to """[{"duration":300.0,"syncedLyrics":"[00:01.00]far"},{"duration":200.0,"syncedLyrics":null,"plainLyrics":"plain"},{"duration":201.0,"syncedLyrics":"[00:01.00]hola","plainLyrics":"hola","instrumental":false}]"""
         }
-        val r = LrcLib(http).find("Artista", "Canción (feat. Otro)", "Disco", 200)!!
+        val r = (LrcLib(http).find("Artista", "Canción (feat. Otro)", "Disco", 200) as LrcLib.Outcome.Found).result
         assertEquals("[00:01.00]hola", r.synced)
         assertEquals("hola", r.plain)
         val search = requests.last()
         assertEquals("Canción", search.url.parameters["track_name"])
         assertEquals(3, requests.size) // get con álbum, get sin álbum, search
+    }
+
+    @Test
+    fun lrclibDistinguishesNotFoundFromNetworkFailure() = runTest {
+        val notFound = client { req ->
+            if (req.url.encodedPath.endsWith("/search")) HttpStatusCode.OK to "[]" else HttpStatusCode.NotFound to """{"code":404}"""
+        }
+        assertEquals(LrcLib.Outcome.NotFound, LrcLib(notFound).find("A", "B", "C", 200))
+        val busy = client { HttpStatusCode.ServiceUnavailable to "busy" }
+        assertEquals(LrcLib.Outcome.Failed, LrcLib(busy).find("A", "B", "C", 200))
+        val broken = HttpClient(MockEngine { throw RuntimeException("sin red") })
+        assertEquals(LrcLib.Outcome.Failed, LrcLib(broken).find("A", "B", "C", 200))
+    }
+
+    @Test
+    fun metadataSearchParsesMusicBrainzAndDeezer() = runTest {
+        val http = client { req ->
+            val p = req.url.encodedPath
+            when {
+                p.endsWith("/ws/2/release/") -> HttpStatusCode.OK to """{"releases":[{"id":"r1","title":"OK Computer","date":"1997-05-21","country":"GB","track-count":2,"artist-credit":[{"name":"Radiohead","joinphrase":""}],"media":[{"format":"CD","track-count":2}],"release-group":{"primary-type":"Album"}}]}"""
+                p.endsWith("/ws/2/release/r1") -> HttpStatusCode.OK to """{"title":"OK Computer","date":"1997-05-21","artist-credit":[{"name":"Radiohead"}],"release-group":{"id":"g1","first-release-date":"1997-05-21"},"genres":[{"name":"alternative rock","count":9},{"name":"art rock","count":3}],"media":[{"position":1,"tracks":[{"position":1,"title":"Airbag","length":284000},{"position":2,"title":"Paranoid Android","length":383000}]}]}"""
+                p.endsWith("/search/album") -> HttpStatusCode.OK to """{"data":[{"id":12,"title":"OK Computer","artist":{"name":"Radiohead"},"nb_tracks":12,"cover_medium":"https://x/m.jpg","record_type":"album"}]}"""
+                p.endsWith("/album/12") -> HttpStatusCode.OK to """{"title":"OK Computer","release_date":"1997-06-16","artist":{"name":"Radiohead"},"genres":{"data":[{"name":"Alternative"}]},"cover_xl":"https://x/xl.jpg"}"""
+                p.endsWith("/album/12/tracks") -> HttpStatusCode.OK to """{"data":[{"title":"Airbag","duration":284,"track_position":1,"disk_number":1,"artist":{"name":"Radiohead"}}]}"""
+                else -> HttpStatusCode.NotFound to "{}"
+            }
+        }
+        val m = dev.surco.net.MetadataSearch(http)
+        val results = m.search("Radiohead", "OK Computer")
+        assertEquals(listOf("MusicBrainz", "Deezer"), results.map { it.source })
+        assertEquals("CD · GB · Album", results[0].detail)
+        val mb = m.details(results[0])!!
+        assertEquals(1997, mb.year)
+        assertEquals("Alternative Rock", mb.genre)
+        assertEquals(listOf("Airbag", "Paranoid Android"), mb.tracks.map { it.title })
+        assertEquals(383_000L, mb.tracks[1].durationMs)
+        val dz = m.details(results[1])!!
+        assertEquals("Alternative", dz.genre)
+        assertEquals(284_000L, dz.tracks.single().durationMs)
+        assertEquals("https://x/xl.jpg", dz.coverUrl)
     }
 
     private class Account(override val apiKey: String = "KEY", override val secret: String = "SECRET", override var session: String = "SK") : LastFmAccount {

@@ -85,6 +85,8 @@ class AppActions(
     private val onMenu: (Track, Long?) -> Unit,
     private val onAddToPlaylist: (List<Track>) -> Unit,
     private val onOpenPlayer: () -> Unit,
+    private val onAlbumMenu: (String) -> Unit = {},
+    private val onArtistPicture: (String) -> Unit = {},
 ) {
     val repo get() = container.repository
     val player get() = container.player
@@ -144,6 +146,12 @@ class AppActions(
 
     fun menu(track: Track, playlistId: Long? = null) = onMenu(track, playlistId)
     fun addToPlaylist(tracks: List<Track>) = onAddToPlaylist(tracks)
+    /** Menú de un álbum: poner en cola, buscar datos, borrar… */
+    fun albumMenu(albumKey: String) = onAlbumMenu(albumKey)
+    /** Hoja para cambiar la foto de un artista. */
+    fun artistPicture(name: String) = onArtistPicture(name)
+    fun albumInfo(key: String) = go("album_info/${encodeArg(key)}")
+    fun openPalette() = go("palette")
 
     fun toggleLike(uri: String, liked: Boolean) {
         scope.launch { repo.setLiked(uri, !liked) }
@@ -180,6 +188,8 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
     var showPlayer by Overlays::player
     var menuFor by remember { mutableStateOf<Pair<Track, Long?>?>(null) }
     var playlistPickFor by remember { mutableStateOf<List<Track>?>(null) }
+    var albumMenuFor by remember { mutableStateOf<String?>(null) }
+    var artistPictureFor by remember { mutableStateOf<String?>(null) }
 
     val playerState by container.player.state.collectAsState()
     val likedList by remember { container.db.dao().likedUris() }.collectAsState(initial = emptyList())
@@ -201,6 +211,8 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
             onMenu = { t, p -> menuFor = t to p },
             onAddToPlaylist = { playlistPickFor = it },
             onOpenPlayer = { showPlayer = true },
+            onAlbumMenu = { albumMenuFor = it },
+            onArtistPicture = { artistPictureFor = it },
         )
     }
 
@@ -296,6 +308,10 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
                     composable("covers/{key}", listOf(navArgument("key") { type = NavType.StringType })) {
                         CoverSearchScreen(it.stringArg("key"))
                     }
+                    composable("album_info/{key}", listOf(navArgument("key") { type = NavType.StringType })) {
+                        AlbumInfoScreen(it.stringArg("key"))
+                    }
+                    composable("palette") { PaletteScreen() }
                 }
             }
 
@@ -313,6 +329,12 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
         }
         playlistPickFor?.let { tracks ->
             AddToPlaylistDialog(tracks, onDismiss = { playlistPickFor = null })
+        }
+        albumMenuFor?.let { key ->
+            AlbumMenuSheet(key, onDismiss = { albumMenuFor = null })
+        }
+        artistPictureFor?.let { name ->
+            ArtistPictureSheet(name, onDismiss = { artistPictureFor = null })
         }
     }
 }

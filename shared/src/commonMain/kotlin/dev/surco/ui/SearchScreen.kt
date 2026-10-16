@@ -100,7 +100,7 @@ fun SearchScreen() {
             Spacer(Modifier.width(14.dp))
             Text(S.search, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = { actions.openSoulseek() }) {
-                Icon(Icons.Filled.CloudDownload, S.downloadWithSoulseek, tint = Color.White, modifier = Modifier.size(26.dp))
+                Icon(Icons.Filled.CloudDownload, S.downloadWithSoulseek, tint = SurcoColors.TextPrimary, modifier = Modifier.size(26.dp))
             }
         }
         Row(

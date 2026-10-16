@@ -3,6 +3,7 @@ package dev.surco.ui
 import dev.surco.i18n.S
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -121,10 +122,10 @@ fun LibraryScreen() {
             Spacer(Modifier.width(14.dp))
             Text(S.yourLibrary, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = { actions.openTab("search") }) {
-                Icon(Icons.Filled.Search, S.search, tint = Color.White, modifier = Modifier.size(28.dp))
+                Icon(Icons.Filled.Search, S.search, tint = SurcoColors.TextPrimary, modifier = Modifier.size(28.dp))
             }
             IconButton(onClick = { creating = true }) {
-                Icon(Icons.Filled.Add, S.createPlaylist, tint = Color.White, modifier = Modifier.size(30.dp))
+                Icon(Icons.Filled.Add, S.createPlaylist, tint = SurcoColors.TextPrimary, modifier = Modifier.size(30.dp))
             }
         }
 
@@ -146,7 +147,7 @@ fun LibraryScreen() {
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Filled.SwapVert, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.Filled.SwapVert, null, tint = SurcoColors.TextPrimary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(if (settings.librarySortRecent) S.recents else S.alphabetical, style = MaterialTheme.typography.titleSmall)
             }
@@ -155,7 +156,7 @@ fun LibraryScreen() {
                 Icon(
                     if (settings.libraryGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
                     S.changeView,
-                    tint = Color.White,
+                    tint = SurcoColors.TextPrimary,
                 )
             }
         }
@@ -179,6 +180,7 @@ fun LibraryScreen() {
                         circle = item.kind == LibKind.ARTIST,
                         pinned = item.kind == LibKind.LIKED,
                         onClick = { open(actions, item) },
+                        onLongClick = if (item.kind == LibKind.ALBUM) ({ actions.albumMenu(item.ref) }) else null,
                     ) { m -> LibArt(item, m) }
                 }
             }
@@ -225,10 +227,16 @@ private fun LibArt(item: LibItem, modifier: Modifier) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun LibGridCell(item: LibItem) {
     val actions = LocalActions.current
-    Column(Modifier.fillMaxWidth().clickable { open(actions, item) }) {
+    Column(
+        Modifier.fillMaxWidth().combinedClickable(
+            onClick = { open(actions, item) },
+            onLongClick = if (item.kind == LibKind.ALBUM) ({ actions.albumMenu(item.ref) }) else null,
+        )
+    ) {
         LibArt(item, Modifier.fillMaxWidth().aspectRatio(1f))
         Spacer(Modifier.height(6.dp))
         Text(item.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)

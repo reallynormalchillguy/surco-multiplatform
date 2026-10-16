@@ -31,7 +31,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1) + 1
-        versionName = "1.1"
+        versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")

@@ -178,6 +178,26 @@ class PlayerConnection(private val context: Context) : PlayerController {
         }
     }
 
+    /** Pone varias canciones (p. ej. un álbum entero) justo después de la que suena, en su orden. */
+    override fun playNext(tracks: List<Track>) = withController { c ->
+        if (tracks.isEmpty()) return@withController
+        if (c.mediaItemCount == 0) {
+            c.setMediaItems(tracks.map { it.toMediaItem("cola|Cola") })
+            c.prepare(); c.play()
+        } else {
+            val src = c.currentMediaItem?.source() ?: "cola|Cola"
+            c.addMediaItems(c.currentMediaItemIndex + 1, tracks.map { it.toMediaItem(src) })
+        }
+    }
+
+    /** Quita de la cola todas las apariciones de estas canciones (p. ej. tras borrarlas del dispositivo). */
+    override fun removeFromQueue(uris: Collection<String>) = withController { c ->
+        val gone = uris.toHashSet()
+        for (i in c.mediaItemCount - 1 downTo 0) {
+            if (c.getMediaItemAt(i).mediaId in gone) c.removeMediaItem(i)
+        }
+    }
+
     override fun enqueue(tracks: List<Track>) = withController { c ->
         if (c.mediaItemCount == 0) {
             c.setMediaItems(tracks.map { it.toMediaItem("cola|Cola") })

@@ -82,7 +82,7 @@ private fun EditorTopBar(title: String, saving: Boolean, canSave: Boolean, onSav
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = { actions.nav.popBackStack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
         }
         Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         if (saving) {
@@ -401,13 +401,13 @@ fun CoverSearchScreen(albumKey: String) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().statusBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { actions.nav.popBackStack() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
             }
             Text(S.findCover, style = MaterialTheme.typography.titleLarge)
         }
         Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { Field(S.search, query, { query = it }) }
-            IconButton(onClick = { runSearch() }) { Icon(Icons.Filled.Search, S.search, tint = Color.White) }
+            IconButton(onClick = { runSearch() }) { Icon(Icons.Filled.Search, S.search, tint = SurcoColors.TextPrimary) }
         }
 
         when {

@@ -49,4 +49,9 @@ class AppContainer(app: Application) : SurcoCore(
 ) {
     override val player = PlayerConnection(app)
     override val soulseek = SoulseekManager(app, prefs, repository)
+
+    init {
+        startBackgroundWork()
+        dev.surco.platform.MediaStoreWatcher(app, prefs, autoScan, appScope).start()
+    }
 }
