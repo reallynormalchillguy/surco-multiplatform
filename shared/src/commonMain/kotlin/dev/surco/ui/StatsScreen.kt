@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.CircularProgressIndicator
@@ -176,7 +177,7 @@ private fun ConnectLastFm() {
             Spacer(Modifier.height(20.dp))
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SurcoColors.Surface).padding(16.dp)) {
                 if (!settings.lastfmReady) {
-                    LastFmKeysForm(onOpenLink = { runCatching { uri.openUri("https://www.last.fm/api/account/create") } })
+                    LastFmKeysForm(help = S.statsKeysHelp, onOpenLink = { runCatching { uri.openUri("https://www.last.fm/api/account/create") } })
                 } else {
                     LastFmLoginForm()
                 }
@@ -410,7 +411,7 @@ private fun Meter(fraction: Float, modifier: Modifier = Modifier) {
 @Composable
 fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val accent = SurcoColors.Accent
-    val track = SurcoColors.TextPrimary.copy(alpha = 0.06f)
+    val track = SurcoColors.TextPrimary.copy(alpha = 0.04f)
     val labelColor = SurcoColors.TextSecondary
     val measurer = rememberTextMeasurer()
     val grow = remember(hours) { Animatable(0f) }
@@ -424,7 +425,8 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
                 if (d < size.width * 0.16f) return@detectTapGestures
                 var deg = atan2((pos.y - c.y).toDouble(), (pos.x - c.x).toDouble()) * 180 / PI + 90
                 if (deg < 0) deg += 360
-                onSelect((deg / 15).toInt().coerceIn(0, 23))
+                // Cada barra está centrada en su hora (la de las 00 justo arriba).
+                onSelect(((deg + 7.5) / 15).toInt() % 24)
             }
         },
     ) {
@@ -434,7 +436,7 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
         val inner = outer * 0.46f
         val slot = 360f / 24
         for (h in 0 until 24) {
-            val start = -90f + h * slot + slot * 0.14f
+            val start = -90f + h * slot - slot * 0.36f
             val sweep = slot * 0.72f
             annular(c, inner, outer, start, sweep, track)
             val v = hours.getOrElse(h) { 0 }
@@ -446,7 +448,7 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
         // Horas de referencia por fuera: 00, 06, 12, 18.
         val style = TextStyle(color = labelColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         for (h in listOf(0, 6, 12, 18)) {
-            val a = (-90.0 + h * 15 + 7.5) * PI / 180
+            val a = (-90.0 + h * 15) * PI / 180
             val rr = outer + labelPad * 0.55f
             val layout = measurer.measure(hh(h).take(2), style)
             drawText(layout, topLeft = Offset(c.x + (rr * cos(a)).toFloat() - layout.size.width / 2f, c.y + (rr * sin(a)).toFloat() - layout.size.height / 2f))
@@ -812,7 +814,7 @@ private fun GenresCard(r: StatsReport) {
 @Composable
 private fun FactsGrid(r: StatsReport) {
     val facts = buildList {
-        if (r.top5Share > 0f) add(Fact(Icons.Filled.Favorite, S.factLoyalty, "${(r.top5Share * 100).roundToInt()}%", S.factLoyaltyText))
+        if (r.top5Share > 0f) add(Fact(Icons.Filled.Stars, S.factLoyalty, "${(r.top5Share * 100).roundToInt()}%", S.factLoyaltyText))
         if (r.uniqueArtists > 0) add(Fact(Icons.Filled.TravelExplore, S.factVariety, fmt(r.uniqueArtists.toLong()), S.factVarietyText))
         r.obsession?.let { o -> add(Fact(Icons.Filled.Repeat, S.factObsession, "×${o.count}", S.factObsessionText(o.title, o.artist, dayLabel(o.day)))) }
         r.marathon?.let { m -> add(Fact(Icons.Filled.Timer, S.factMarathon, S.hoursMinutes(m.minutes), S.factMarathonText(m.tracks, dayLabel(m.day)))) }

@@ -438,12 +438,12 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 @Composable
-internal fun LastFmKeysForm(onOpenLink: () -> Unit) {
+internal fun LastFmKeysForm(help: String = S.apiKeysHelp, onOpenLink: () -> Unit) {
     val repo = LocalActions.current.repo
     var key by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
     Text(
-        S.apiKeysHelp,
+        help,
         style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
     )
     Text(

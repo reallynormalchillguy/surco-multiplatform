@@ -101,6 +101,7 @@ object IosDemo {
                 var h = rnd.nextInt(24)
                 while (rnd.nextInt(12) > weights[h]) h = rnd.nextInt(24)
                 val at = now - day * 86_400L - (now % 86_400) + h * 3600L + rnd.nextInt(3600)
+                if (at > now) return@repeat
                 val a = artists[minOf(artists.size - 1, (rnd.nextDouble().let { it * it } * artists.size).toInt())]
                 scrobbles += dev.surco.data.Scrobble(at, a, songs[rnd.nextInt(songs.size)], "")
             }

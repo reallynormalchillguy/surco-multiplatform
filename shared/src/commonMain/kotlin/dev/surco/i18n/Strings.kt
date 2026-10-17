@@ -640,6 +640,10 @@ object S {
         "Conecta tu cuenta de Last.fm para ver a qué horas escuchas más, tus artistas, álbumes y canciones top, tus rachas, tu ADN musical y mucho más.",
     )
     val createLastfmAccount get() = t("Create a free Last.fm account", "Crear una cuenta gratis en Last.fm")
+    val statsKeysHelp get() = t(
+        "Step 1: Last.fm asks apps for a free API key. Create one on the Last.fm website (it takes a minute), paste it here, and then sign in with your account.",
+        "Paso 1: Last.fm pide a las apps una clave gratuita de su API. Créala en la web de Last.fm (es un minuto), pégala aquí y luego inicia sesión con tu cuenta.",
+    )
     val noLastfmAccountYet get() = t("Don't have an account yet?", "¿Aún no tienes cuenta?")
     val statsReadOnlyNote get() = t(
         "Surco only reads your stats here. It won't send scrobbles unless you turn that on in Settings.",
