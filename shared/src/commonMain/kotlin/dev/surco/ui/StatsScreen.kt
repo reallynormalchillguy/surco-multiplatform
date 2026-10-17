@@ -521,7 +521,7 @@ private fun Meter(fraction: Float, modifier: Modifier = Modifier) {
 }
 
 /**
- * Escucha por horas del día: una curva suave sobre un degradado azul → violeta → rosa, con una línea
+ * Escucha por horas del día: una curva suave en el color de acento (con un velo suave debajo), una línea
  * vertical cada dos horas y las horas en diagonal debajo. Al tocar, se marca la hora más cercana.
  */
 @Composable
@@ -531,11 +531,15 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
     LaunchedEffect(hours) { grow.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
     val max = (hours.maxOrNull() ?: 0).coerceAtLeast(1)
     val es = I18n.lang == Lang.ES
+    val accent = SurcoColors.Accent
+    val grid = SurcoColors.TextPrimary.copy(alpha = 0.08f)
+    val labelColor = SurcoColors.TextSecondary
+    val ring = SurcoColors.Surface
+    val pill = SurcoColors.SurfaceHigher
+    val ink = SurcoColors.TextPrimary
     Canvas(
         modifier
             .aspectRatio(1.39f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.linearGradient(listOf(CLOCK_BLUE, CLOCK_VIOLET, CLOCK_PINK)))
             .pointerInput(hours) {
                 detectTapGestures { pos ->
                     val left = size.width * 0.145f
@@ -555,9 +559,9 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
 
         // Líneas verticales cada dos horas (y la última, las 23) y sus horas en diagonal.
         val ticks = (0..20 step 2) + 23
-        val labelStyle = TextStyle(color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        val labelStyle = TextStyle(color = labelColor, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
         for (h in ticks) {
-            drawLine(Color.White.copy(alpha = 0.28f), Offset(x(h), top), Offset(x(h), bottom), strokeWidth = 1.dp.toPx())
+            drawLine(grid, Offset(x(h), top), Offset(x(h), bottom), strokeWidth = 1.dp.toPx())
             val text = if (es) "${if (h < 10) "0$h" else "$h"}h" else when {
                 h == 0 -> "12AM"; h < 12 -> "${h}AM"; h == 12 -> "12PM"; else -> "${h - 12}PM"
             }
@@ -572,17 +576,26 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
         val pts = (0 until 24).map { Offset(x(it), y(hours.getOrElse(it) { 0 })) }
         val path = smoothPath(pts)
         clipRect(right = left + (right - left) * grow.value + 4.dp.toPx()) {
-            drawPath(path, Color.White.copy(alpha = 0.82f), style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            // Velo suave bajo la curva (el mismo tono, muy transparente) y la curva encima.
+            val area = Path().apply {
+                addPath(path)
+                lineTo(pts.last().x, bottom)
+                lineTo(pts.first().x, bottom)
+                close()
+            }
+            drawPath(area, Brush.verticalGradient(listOf(accent.copy(alpha = 0.22f), accent.copy(alpha = 0f)), startY = yHigh, endY = bottom))
+            drawPath(path, accent, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
 
         // La hora elegida: un punto sobre la curva y una etiqueta con sus escuchas.
         if (showValue && selected in 0..23 && grow.value > 0.99f) {
             val p = pts[selected]
-            drawCircle(Color.White.copy(alpha = 0.35f), radius = 9.dp.toPx(), center = p)
-            drawCircle(Color.White, radius = 5.dp.toPx(), center = p)
+            drawLine(accent.copy(alpha = 0.5f), Offset(p.x, top), Offset(p.x, bottom), strokeWidth = 1.dp.toPx())
+            drawCircle(ring, radius = 7.dp.toPx(), center = p)
+            drawCircle(accent, radius = 5.dp.toPx(), center = p)
             val label = measurer.measure(
                 "${hh(selected)} · ${hours.getOrElse(selected) { 0 }}",
-                TextStyle(color = CLOCK_INK, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                TextStyle(color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold),
             )
             val padH = 8.dp.toPx(); val padV = 4.dp.toPx()
             val w = label.size.width + padH * 2
@@ -590,16 +603,11 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
             val lx = (p.x - w / 2).coerceIn(4.dp.toPx(), size.width - w - 4.dp.toPx())
             val above = p.y - 14.dp.toPx() - hgt
             val ly = if (above > 2.dp.toPx()) above else p.y + 14.dp.toPx()
-            drawRoundRect(Color.White.copy(alpha = 0.92f), Offset(lx, ly), Size(w, hgt), CornerRadius(hgt / 2))
+            drawRoundRect(pill, Offset(lx, ly), Size(w, hgt), CornerRadius(hgt / 2))
             drawText(label, topLeft = Offset(lx + padH, ly + padV))
         }
     }
 }
-
-private val CLOCK_BLUE = Color(0xFF6B90E8)
-private val CLOCK_VIOLET = Color(0xFF977ADA)
-private val CLOCK_PINK = Color(0xFFC456BF)
-private val CLOCK_INK = Color(0xFF3B2A6E)
 
 /** Curva suave que pasa por todos los puntos sin pasarse (cúbica monótona de Fritsch–Carlson). */
 private fun smoothPath(p: List<Offset>): Path {
