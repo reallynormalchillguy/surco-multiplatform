@@ -42,8 +42,11 @@ class SpotifyLinks(private val http: HttpClient) {
             append("release:\"").append(album.replace("\"", " ")).append('"')
             if (artist.isNotBlank()) append(" AND artist:\"").append(artist.replace("\"", " ")).append('"')
         }
-        val arr = get("$MB/release/?query=${enc(q)}&fmt=json&limit=8")?.first?.let { parseJson(it).obj() }?.arr("releases") ?: return null
-        val candidates = arr.objects().filter { AlbumMatcher.similarity(it.str("title"), album) >= 0.8f }.take(3)
+        val arr = get("$MB/release/?query=${enc(q)}&fmt=json&limit=25")?.first?.let { parseJson(it).obj() }?.arr("releases") ?: return null
+        // Las ediciones digitales son las que llevan enlaces a Spotify: primero ésas.
+        val candidates = arr.objects().filter { AlbumMatcher.similarity(it.str("title"), album) >= 0.8f }
+            .sortedByDescending { r -> r.arr("media")?.objects().orEmpty().any { it.str("format") == "Digital Media" } }
+            .take(4)
         for (r in candidates) {
             delay(1100) // MusicBrainz: una consulta por segundo
             val rels = get("$MB/release/${r.str("id")}?inc=url-rels&fmt=json")?.first?.let { parseJson(it).obj() }?.arr("relations") ?: continue

@@ -57,7 +57,7 @@ object SpotifyPage {
      */
     fun parse(url: String, html: String): LinkedMusic? {
         val meta = metaTags(html)
-        val title = meta["og:title"]?.trim().orEmpty()
+        val title = cleanTitle(meta["og:title"]?.trim().orEmpty())
         if (title.isBlank()) return null
         val type = meta["og:type"].orEmpty()
         val kind = when {
@@ -70,9 +70,34 @@ object SpotifyPage {
         val artist = when (kind) {
             LinkKind.ARTIST -> title
             else -> meta["music:musician_description"]?.trim()?.takeIf { it.isNotBlank() }
+                ?: artistFromTitle(meta["og:title"].orEmpty()).takeIf { it.isNotBlank() }
                 ?: artistFromDescription(desc, title)
         }
         return LinkedMusic(kind, title, artist, meta["og:image"], meta["og:url"] ?: url)
+    }
+
+    /**
+     * Spotify a veces da el título «de buscador»: «Listen to OK Computer - Album by Radiohead | Spotify»,
+     * «Paranoid Android - song and lyrics by Radiohead | Spotify». Se deja sólo «OK Computer».
+     */
+    fun cleanTitle(raw: String): String {
+        var t = raw.removeSuffix(" | Spotify").trim()
+        if (t.startsWith("Listen to ")) t = t.removePrefix("Listen to ")
+        for (marker in listOf(" - Album by ", " - Single by ", " - EP by ", " - Compilation by ", " - song and lyrics by ", " - song by ")) {
+            val i = t.lastIndexOf(marker)
+            if (i > 0) { t = t.substring(0, i); break }
+        }
+        return t.trim()
+    }
+
+    /** Artista dentro del título «de buscador» («… - Album by Radiohead | Spotify»), si lo trae. */
+    fun artistFromTitle(raw: String): String {
+        val t = raw.removeSuffix(" | Spotify")
+        for (marker in listOf(" - Album by ", " - Single by ", " - EP by ", " - Compilation by ", " - song and lyrics by ", " - song by ")) {
+            val i = t.lastIndexOf(marker)
+            if (i > 0) return t.substring(i + marker.length).trim()
+        }
+        return ""
     }
 
     /**

@@ -46,6 +46,17 @@ class LinksAndBiosTest {
     }
 
     @Test
+    fun cleansSearchEngineStyleTitles() {
+        val m = SpotifyPage.parse(
+            "https://open.spotify.com/album/x",
+            """<meta property="og:title" content="Listen to OK Computer - Album by Radiohead | Spotify"><meta property="og:type" content="music.album">""",
+        )!!
+        assertEquals("OK Computer", m.title)
+        assertEquals("Radiohead", m.artist)
+        assertEquals("Paranoid Android", SpotifyPage.cleanTitle("Paranoid Android - song and lyrics by Radiohead | Spotify"))
+    }
+
+    @Test
     fun spotifySearchLinksAreEncoded() {
         assertEquals("https://open.spotify.com/search/Sigur%20R%C3%B3s%20%C3%81g%C3%A6tis%20byrjun", SpotifyPage.searchUrl("Sigur Rós Ágætis byrjun"))
     }
