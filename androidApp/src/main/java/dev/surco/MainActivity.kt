@@ -97,7 +97,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        (application as SurcoApp).container.player.release()
+        val c = (application as SurcoApp).container
+        // El icono se cambia al salir de la app (no mientras la usas) y sin cortar la música que suene.
+        if (!c.player.state.value.isPlaying) {
+            AppIcon.apply(this, dev.surco.ui.theme.SurcoColors.Accent, c.prefs.current.iconFollowsAccent)
+        }
+        c.player.release()
         super.onStop()
     }
 

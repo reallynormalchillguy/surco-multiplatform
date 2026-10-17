@@ -37,6 +37,8 @@ data class Settings(
     val discover: Boolean = true,
     /** Reescanear solo cuando aparecen archivos o carpetas nuevos en la carpeta de música. */
     val autoScan: Boolean = true,
+    /** El icono de la app toma el color de acento. */
+    val iconFollowsAccent: Boolean = true,
     /** Paleta de colores de la interfaz ("" = la original). Ver [dev.surco.ui.theme.Palette.encode]. */
     val palette: String = "",
     /** Negro puro para pantallas OLED: "on" si lo activas; "" u "off", apagado. */
@@ -94,6 +96,7 @@ class Prefs(
         language = str("language", "en"),
         discover = store.bool("discover", true),
         autoScan = store.bool("autoScan", true),
+        iconFollowsAccent = store.bool("iconFollowsAccent", true),
         palette = str("palette", ""),
         oled = str("oled", ""),
         spotifyId = str("spotifyId", ""),
@@ -135,6 +138,7 @@ class Prefs(
                 "slskSubfolders" to s.slskSubfolders,
                 "discover" to s.discover,
                 "autoScan" to s.autoScan,
+                "iconFollowsAccent" to s.iconFollowsAccent,
             ),
         )
         applyLanguage(s)

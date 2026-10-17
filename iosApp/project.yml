@@ -41,6 +41,9 @@ targets:
         PRODUCT_NAME: Surco
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Iconos alternativos (uno por color de acento); la app elige el más parecido.
+        ASSETCATALOG_COMPILER_ALTERNATE_APP_ICON_NAMES: "AppIcon-Lime AppIcon-Yellow AppIcon-Orange AppIcon-Red AppIcon-Pink AppIcon-Magenta AppIcon-Purple AppIcon-Indigo AppIcon-Blue AppIcon-Cyan AppIcon-Mint AppIcon-White"
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         FRAMEWORK_SEARCH_PATHS: "$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
         OTHER_LDFLAGS: ["$(inherited)", "-framework", "Shared"]
         ENABLE_USER_SCRIPT_SANDBOXING: NO

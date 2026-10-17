@@ -10,8 +10,13 @@ import dev.surco.data.SurcoDatabase
 import dev.surco.data.create
 import dev.surco.slsk.SoulseekService
 import platform.Foundation.NSBundle
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /** La app de iOS: lo común más el reproductor, el escáner y las etiquetas nativos. */
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class IosContainer : SurcoCore(
     PlatformParts(
         db = SurcoDatabase.create(),
@@ -32,6 +37,19 @@ class IosContainer : SurcoCore(
 
     init {
         startBackgroundWork()
+        // Icono a juego con el color de acento (no en las capturas automáticas: el aviso de iOS taparía la pantalla).
+        if (!IosDemo.enabled) {
+            appScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                prefs.settings
+                    .map { s ->
+                        if (!s.iconFollowsAccent) "Green"
+                        else dev.surco.ui.theme.AppIconColors.nearest(dev.surco.data.Prefs.effectivePalette(dev.surco.ui.theme.Palette.decode(s.palette), s).accent)
+                    }
+                    .distinctUntilChanged()
+                    .debounce(1500)
+                    .collect { IosAppIcon.apply(it) }
+            }
+        }
     }
 }
 

@@ -159,6 +159,9 @@ fun SettingsScreen() {
                     }
                 }
                 OledRow(settings) { on -> repo.prefs.update { it.copy(oled = if (on) "on" else "off") } }
+                SwitchRow(S.iconFollowsAccent, S.iconFollowsAccentDesc, settings.iconFollowsAccent) { v ->
+                    repo.prefs.update { it.copy(iconFollowsAccent = v) }
+                }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccentButton(S.shufflePalette) {

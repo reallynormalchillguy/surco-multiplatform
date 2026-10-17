@@ -781,4 +781,9 @@ object S {
     val yesterday get() = t("yesterday", "ayer")
     val viewProfile get() = t("View profile", "Ver perfil")
     val listeningStats get() = t("Listening stats", "Estadísticas de escucha")
+    val iconFollowsAccent get() = t("App icon matches your color", "Icono a juego con tu color")
+    val iconFollowsAccentDesc get() = t(
+        "The app icon takes the shade closest to your accent color.",
+        "El icono de la app toma el tono más parecido a tu color de acento.",
+    )
 }
