@@ -330,7 +330,8 @@ class DeviceSmokeTest {
         // Paleta de colores: sortear y volver a la original
         tap(compose.onNodeWithTag("tab_home"))
         tap(compose.firstDesc(S.settings))
-        compose.onNodeWithTag("open_palette").performScrollTo()
+        // Se baja hasta Soulseek para que la fila de la paleta no quede bajo el mini reproductor.
+        compose.first(S.openSoulseek).performScrollTo()
         tap(compose.onNodeWithTag("open_palette"), "paleta")
         tap(compose.onNodeWithTag("palette_shuffle"), "paleta_sorteada")
         org.junit.Assert.assertTrue(c.prefs.current.palette.isNotBlank())

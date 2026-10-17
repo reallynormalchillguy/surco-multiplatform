@@ -100,7 +100,8 @@ fun SwipeTracks(
 
     var width by remember { mutableIntStateOf(0) }
     val gapPx = with(LocalDensity.current) { gap.toPx() }
-    val stepPx = width + gapPx
+    // Función (no valor): el gesto se crea una sola vez y debe leer siempre el ancho actual.
+    fun stepPx() = width + gapPx
 
     fun shownValid() = shownUri != null && nav.queue.getOrNull(shownIndex) == shownUri
     fun neighbour(dir: Int): Int = if (shownValid()) nav.step(shownIndex, dir) else -1
@@ -119,7 +120,7 @@ fun SwipeTracks(
         finishRunning()
         rotation = r
         anim[0] = scope.launch {
-            animate(offset, -r.dir * stepPx, animationSpec = tween(if (fast) 170 else 280)) { v, _ -> offset = v }
+            animate(offset, -r.dir * stepPx(), animationSpec = tween(if (fast) 170 else 280)) { v, _ -> offset = v }
             applyRotation(r)
             anim[0] = null
         }
@@ -212,7 +213,7 @@ fun SwipeTracks(
                     // Sin vecina en ese lado, el gesto se resiste (como al final de una lista).
                     val next = offset + dx
                     val blocked = (next < 0 && neighbour(1) < 0) || (next > 0 && neighbour(-1) < 0)
-                    offset = (offset + if (blocked) dx * 0.25f else dx).coerceIn(-stepPx, stepPx)
+                    offset = (offset + if (blocked) dx * 0.25f else dx).coerceIn(-stepPx(), stepPx())
                 }
             },
     ) {
@@ -222,11 +223,11 @@ fun SwipeTracks(
         Box(Modifier.graphicsLayer { translationX = offset }) { content(center) }
         if (o > 0.5f) {
             val left = if (r != null && r.dir < 0) trackOf(r.uri) else trackOf(nav.queue.getOrNull(neighbour(-1)))
-            Box(Modifier.matchParentSize().graphicsLayer { translationX = offset - stepPx }) { content(left) }
+            Box(Modifier.matchParentSize().graphicsLayer { translationX = offset - stepPx() }) { content(left) }
         }
         if (o < -0.5f) {
             val right = if (r != null && r.dir > 0) trackOf(r.uri) else trackOf(nav.queue.getOrNull(neighbour(1)))
-            Box(Modifier.matchParentSize().graphicsLayer { translationX = offset + stepPx }) { content(right) }
+            Box(Modifier.matchParentSize().graphicsLayer { translationX = offset + stepPx() }) { content(right) }
         }
     }
 }

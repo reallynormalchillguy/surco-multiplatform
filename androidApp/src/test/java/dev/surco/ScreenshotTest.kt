@@ -287,7 +287,7 @@ class ScreenshotTest {
         compose.onNodeWithTag("mini_player").performClick()
         snap("06_reproductor")
         // Temporizador para dormir.
-        compose.onNodeWithTag("sleep_timer").performClick()
+        compose.onNodeWithTag("sleep_timer", useUnmergedTree = true).performClick()
         snapScreen("06b_temporizador")
         compose.onNodeWithText(S.turnOffTimer).performClick()
         settle()
