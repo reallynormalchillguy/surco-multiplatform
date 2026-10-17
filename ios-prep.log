@@ -1,0 +1,6 @@
+Starting a Gradle Daemon (subsequent builds will be faster)
+> Task :shared:commonizeNativeDistribution
+gradle/actions: Writing build results to /Users/runner/work/_temp/.gradle-actions/build-results/ios-1792275900052.json
+
+BUILD SUCCESSFUL in 1m 3s
+1 actionable task: 1 executed
