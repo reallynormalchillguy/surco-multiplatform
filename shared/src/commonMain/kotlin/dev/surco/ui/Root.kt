@@ -294,6 +294,9 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
                     composable("search") { SearchScreen() }
                     composable("library") { LibraryScreen() }
                     composable("stats") { StatsScreen() }
+                    composable("stats_top/{kind}", listOf(navArgument("kind") { type = NavType.StringType })) {
+                        StatsTopScreen(it.stringArg("kind"))
+                    }
                     composable("settings") { SettingsScreen() }
                     composable("online_artist/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
                         OnlineArtistScreen(it.longArg("id"))

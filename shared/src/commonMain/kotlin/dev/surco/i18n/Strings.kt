@@ -755,4 +755,28 @@ object S {
     fun dayMonth(d: Int, m: Int) = if (I18n.lang == Lang.ES) "$d ${monthShort(m)}" else "${monthShort(m)} $d"
     fun monthYear(m: Int, y: Int) = if (I18n.lang == Lang.ES) "${monthShort(m)} $y" else "${monthShort(m)} $y"
     fun hoursMinutes(min: Int) = if (min >= 60) "${min / 60} h ${min % 60} min" else "$min min"
+    fun topPeriodChip(p: String) = when (p) {
+        "WEEK" -> t("7 days", "7 días")
+        "MONTH" -> t("30 days", "30 días")
+        "QUARTER" -> t("90 days", "90 días")
+        "HALF" -> t("180 days", "180 días")
+        "YEAR" -> t("365 days", "365 días")
+        else -> t("All time", "Siempre")
+    }
+    fun makeDefaultPeriod(label: String) = t("Open with “$label” by default", "Abrir con «$label» por defecto")
+    val defaultPeriod get() = t("Default", "Predeterminado")
+    val viewOtherUser get() = t("See someone else's stats", "Ver las estadísticas de otra persona")
+    val viewOtherUserHint get() = t("Type a Last.fm username. Their profile has to be public.", "Escribe un usuario de Last.fm. Su perfil tiene que ser público.")
+    val lastfmUsername get() = t("Last.fm username", "Usuario de Last.fm")
+    val view get() = t("View", "Ver")
+    fun viewingUser(u: String) = t("Viewing @$u", "Viendo a @$u")
+    val backToMyStats get() = t("Back to mine", "Volver a las mías")
+    val seeAll get() = t("See all", "Ver todo")
+    val nothingInPeriod get() = t("Nothing here for this period", "No hay nada en este periodo")
+    val recentlyPlayed get() = t("Recently played", "Escuchado hace poco")
+    val nowLabel get() = t("Now", "Ahora")
+    val justNow get() = t("just now", "ahora mismo")
+    fun minutesAgo(n: Int) = t("$n min ago", "hace $n min")
+    fun hoursAgo(n: Int) = t(if (n == 1) "1 hour ago" else "$n hours ago", if (n == 1) "hace 1 hora" else "hace $n horas")
+    val yesterday get() = t("yesterday", "ayer")
 }

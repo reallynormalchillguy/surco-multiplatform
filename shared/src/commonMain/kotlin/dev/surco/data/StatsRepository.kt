@@ -44,7 +44,76 @@ class StatsRepository(
 
     private val cache = HashMap<Pair<String, StatsPeriod>, StatsReport>()
     private val pictures = HashMap<String, Pair<String?, Long>>()
+    private val tops = HashMap<String, List<TopItem>>()
     private var job: Job? = null
+
+    /** Las últimas escuchas (independientes del periodo). */
+    private val _recent = MutableStateFlow<List<RecentScrobble>>(emptyList())
+    val recent: StateFlow<List<RecentScrobble>> = _recent.asStateFlow()
+    private var recentFor = ""
+    private var recentAt = 0L
+
+    private fun loadRecent(force: Boolean) {
+        val user = currentUser()
+        if (user.isBlank()) return
+        if (!force && recentFor.equals(user, ignoreCase = true) && now() - recentAt < 90_000) return
+        scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            runCatching { api.latest(user, 10) }.onSuccess { list ->
+                if (currentUser() == user) { _recent.value = list; recentFor = user; recentAt = now() }
+            }
+        }
+    }
+
+    /** Sólo para las capturas automáticas (CI). */
+    fun debugSetRecent(list: List<RecentScrobble>) { _recent.value = list; recentFor = currentUser(); recentAt = now() }
+
+    /** Otro usuario de Last.fm cuyas estadísticas se están viendo (null = las tuyas). */
+    private val _viewing = MutableStateFlow<String?>(null)
+    val viewing: StateFlow<String?> = _viewing.asStateFlow()
+
+    /** De quién son las estadísticas que se enseñan. */
+    fun currentUser(): String = _viewing.value ?: prefs.current.lastfmUser
+
+    /** Ver las estadísticas de otra persona (null o vacío = volver a las tuyas). */
+    fun view(user: String?) {
+        val u = user?.trim()?.removePrefix("@")?.ifBlank { null }
+        if (u != null && u.equals(prefs.current.lastfmUser, ignoreCase = true)) { view(null); return }
+        job?.cancel()
+        _viewing.value = u
+        _recent.value = emptyList()
+        recentFor = ""
+        _state.value = StatsUiState(period = _state.value.period)
+        load()
+    }
+
+    enum class TopKind { ARTISTS, ALBUMS, TRACKS }
+
+    /** Una página (50) de un top completo, de la memoria si ya se pidió. */
+    suspend fun topPage(kind: TopKind, period: StatsPeriod, page: Int): List<TopItem> {
+        val user = currentUser()
+        val key = "${user.lowercase()}|$kind|$period|$page"
+        tops[key]?.let { return it }
+        val list = when (kind) {
+            TopKind.ARTISTS -> api.topArtists(user, period, TOP_PAGE, page)
+            TopKind.ALBUMS -> api.topAlbums(user, period, TOP_PAGE, page)
+            TopKind.TRACKS -> api.topTracks(user, period, TOP_PAGE, page)
+        }
+        tops[key] = list
+        return list
+    }
+
+    /** Sólo para las capturas automáticas (CI): una página de un top, sin red. */
+    fun debugPutTop(kind: TopKind, period: StatsPeriod, list: List<TopItem>) {
+        tops["${currentUser().lowercase()}|$kind|$period|1"] = list
+    }
+
+    /** Foto (de Deezer) e id de Deezer de un artista, recordadas. */
+    suspend fun artistPicture(name: String): Pair<String?, Long> {
+        pictures[name.lowercase()]?.let { return it }
+        val r = runCatching { deezer.findArtist(name) }.getOrNull().let { (it?.picture to (it?.id ?: 0L)) }
+        pictures[name.lowercase()] = r
+        return r
+    }
 
     fun select(period: StatsPeriod) {
         _state.update { it.copy(period = period) }
@@ -53,8 +122,9 @@ class StatsRepository(
 
     /** Carga el periodo elegido (de la memoria si es reciente, salvo [force]). */
     fun load(force: Boolean = false) {
-        val user = prefs.current.lastfmUser
+        val user = currentUser()
         if (user.isBlank()) return
+        loadRecent(force)
         val period = _state.value.period
         val cached = cache[user to period]
         if (!force && cached != null && now() - cached.createdAt < FRESH_MS) {
@@ -62,12 +132,12 @@ class StatsRepository(
             return
         }
         job?.cancel()
-        _state.update { it.copy(loading = true, progress = 0f, error = null, report = cached ?: it.report?.takeIf { r -> r.profile.name == user }) }
+        _state.update { it.copy(loading = true, progress = 0f, error = null, report = cached ?: it.report?.takeIf { r -> r.profile.name.equals(user, ignoreCase = true) }) }
         job = scope.launch(kotlinx.coroutines.Dispatchers.Main) {
             try {
                 val r = build(user, period)
                 cache[user to period] = r
-                if (_state.value.period == period) _state.update { it.copy(report = r, loading = false, error = null) }
+                if (_state.value.period == period && currentUser() == user) _state.update { it.copy(report = r, loading = false, error = null) }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -147,6 +217,7 @@ class StatsRepository(
     companion object {
         /** 25 páginas de 200: las últimas 5.000 escuchas como mucho para los gráficos. */
         const val MAX_PAGES = 25
+        const val TOP_PAGE = 50
         private const val FRESH_MS = 20 * 60 * 1000L
     }
 }

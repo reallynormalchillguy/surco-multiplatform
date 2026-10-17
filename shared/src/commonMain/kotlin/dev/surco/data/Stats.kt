@@ -44,6 +44,17 @@ data class TopItem(
 /** Una escucha («scrobble»): cuándo (segundos desde 1970) y qué. */
 data class Scrobble(val at: Long, val artist: String, val title: String, val album: String)
 
+/** Una de las últimas escuchas (para «Escuchado hace poco»). [at] = 0 si está sonando ahora. */
+data class RecentScrobble(
+    val title: String,
+    val artist: String,
+    val album: String,
+    val imageUrl: String?,
+    val at: Long,
+    val nowPlaying: Boolean,
+    val url: String,
+)
+
 /** Un tramo del gráfico de actividad: desde el día [startDay] (días desde 1970, hora local), [count] escuchas. */
 data class ActivityBucket(val startDay: Long, val count: Int)
 

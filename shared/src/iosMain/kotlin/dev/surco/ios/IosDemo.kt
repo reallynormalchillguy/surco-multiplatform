@@ -79,6 +79,10 @@ object IosDemo {
             if (route == "stats") {
                 c.stats.debugSet(demoStats(dao.allTracksOnce()))
                 c.prefs.update { it.copy(lastfmKey = "demo", lastfmSecret = "demo", lastfmSession = "demo", lastfmUser = "surco_demo") }
+                val nowS = nowMillis() / 1000
+                c.stats.debugSetRecent(songs.take(8).mapIndexed { i, t ->
+                    dev.surco.data.RecentScrobble(t, albums[i % albums.size].second, albums[i % albums.size].first, null, if (i == 0) 0 else nowS - i * 1500L, i == 0, "")
+                })
             }
             if (openPlayer) {
                 val first = dao.allTracksOnce().first()

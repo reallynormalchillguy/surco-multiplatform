@@ -38,21 +38,37 @@ class LastFmStats(private val http: HttpClient, private val prefs: Prefs) {
         )
     }
 
-    suspend fun topArtists(user: String, period: StatsPeriod, limit: Int = 10): List<TopItem> =
-        (call("user.gettopartists", "user" to user, "period" to period.api, "limit" to "$limit").obj("topartists")?.arr("artist") ?: JsonArray(emptyList()))
+    suspend fun topArtists(user: String, period: StatsPeriod, limit: Int = 10, page: Int = 1): List<TopItem> =
+        (call("user.gettopartists", "user" to user, "period" to period.api, "limit" to "$limit", "page" to "$page").obj("topartists")?.arr("artist") ?: JsonArray(emptyList()))
             .objects().map { TopItem(it.str("name"), it.str("name"), plays(it), null, it.str("url")) }
 
-    suspend fun topAlbums(user: String, period: StatsPeriod, limit: Int = 10): List<TopItem> =
-        (call("user.gettopalbums", "user" to user, "period" to period.api, "limit" to "$limit").obj("topalbums")?.arr("album") ?: JsonArray(emptyList()))
+    suspend fun topAlbums(user: String, period: StatsPeriod, limit: Int = 10, page: Int = 1): List<TopItem> =
+        (call("user.gettopalbums", "user" to user, "period" to period.api, "limit" to "$limit", "page" to "$page").obj("topalbums")?.arr("album") ?: JsonArray(emptyList()))
             .objects().map { TopItem(it.str("name"), artistName(it), plays(it), image(it.arr("image")), it.str("url")) }
 
-    suspend fun topTracks(user: String, period: StatsPeriod, limit: Int = 10): List<TopItem> =
-        (call("user.gettoptracks", "user" to user, "period" to period.api, "limit" to "$limit").obj("toptracks")?.arr("track") ?: JsonArray(emptyList()))
+    suspend fun topTracks(user: String, period: StatsPeriod, limit: Int = 10, page: Int = 1): List<TopItem> =
+        (call("user.gettoptracks", "user" to user, "period" to period.api, "limit" to "$limit", "page" to "$page").obj("toptracks")?.arr("track") ?: JsonArray(emptyList()))
             .objects().map { TopItem(it.str("name"), artistName(it), plays(it), null, it.str("url")) }
 
     suspend fun lovedCount(user: String): Int = runCatching {
         call("user.getlovedtracks", "user" to user, "limit" to "1").obj("lovedtracks")?.obj("@attr")?.str("total")?.toIntOrNull() ?: 0
     }.getOrDefault(0)
+
+    /** Las últimas [limit] escuchas (y la que suena ahora, si hay), con su portada. */
+    suspend fun latest(user: String, limit: Int = 10): List<dev.surco.data.RecentScrobble> {
+        val rt = call("user.getrecenttracks", "user" to user, "limit" to "$limit").obj("recenttracks") ?: throw LastFmException(-2, "recenttracks")
+        return (rt.arr("track") ?: JsonArray(emptyList())).objects().map { t ->
+            dev.surco.data.RecentScrobble(
+                title = t.str("name"),
+                artist = t.obj("artist")?.str("#text").orEmpty(),
+                album = t.obj("album")?.str("#text").orEmpty(),
+                imageUrl = image(t.arr("image")),
+                at = t.obj("date")?.str("uts")?.toLongOrNull() ?: 0,
+                nowPlaying = t.obj("@attr")?.str("nowplaying") == "true",
+                url = t.str("url"),
+            )
+        }.take(limit + 1)
+    }
 
     /** Una página del historial: (escuchas, total en el rango, páginas). */
     suspend fun recentPage(user: String, from: Long, page: Int): Triple<List<Scrobble>, Long, Int> {

@@ -33,6 +33,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.filled.AutoGraph
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -123,6 +126,8 @@ fun StatsScreen() {
     val settings by prefs.settings.collectAsState()
     val stats = actions.container.stats
     val state by stats.state.collectAsState()
+    val viewing by stats.viewing.collectAsState()
+    var askUser by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().testTag("stats_screen")) {
         Row(
@@ -132,20 +137,67 @@ fun StatsScreen() {
             AppAvatarOrLastFm(settings.lastfmLoggedIn, state.report?.profile?.imageUrl) { actions.openSettings() }
             Spacer(Modifier.width(14.dp))
             Text(S.stats, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            if (settings.lastfmLoggedIn) {
+            if (settings.lastfmReady) {
+                // Discreto: ver las estadísticas de otra persona.
+                IconButton(onClick = { askUser = true }, modifier = Modifier.testTag("stats_other_user")) {
+                    Icon(Icons.Outlined.PersonSearch, S.viewOtherUser, tint = SurcoColors.TextSecondary)
+                }
+            }
+            if (settings.lastfmLoggedIn || viewing != null) {
                 IconButton(onClick = { stats.load(force = true) }, enabled = !state.loading) {
                     if (state.loading) CircularProgressIndicator(Modifier.size(20.dp), color = SurcoColors.Accent, strokeWidth = 2.dp)
                     else Icon(Icons.Filled.Refresh, S.retry, tint = SurcoColors.TextSecondary)
                 }
             }
         }
-        if (!settings.lastfmLoggedIn) {
-            ConnectLastFm()
+        viewing?.let { u ->
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().clip(RoundedCornerShape(50))
+                    .background(SurcoColors.Accent.copy(alpha = 0.14f)).padding(start = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.PersonSearch, null, tint = SurcoColors.Accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(S.viewingUser(u), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                TextButton(onClick = { stats.view(null) }) { Text(S.backToMyStats, color = SurcoColors.Accent) }
+            }
+        }
+        if (!settings.lastfmLoggedIn && viewing == null) {
+            ConnectLastFm(onOtherUser = { askUser = true })
         } else {
-            LaunchedEffect(settings.lastfmUser) { stats.load() }
+            LaunchedEffect(settings.lastfmUser, viewing) { stats.load() }
             StatsContent(state, onPeriod = { stats.select(it) }, onRetry = { stats.load(force = true) })
         }
     }
+    if (askUser) OtherUserDialog(onDismiss = { askUser = false }, onView = { askUser = false; stats.view(it) })
+}
+
+@Composable
+private fun OtherUserDialog(onDismiss: () -> Unit, onView: (String) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SurcoColors.Surface,
+        title = { Text(S.viewOtherUser) },
+        text = {
+            Column {
+                Text(S.viewOtherUserHint, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    name, { name = it }, singleLine = true, label = { Text(S.lastfmUsername) },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { if (name.isNotBlank()) onView(name) }),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SurcoColors.Accent, focusedLabelColor = SurcoColors.Accent, cursorColor = SurcoColors.Accent,
+                        unfocusedBorderColor = SurcoColors.SurfaceHigher,
+                    ),
+                    modifier = Modifier.fillMaxWidth().testTag("other_user_field"),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onView(name) }, enabled = name.isNotBlank()) { Text(S.view, color = SurcoColors.Accent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(S.cancel, color = SurcoColors.TextSecondary) } },
+    )
 }
 
 @Composable
@@ -163,7 +215,7 @@ private fun AppAvatarOrLastFm(connected: Boolean, image: String?, onClick: () ->
 // ======================================================================= Sin cuenta
 
 @Composable
-private fun ConnectLastFm() {
+private fun ConnectLastFm(onOtherUser: () -> Unit) {
     val actions = LocalActions.current
     val settings by actions.repo.prefs.settings.collectAsState()
     val uri = LocalUriHandler.current
@@ -195,6 +247,11 @@ private fun ConnectLastFm() {
                     Text(S.createLastfmAccount, color = SurcoColors.TextPrimary)
                 }
             }
+            if (settings.lastfmReady) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TextButton(onClick = onOtherUser) { Text(S.viewOtherUser, color = SurcoColors.TextSecondary) }
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Text(S.statsReadOnlyNote, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextTertiary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
@@ -211,6 +268,7 @@ private fun StatsContent(state: dev.surco.data.StatsUiState, onPeriod: (StatsPer
     val r = state.report
     LazyColumn(Modifier.fillMaxSize().testTag("stats_list"), contentPadding = PaddingValues(bottom = 120.dp)) {
         if (r != null) item(key = "hero") { ProfileHero(r) }
+        item(key = "recent") { RecentScrobbles() }
         item(key = "periods") {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -315,18 +373,75 @@ private fun ProfileHero(r: StatsReport) {
         Text(S.scrobblesTotal, style = MaterialTheme.typography.bodyMedium, color = SurcoColors.TextSecondary)
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            MiniStat(S.artists, fmt(p.artists), Modifier.weight(1f))
-            MiniStat(S.albums, fmt(p.albums), Modifier.weight(1f))
-            MiniStat(S.songs, fmt(p.tracks), Modifier.weight(1f))
+            val actions = LocalActions.current
+            MiniStat(S.artists, fmt(p.artists), Modifier.weight(1f).testTag("hero_artists")) { actions.go("stats_top/artists") }
+            MiniStat(S.albums, fmt(p.albums), Modifier.weight(1f).testTag("hero_albums")) { actions.go("stats_top/albums") }
+            MiniStat(S.songs, fmt(p.tracks), Modifier.weight(1f).testTag("hero_tracks")) { actions.go("stats_top/tracks") }
         }
     }
 }
 
 @Composable
-private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
+private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(vertical = 4.dp)) {
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = SurcoColors.TextSecondary, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+// ----------------------------------------------------------------------- Escuchado hace poco
+
+/** Las últimas 10 escuchas (y la que suena ahora), entre el perfil y los periodos. */
+@Composable
+private fun RecentScrobbles() {
+    val actions = LocalActions.current
+    val list by actions.container.stats.recent.collectAsState()
+    if (list.isEmpty()) return
+    val uri = LocalUriHandler.current
+    val lib = rememberStatsLibraryIndex()
+    val nowSec = remember(list) { dev.surco.util.nowMillis() / 1000 }
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(SurcoColors.Surface).padding(vertical = 12.dp).testTag("stats_recent")) {
+        Text(S.recentlyPlayed, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+        list.take(11).forEach { r ->
+            val local = lib.tracks[StatsMath.key(r.artist, r.title)]
+            Row(
+                Modifier.fillMaxWidth().clickable {
+                    if (local != null) actions.play(listOf(local), 0, "estadísticas|${S.stats}")
+                    else if (r.url.isNotBlank()) runCatching { uri.openUri(r.url) }
+                }.padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                dev.surco.ui.components.ArtImage(local?.artPath ?: r.imageUrl, Modifier.size(42.dp), RoundedCornerShape(4.dp))
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(r.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = if (r.nowPlaying) SurcoColors.Accent else SurcoColors.TextPrimary)
+                    Text(r.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Spacer(Modifier.width(8.dp))
+                if (r.nowPlaying) {
+                    Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(S.nowLabel, style = MaterialTheme.typography.labelSmall, color = SurcoColors.Accent)
+                } else {
+                    Text(timeAgo(r.at, nowSec), style = MaterialTheme.typography.labelSmall, color = SurcoColors.TextTertiary)
+                }
+            }
+        }
+    }
+}
+
+private fun timeAgo(at: Long, nowSec: Long): String {
+    val d = (nowSec - at).coerceAtLeast(0)
+    return when {
+        d < 60 -> S.justNow
+        d < 3600 -> S.minutesAgo((d / 60).toInt())
+        d < 86_400 -> S.hoursAgo((d / 3600).toInt())
+        d < 2 * 86_400 -> S.yesterday
+        else -> dayLabel(at / 86_400)
     }
 }
 
@@ -694,11 +809,11 @@ private fun ActivityChart(buckets: List<ActivityBucket>, selected: Int, onSelect
 // ----------------------------------------------------------------------- Tops
 
 @Composable
-private fun rememberLibraryIndex(): LibraryIndex {
+internal fun rememberStatsLibraryIndex(): StatsLibraryIndex {
     val dao = LocalActions.current.repo.dao
-    val idx by produceState(LibraryIndex(emptyMap(), emptyMap(), emptyMap())) {
+    val idx by produceState(StatsLibraryIndex(emptyMap(), emptyMap(), emptyMap())) {
         val tracks = runCatching { dao.allTracksOnce() }.getOrDefault(emptyList())
-        value = LibraryIndex(
+        value = StatsLibraryIndex(
             tracks = tracks.associateBy { StatsMath.key(it.artist, it.title) },
             albums = tracks.associate { StatsMath.key(it.albumArtist.ifBlank { it.groupArtist }, it.album) to it.albumKey },
             artists = tracks.associate { AlbumMatcher.norm(it.groupArtist).replace(" ", "") to it.groupArtist },
@@ -707,13 +822,13 @@ private fun rememberLibraryIndex(): LibraryIndex {
     return idx
 }
 
-private data class LibraryIndex(val tracks: Map<String, Track>, val albums: Map<String, String>, val artists: Map<String, String>)
+internal data class StatsLibraryIndex(val tracks: Map<String, Track>, val albums: Map<String, String>, val artists: Map<String, String>)
 
 @Composable
 private fun TopArtistsCard(list: List<TopItem>) {
     val actions = LocalActions.current
     val uri = LocalUriHandler.current
-    val lib = rememberLibraryIndex()
+    val lib = rememberStatsLibraryIndex()
     fun open(a: TopItem) {
         val local = lib.artists[AlbumMatcher.norm(a.name).replace(" ", "")]
         when {
@@ -769,7 +884,7 @@ private fun TopArtistsCard(list: List<TopItem>) {
 private fun TopAlbumsRow(list: List<TopItem>) {
     val actions = LocalActions.current
     val uri = LocalUriHandler.current
-    val lib = rememberLibraryIndex()
+    val lib = rememberStatsLibraryIndex()
     Column(Modifier.padding(vertical = 8.dp).testTag("stats_albums")) {
         Text(S.topAlbumsTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(Modifier.height(12.dp))
@@ -803,7 +918,7 @@ private fun TopAlbumsRow(list: List<TopItem>) {
 private fun TopTracksCard(list: List<TopItem>) {
     val actions = LocalActions.current
     val uri = LocalUriHandler.current
-    val lib = rememberLibraryIndex()
+    val lib = rememberStatsLibraryIndex()
     val max = list.first().plays.coerceAtLeast(1)
     StatsCard(S.topTracksTitle, tag = "stats_tracks") {
         list.forEachIndexed { i, t ->
@@ -915,6 +1030,8 @@ private fun Footer(r: StatsReport) {
 // ======================================================================= Formato
 
 /** 48213 → «48.213» (español) o «48,213» (inglés). */
+internal fun fmtPlays(n: Long): String = fmt(n)
+
 private fun fmt(n: Long): String {
     val sep = if (I18n.lang == Lang.ES) '.' else ','
     val s = kotlin.math.abs(n).toString()

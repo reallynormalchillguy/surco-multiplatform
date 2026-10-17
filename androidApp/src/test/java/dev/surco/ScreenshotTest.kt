@@ -333,6 +333,7 @@ class ScreenshotTest {
         c.stats.debugSet(fakeStats(c))
         c.prefs.update { it.copy(lastfmKey = "k", lastfmSecret = "s", lastfmSession = "x", lastfmUser = "surco_demo") }
         settle()
+        c.stats.debugSetRecent(fakeRecent())
         snap("15b_estadisticas")
         for ((tag, shot) in listOf(
             "stats_clock" to "15c_estadisticas_reloj", "stats_week" to "15d_estadisticas_semana",
@@ -342,6 +343,14 @@ class ScreenshotTest {
             compose.onNodeWithTag("stats_list").performScrollToNode(hasTestTag(tag))
             snap(shot)
         }
+        // Lista top completa (al tocar «Artistas» en el perfil).
+        c.stats.debugPutTop(dev.surco.data.StatsRepository.TopKind.ARTISTS, dev.surco.data.StatsPeriod.MONTH,
+            (0 until 20).map { i -> dev.surco.data.TopItem("Artista ${'A' + i}", "Artista ${'A' + i}", (400 - i * 17).toLong(), fakeArt("artist${i % 6}", i), "") })
+        compose.onNodeWithTag("stats_list").performScrollToNode(hasTestTag("hero_artists"))
+        compose.onNodeWithTag("hero_artists").performClick()
+        snap("15i_top_artistas")
+        compose.onNodeWithTag("tab_stats").performClick()
+        settle()
         c.prefs.update { it.copy(lastfmSession = "", lastfmUser = "") }
         compose.onNodeWithTag("tab_home").performClick()
         settle()
@@ -359,6 +368,14 @@ class ScreenshotTest {
         settle()
         compose.onNodeWithTag("artist_photo").performClick()
         snapScreen("13_foto_artista")
+    }
+
+    private fun fakeRecent(): List<dev.surco.data.RecentScrobble> {
+        val now = System.currentTimeMillis() / 1000
+        return songNames.take(11).mapIndexed { i, t ->
+            dev.surco.data.RecentScrobble(t, listOf("Carmen Duna", "Velvet Arcade", "Los Faros")[i % 3], "Raíz", null,
+                if (i == 0) 0 else now - i * 23 * 60L - (if (i > 6) 86_400L else 0), i == 0, "")
+        }
     }
 
     /** Estadísticas de ejemplo: un mes de escuchas, más de tarde-noche, con un domingo muy intenso. */

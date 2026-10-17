@@ -44,6 +44,10 @@ data class Settings(
     /** Clave propia de la API de Spotify (opcional): sólo para dar enlaces exactos al compartir. */
     val spotifyId: String = "",
     val spotifySecret: String = "",
+    /** Periodo con el que se abren las listas top completas (nombre de StatsPeriod). */
+    val statsTopArtists: String = "MONTH",
+    val statsTopAlbums: String = "MONTH",
+    val statsTopTracks: String = "MONTH",
 ) {
     val spotifyReady get() = spotifyId.isNotBlank() && spotifySecret.isNotBlank()
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
@@ -94,6 +98,9 @@ class Prefs(
         oled = str("oled", ""),
         spotifyId = str("spotifyId", ""),
         spotifySecret = str("spotifySecret", ""),
+        statsTopArtists = str("statsTopArtists", "MONTH"),
+        statsTopAlbums = str("statsTopAlbums", "MONTH"),
+        statsTopTracks = str("statsTopTracks", "MONTH"),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -115,6 +122,9 @@ class Prefs(
                 "oled" to s.oled,
                 "spotifyId" to s.spotifyId,
                 "spotifySecret" to s.spotifySecret,
+                "statsTopArtists" to s.statsTopArtists,
+                "statsTopAlbums" to s.statsTopAlbums,
+                "statsTopTracks" to s.statsTopTracks,
             ),
             bools = mapOf(
                 "embedCovers" to s.embedCovers,
