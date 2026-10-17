@@ -9,6 +9,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -537,14 +539,29 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
     val ring = SurcoColors.Surface
     val pill = SurcoColors.SurfaceHigher
     val ink = SurcoColors.TextPrimary
+    // Hora bajo el dedo mientras se toca la gráfica (-1: nadie la toca; entonces no se marca nada).
+    var touching by remember { mutableIntStateOf(-1) }
     Canvas(
         modifier
             .aspectRatio(1.39f)
             .pointerInput(hours) {
-                detectTapGestures { pos ->
+                fun hourAt(x: Float): Int {
                     val left = size.width * 0.145f
                     val right = size.width * 0.905f
-                    onSelect((((pos.x - left) / (right - left)) * 23).roundToInt().coerceIn(0, 23))
+                    return (((x - left) / (right - left)) * 23).roundToInt().coerceIn(0, 23)
+                }
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    touching = hourAt(down.position.x)
+                    onSelect(touching)
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        val ch = ev.changes.firstOrNull() ?: break
+                        if (!ch.pressed) break
+                        val h = hourAt(ch.position.x)
+                        if (h != touching) { touching = h; onSelect(h) }
+                    }
+                    touching = -1
                 }
             },
     ) {
@@ -588,7 +605,8 @@ fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, mod
         }
 
         // La hora elegida: un punto sobre la curva y una etiqueta con sus escuchas.
-        if (showValue && selected in 0..23 && grow.value > 0.99f) {
+        if (showValue && touching in 0..23 && grow.value > 0.99f) {
+            val selected = touching
             val p = pts[selected]
             drawLine(accent.copy(alpha = 0.5f), Offset(p.x, top), Offset(p.x, bottom), strokeWidth = 1.dp.toPx())
             drawCircle(ring, radius = 7.dp.toPx(), center = p)
