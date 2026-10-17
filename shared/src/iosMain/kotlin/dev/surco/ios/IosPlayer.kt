@@ -378,7 +378,9 @@ class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer:
         if (t.durationMs > 0) return t.durationMs
         val item = player.currentItem ?: return 0
         val sec = CMTimeGetSeconds(item.duration)
-        return if (sec.isNaN() || sec <= 0) 0 else (sec * 1000).toLong()
+        val ms = if (sec.isNaN() || sec <= 0) 0 else (sec * 1000).toLong()
+        if (ms > 0) tracker.onDuration(ms)
+        return ms
     }
 
     private fun tick() {

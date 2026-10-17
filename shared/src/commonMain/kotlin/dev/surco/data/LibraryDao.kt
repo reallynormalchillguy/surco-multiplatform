@@ -40,6 +40,10 @@ interface LibraryDao {
     @Query("SELECT * FROM tracks WHERE uri = :uri")
     suspend fun track(uri: String): Track?
 
+    /** Apunta la duración real (la que da el reproductor) de una canción que no la tenía. */
+    @Query("UPDATE tracks SET durationMs = :ms WHERE uri = :uri AND durationMs <= 0")
+    suspend fun fillDuration(uri: String, ms: Long)
+
     @Query("SELECT * FROM tracks WHERE uri = :uri")
     fun trackFlow(uri: String): Flow<Track?>
 

@@ -237,7 +237,9 @@ internal fun CollapsingTopBar(listState: androidx.compose.foundation.lazy.LazyLi
 
 private fun summary(tracks: List<Track>): String {
     val total = tracks.sumOf { it.durationMs }
-    val mins = total / 60000
+    // Redondeando (un álbum de 40 s no es «0 min») y sin minutos si aún no se sabe la duración.
+    if (total <= 0) return S.songs(tracks.size)
+    val mins = ((total + 30_000) / 60_000).coerceAtLeast(1)
     return "${S.songs(tracks.size)} • ${S.duration(mins)}"
 }
 
@@ -299,9 +301,6 @@ fun AlbumScreen(albumKey: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = SurcoColors.TextSecondary,
             )
-            tracks.firstOrNull()?.qualityLabel()?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = SurcoColors.Accent, modifier = Modifier.padding(top = 2.dp))
-            }
         },
         toolbar = {
             IconButton(onClick = { actions.editAlbum(a.albumKey) }) {
@@ -325,7 +324,16 @@ fun AlbumScreen(albumKey: String) {
                         genres.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = SurcoColors.TextSecondary,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                    )
+                }
+            }
+            // El formato del archivo, sólo abajo del todo.
+            tracks.firstOrNull()?.qualityLabel()?.takeIf { it.isNotBlank() }?.let { q ->
+                item(key = "quality") {
+                    Text(
+                        q, style = MaterialTheme.typography.labelMedium, color = SurcoColors.TextTertiary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).testTag("album_quality"),
                     )
                 }
             }

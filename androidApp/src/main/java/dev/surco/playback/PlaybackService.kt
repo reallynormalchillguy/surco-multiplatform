@@ -84,6 +84,10 @@ class PlaybackService : MediaSessionService() {
                 saveQueue()
             }
 
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) player.duration.takeIf { it != C.TIME_UNSET }?.let(tracker::onDuration)
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 tracker.onPlayingChanged(isPlaying)
                 if (!isPlaying) saveQueue()
@@ -129,6 +133,7 @@ class PlaybackService : MediaSessionService() {
             // Si mientras tanto ya ha cambiado de canción, ignoramos este resultado.
             if (player.currentMediaItem?.mediaId != uri) return@launch
             tracker.onTrackStarted(track, player.isPlaying)
+            if (player.playbackState == Player.STATE_READY) player.duration.takeIf { it != C.TIME_UNSET }?.let(tracker::onDuration)
         }
     }
 

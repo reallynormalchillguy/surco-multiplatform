@@ -69,7 +69,7 @@ class IosScanner(private val dao: LibraryDao, private val art: ArtStore) : Libra
                     val uri = d.url.absoluteString ?: return@forEachIndexed
                     seen += uri
                     val prev = old[uri]
-                    if (prev != null && prev.size == d.size && prev.lastModified == d.modified) return@forEachIndexed
+                    if (prev != null && prev.size == d.size && prev.lastModified == d.modified && prev.durationMs > 0) return@forEachIndexed
                     if (i % 5 == 0) _state.value = ScanState.Running(i, audio.size, d.name)
                     val folderCover = ScanRules.pickFolderCover(covers[d.folder].orEmpty())
                     batch += read(d, uri, prev, folderCover, artByAlbum, now)

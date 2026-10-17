@@ -133,6 +133,26 @@ class AppActions(
     fun openSoulseek(query: String = "") = go("soulseek?q=${encodeArg(query)}")
     fun openDiscover(id: Long) = go("discover/$id")
     fun openOnlineArtist(id: Long) = go("online_artist/$id")
+
+    /** Busca en internet (Deezer) y abre dentro de la app algo que no tienes en la biblioteca. */
+    private fun resolveOnline(find: suspend () -> Long?, open: (Long) -> Unit) {
+        scope.launch {
+            val id = runCatching { find() }.getOrNull()
+            if (id != null && id > 0) open(id) else toast(S.notFoundOnline)
+        }
+    }
+
+    /** La página de un artista que no tienes (con su id de Deezer si ya se sabe). */
+    fun openOnlineArtistNamed(name: String, deezerId: Long = 0) =
+        if (deezerId > 0) openOnlineArtist(deezerId) else resolveOnline({ container.deezer.findArtist(name)?.id }, ::openOnlineArtist)
+
+    /** La página de un álbum que no tienes. */
+    fun openOnlineAlbum(artist: String, album: String) =
+        resolveOnline({ container.deezer.findAlbum(artist, album)?.id }, ::openDiscover)
+
+    /** El álbum (de internet) de una canción que no tienes. */
+    fun openOnlineTrackAlbum(artist: String, title: String) =
+        resolveOnline({ container.deezer.findTrack(artist, title)?.first }, ::openDiscover)
     fun openPlayer() = onOpenPlayer()
 
     /** Cambia de pestaña igual que la barra inferior. */
@@ -422,8 +442,9 @@ private fun BottomTabs(nav: NavHostController) {
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {
+                        Overlays.tapTab(tab.route)
                         if (selected) {
-                            // Volver a tocar la pestaña activa lleva a su raíz.
+                            // Volver a tocar la pestaña activa lleva a su raíz (y arriba del todo).
                             if (entry?.destination?.route != tab.route) nav.popBackStack(tab.route, inclusive = false)
                         } else {
                             nav.navigate(tab.route) {

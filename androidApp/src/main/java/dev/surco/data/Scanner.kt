@@ -54,7 +54,8 @@ class Scanner(
                     val key = doc.uri.toString()
                     val old = existing[key]
                     if (i % 10 == 0) _state.value = ScanState.Running(i, audio.size, doc.name)
-                    if (old != null && old.lastModified == doc.lastModified && old.size == doc.size) {
+                    // Las que se quedaron sin duración se vuelven a leer (si no, el álbum dice «0 min» y no se scrobblean).
+                    if (old != null && old.lastModified == doc.lastModified && old.size == doc.size && old.durationMs > 0) {
                         // Sin cambios; sólo rellenamos la portada si ahora existe una para su álbum.
                         val a = artByAlbum[old.albumKey]
                         if (old.artPath != a && a != null) batch += old.copy(artPath = a)
@@ -155,6 +156,12 @@ class Scanner(
                 artByAlbum[albumKey] = artPath
             }
         }
+        val bitrate = m(MediaMetadataRetriever.METADATA_KEY_BITRATE).toDoubleOrNull()?.toInt() ?: 0
+        // Algunos archivos no traen la duración en los metadatos: se mira en el contenedor y, si no,
+        // se estima por el tamaño y la tasa de bits.
+        val duration = m(MediaMetadataRetriever.METADATA_KEY_DURATION).toDoubleOrNull()?.toLong()?.takeIf { it > 0 }
+            ?: extractorDuration(doc.uri)
+            ?: if (bitrate > 0 && doc.size > 0) doc.size * 8_000L / bitrate else 0L
         runCatching { r.release() }
 
         return Track(
@@ -172,8 +179,8 @@ class Scanner(
             discNumber = ScanRules.leadingInt(m(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)).coerceAtLeast(1),
             year = year,
             genre = ScanRules.cleanGenre(m(MediaMetadataRetriever.METADATA_KEY_GENRE)),
-            durationMs = m(MediaMetadataRetriever.METADATA_KEY_DURATION).toLongOrNull() ?: 0L,
-            bitrate = m(MediaMetadataRetriever.METADATA_KEY_BITRATE).toIntOrNull() ?: 0,
+            durationMs = duration,
+            bitrate = bitrate,
             sampleRate = sampleRate,
             bitsPerSample = bits,
             size = doc.size,
@@ -289,5 +296,21 @@ class Scanner(
             val id = found ?: return@runCatching null
             context.contentResolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
         }.getOrNull()
+    }
+
+    /** Duración según el contenedor (MediaExtractor), o null si no se sabe. */
+    private fun extractorDuration(uri: Uri): Long? {
+        val x = android.media.MediaExtractor()
+        return try {
+            x.setDataSource(context, uri, null)
+            (0 until x.trackCount).firstNotNullOfOrNull { i ->
+                val f = x.getTrackFormat(i)
+                if (f.containsKey(android.media.MediaFormat.KEY_DURATION)) f.getLong(android.media.MediaFormat.KEY_DURATION).takeIf { it > 0 }?.div(1000) else null
+            }
+        } catch (_: Exception) {
+            null
+        } finally {
+            runCatching { x.release() }
+        }
     }
 }

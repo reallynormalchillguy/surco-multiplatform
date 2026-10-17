@@ -598,6 +598,7 @@ object S {
 
     // ------------------------------------------------------------------ Biografía editable
     val noConnection get() = t("No connection", "Sin conexión")
+    val notFoundOnline get() = t("Couldn't find it online", "No se ha encontrado en internet")
     val noBioFound get() = t("No biography was found online", "No se encontró ninguna biografía en internet")
     val bioOptions get() = t("Biography options", "Opciones de la biografía")
     val editBio get() = t("Edit biography", "Editar biografía")

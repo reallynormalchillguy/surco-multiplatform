@@ -419,7 +419,7 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         Text(state.duration.formatDuration(), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
                     }
 
-                    // --- Controles: aleatorio · anterior · play · siguiente · temporizador
+                    // --- Controles: aleatorio · anterior · play · siguiente · repetir
                     Row(
                         Modifier.fillMaxWidth().padding(top = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -447,13 +447,14 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         IconButton(onClick = { actions.player.next() }, modifier = Modifier.size(60.dp)) {
                             Icon(Icons.Filled.SkipNext, S.next, tint = Color.White, modifier = Modifier.size(42.dp))
                         }
-                        val timer by actions.container.sleepTimer.state.collectAsState()
-                        Box(Modifier.testTag("sleep_timer")) {
-                            ToggleIcon(Icons.Outlined.Timer, timer.active(), S.sleepTimer) { showTimer = true }
-                        }
+                        ToggleIcon(
+                            if (state.repeat == dev.surco.playback.Repeat.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
+                            state.repeat != dev.surco.playback.Repeat.OFF,
+                            S.repeat,
+                        ) { actions.player.cycleRepeat() }
                     }
 
-                    // --- Fila de abajo: calidad a la izquierda; repetir, compartir y cola a la derecha
+                    // --- Fila de abajo: calidad a la izquierda; temporizador, compartir y cola a la derecha
                     Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                         val quality = track?.qualityLabel().orEmpty()
                         if (quality.isNotEmpty()) {
@@ -470,12 +471,10 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                             }
                         }
                         Spacer(Modifier.weight(1f))
-                        ToggleIcon(
-                            if (state.repeat == dev.surco.playback.Repeat.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
-                            state.repeat != dev.surco.playback.Repeat.OFF,
-                            S.repeat,
-                            size = 24.dp,
-                        ) { actions.player.cycleRepeat() }
+                        val timer by actions.container.sleepTimer.state.collectAsState()
+                        Box(Modifier.testTag("sleep_timer")) {
+                            ToggleIcon(Icons.Outlined.Timer, timer.active(), S.sleepTimer, size = 24.dp) { showTimer = true }
+                        }
                         IconButton(onClick = { track?.let { actions.share(it) } }) {
                             Icon(Icons.Outlined.Share, S.share, tint = Color.White, modifier = Modifier.size(24.dp))
                         }

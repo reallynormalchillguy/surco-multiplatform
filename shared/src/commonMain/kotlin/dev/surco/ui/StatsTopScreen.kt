@@ -165,21 +165,16 @@ fun StatsTopScreen(kindName: String) {
                 TopRow(i + 1, t, kind, max, lib, onClick = {
                     when (kind) {
                         StatsRepository.TopKind.ARTISTS -> {
-                            val local = lib.artists[AlbumMatcher.norm(t.name).replace(" ", "")]
-                            when {
-                                local != null -> actions.openArtist(local)
-                                t.deezerId > 0 -> actions.openOnlineArtist(t.deezerId)
-                                t.url.isNotBlank() -> runCatching { uri.openUri(t.url) }
-                            }
+                            actions.openArtistAnywhere(lib, t.name, t.deezerId)
                         }
                         StatsRepository.TopKind.ALBUMS -> {
                             val key = lib.albums[StatsMath.key(t.artist, t.name)]
-                            if (key != null) actions.openAlbum(key) else if (t.url.isNotBlank()) runCatching { uri.openUri(t.url) }
+                            if (key != null) actions.openAlbum(key) else actions.openOnlineAlbum(t.artist, t.name)
                         }
                         StatsRepository.TopKind.TRACKS -> {
                             val local = lib.tracks[StatsMath.key(t.artist, t.name)]
                             if (local != null) actions.play(listOf(local), 0, "estadísticas|${S.stats}")
-                            else if (t.url.isNotBlank()) runCatching { uri.openUri(t.url) }
+                            else actions.openOnlineTrackAlbum(t.artist, t.name)
                         }
                     }
                 })
@@ -232,7 +227,9 @@ private fun TopRow(rank: Int, t: TopItem, kind: StatsRepository.TopKind, max: Lo
                 Text(fmtPlays(t.plays), style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
             }
             if (kind != StatsRepository.TopKind.ARTISTS) {
-                Text(t.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val actions = LocalActions.current
+                Text(t.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clickable { actions.openArtistAnywhere(lib, t.artist) })
             }
             Spacer(Modifier.height(6.dp))
             Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(SurcoColors.SurfaceHigher)) {

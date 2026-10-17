@@ -46,6 +46,19 @@ class ScrobbleTracker(private val scope: CoroutineScope, private val repo: Repos
         if (isPlaying) onPlayingChanged(true)
     }
 
+    /**
+     * El reproductor ya sabe cuánto dura la canción: si la biblioteca no lo sabía, se apunta (para los
+     * minutos del álbum y para que se pueda scrobblear).
+     */
+    fun onDuration(ms: Long) {
+        val t = current ?: return
+        if (ms <= 0 || t.durationMs > 0) return
+        val fixed = t.copy(durationMs = ms)
+        current = fixed
+        scope.launch { runCatching { repo.dao.fillDuration(t.uri, ms) } }
+        if (resumedAt >= 0) armTimer(fixed)
+    }
+
     fun onPlayingChanged(isPlaying: Boolean) {
         val t = current ?: return
         if (isPlaying) {

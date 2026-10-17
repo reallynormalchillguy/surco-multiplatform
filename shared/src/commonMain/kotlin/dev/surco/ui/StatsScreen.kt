@@ -268,7 +268,9 @@ private val DEMO_HOURS = listOf(9, 5, 3, 1, 1, 1, 2, 6, 10, 9, 8, 9, 12, 11, 10,
 @Composable
 private fun StatsContent(state: dev.surco.data.StatsUiState, onPeriod: (StatsPeriod) -> Unit, onRetry: () -> Unit) {
     val r = state.report
-    LazyColumn(Modifier.fillMaxSize().testTag("stats_list"), contentPadding = PaddingValues(bottom = 120.dp)) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    ScrollToTopOnTabTap("stats") { if (listState.firstVisibleItemIndex < 8) listState.animateScrollToItem(0) else listState.scrollToItem(0) }
+    LazyColumn(Modifier.fillMaxSize().testTag("stats_list"), state = listState, contentPadding = PaddingValues(bottom = 120.dp)) {
         if (r != null) item(key = "hero") { ProfileHero(r) }
         item(key = "recent") { RecentScrobbles() }
         item(key = "periods") {
@@ -412,7 +414,7 @@ private fun RecentScrobbles() {
             Row(
                 Modifier.fillMaxWidth().clickable {
                     if (local != null) actions.play(listOf(local), 0, "estadísticas|${S.stats}")
-                    else if (r.url.isNotBlank()) runCatching { uri.openUri(r.url) }
+                    else actions.openOnlineTrackAlbum(r.artist, r.title)
                 }.padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -421,7 +423,8 @@ private fun RecentScrobbles() {
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = if (r.nowPlaying) SurcoColors.Accent else SurcoColors.TextPrimary)
-                    Text(r.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(r.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable { actions.openArtistAnywhere(lib, r.artist) })
                 }
                 Spacer(Modifier.width(8.dp))
                 if (r.nowPlaying) {
@@ -850,6 +853,12 @@ internal fun rememberStatsLibraryIndex(): StatsLibraryIndex {
 
 internal data class StatsLibraryIndex(val tracks: Map<String, Track>, val albums: Map<String, String>, val artists: Map<String, String>)
 
+/** Un artista de las estadísticas: su página de la biblioteca si lo tienes y, si no, la de internet (en la app). */
+internal fun AppActions.openArtistAnywhere(lib: StatsLibraryIndex, name: String, deezerId: Long = 0) {
+    val local = lib.artists[AlbumMatcher.norm(name).replace(" ", "")]
+    if (local != null) openArtist(local) else openOnlineArtistNamed(name, deezerId)
+}
+
 @Composable
 private fun TopArtistsCard(list: List<TopItem>) {
     val actions = LocalActions.current
@@ -859,8 +868,7 @@ private fun TopArtistsCard(list: List<TopItem>) {
         val local = lib.artists[AlbumMatcher.norm(a.name).replace(" ", "")]
         when {
             local != null -> actions.openArtist(local)
-            a.deezerId > 0 -> actions.openOnlineArtist(a.deezerId)
-            a.url.isNotBlank() -> runCatching { uri.openUri(a.url) }
+            else -> actions.openOnlineArtistNamed(a.name, a.deezerId)
         }
     }
     val max = list.first().plays.coerceAtLeast(1)
@@ -919,7 +927,7 @@ private fun TopAlbumsRow(list: List<TopItem>) {
                 Column(
                     Modifier.width(140.dp).clickable {
                         val key = lib.albums[StatsMath.key(a.artist, a.name)]
-                        if (key != null) actions.openAlbum(key) else if (a.url.isNotBlank()) runCatching { uri.openUri(a.url) }
+                        if (key != null) actions.openAlbum(key) else actions.openOnlineAlbum(a.artist, a.name)
                     },
                 ) {
                     Box {
@@ -952,7 +960,7 @@ private fun TopTracksCard(list: List<TopItem>) {
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable {
                     if (local != null) actions.play(listOf(local), 0, "estadísticas|${S.stats}")
-                    else if (t.url.isNotBlank()) runCatching { uri.openUri(t.url) }
+                    else actions.openOnlineTrackAlbum(t.artist, t.name)
                 }.padding(vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -965,7 +973,8 @@ private fun TopTracksCard(list: List<TopItem>) {
                 Column(Modifier.weight(1f)) {
                     Text(t.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = if (local != null) SurcoColors.TextPrimary else SurcoColors.TextPrimary.copy(alpha = 0.85f))
-                    Text(t.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(t.artist, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable { actions.openArtistAnywhere(lib, t.artist) })
                     Spacer(Modifier.height(5.dp))
                     Meter(t.plays.toFloat() / max)
                 }

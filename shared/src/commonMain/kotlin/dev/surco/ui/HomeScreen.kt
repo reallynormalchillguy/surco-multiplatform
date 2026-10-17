@@ -215,7 +215,9 @@ private fun HomeFeed() {
         buildQuickItems(actions, likedUris.isNotEmpty(), lastLiked ?: 0L, playlists, recentAlbums, albums)
     }
 
-    LazyColumn(Modifier.fillMaxSize().testTag("home_list"), contentPadding = PaddingValues(bottom = 24.dp)) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    ScrollToTopOnTabTap("home") { if (listState.firstVisibleItemIndex < 8) listState.animateScrollToItem(0) else listState.scrollToItem(0) }
+    LazyColumn(Modifier.fillMaxSize().testTag("home_list"), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
         // ---- Accesos rápidos (cuadrícula 2 columnas)
         if (quick.isNotEmpty()) {
             item {

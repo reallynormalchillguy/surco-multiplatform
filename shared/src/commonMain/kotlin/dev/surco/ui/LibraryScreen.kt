@@ -161,8 +161,14 @@ fun LibraryScreen() {
             }
         }
 
+        val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        ScrollToTopOnTabTap("library") {
+            if (settings.libraryGrid) gridState.animateScrollToItem(0) else listState.animateScrollToItem(0)
+        }
         if (settings.libraryGrid) {
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Adaptive(104.dp),
                 contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -172,7 +178,7 @@ fun LibraryScreen() {
                 items(entries, key = { it.key }) { item -> LibGridCell(item) }
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+            LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
                 items(entries, key = { it.key }) { item ->
                     LibraryRow(
                         title = item.title,
