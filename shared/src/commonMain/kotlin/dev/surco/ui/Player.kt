@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.IntOffset
 import dev.surco.ui.theme.SurcoShapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -298,7 +299,26 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         IconButton(onClick = onClose, modifier = Modifier.offset(x = (-12).dp)) {
                             Icon(Icons.Filled.KeyboardArrowDown, S.close, tint = Color.White, modifier = Modifier.size(32.dp))
                         }
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        // «Reproduciendo desde…»: lleva a esa página (artista, álbum, lista, favoritas…).
+                        Column(
+                            Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).clickable(enabled = track != null) {
+                                val t = track ?: return@clickable
+                                val type = state.source.substringBefore('|', "").lowercase()
+                                val name = state.source.substringAfter('|', "")
+                                onClose()
+                                when (type) {
+                                    "artista", "artist" -> actions.openArtist(name.ifBlank { t.groupArtist })
+                                    "favoritas", "liked" -> actions.openLiked()
+                                    "género", "genre" -> actions.openGenre(name)
+                                    "lista", "playlist" -> actions.scope.launch {
+                                        val id = actions.repo.dao.playlists().first().firstOrNull { it.name == name }?.id
+                                        if (id != null) actions.openPlaylist(id) else actions.openAlbum(t.albumKey)
+                                    }
+                                    else -> actions.openAlbum(t.albumKey)
+                                }
+                            }.testTag("player_source"),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             Text(
                                 sourceLabel,
                                 style = MaterialTheme.typography.labelMedium,
@@ -361,11 +381,14 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                             label = "titulo",
                         ) { track ->
                             Column(Modifier.fillMaxWidth()) {
+                                // El título lleva al álbum de la canción.
                                 Text(
                                     track?.title ?: "",
                                     style = MaterialTheme.typography.headlineSmall,
                                     maxLines = 1,
-                                    modifier = Modifier.basicMarquee(),
+                                    modifier = Modifier.clickable(enabled = track != null) {
+                                        track?.let { onClose(); actions.openAlbum(it.albumKey) }
+                                    }.testTag("player_title").basicMarquee(),
                                 )
                                 Text(
                                     track?.artist ?: "",
