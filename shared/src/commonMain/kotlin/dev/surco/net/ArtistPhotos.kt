@@ -32,7 +32,7 @@ class ArtistPhotos(private val http: HttpClient) {
 
     /** TheAudioDB guarda varias fotos por artista: retrato, fondos (fanart), banner ancho y recorte. */
     suspend fun audioDb(name: String): List<ArtistPhoto> {
-        val arr = json("https://www.theaudiodb.com/api/v1/json/2/search.php?s=${enc(name)}")?.arr("artists") ?: return emptyList()
+        val arr = json("https://www.theaudiodb.com/api/v1/json/123/search.php?s=${enc(name)}")?.arr("artists") ?: return emptyList()
         val a = arr.objects().firstOrNull { AlbumMatcher.similarity(it.str("strArtist"), name) >= 0.8f } ?: return emptyList()
         return listOf("strArtistThumb", "strArtistFanart", "strArtistFanart2", "strArtistFanart3", "strArtistFanart4", "strArtistWideThumb", "strArtistCutout")
             .mapNotNull { k -> a.str(k).takeIf { it.startsWith("http") } }
@@ -94,7 +94,7 @@ class ArtistPhotos(private val http: HttpClient) {
     }.getOrNull()
 
     companion object {
-        private val LASTFM_IMG = Regex("""lastfm\.freetls\.fastly\.net/i/u/[a-z0-9]+/([0-9a-f]{32})""")
+        private val LASTFM_IMG = Regex("""lastfm[a-z-]*\.freetls\.fastly\.net/i/u/[a-z0-9]+/([0-9a-f]{32})""")
         private const val LASTFM_PLACEHOLDER = "2a96cbd8b46e442fc41c2b86b821562f"
         private const val BROWSER_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
     }

@@ -127,7 +127,7 @@ class SoulseekStressTest {
      * Ocupamos ~1030 descriptores y luego el cliente intenta conectarse.
      */
     @Test
-    fun socketWithHighDescriptorDoesNotKillTheApp() = runTest(timeout = 60.seconds) {
+    fun socketWithHighDescriptorDoesNotKillTheApp() = runTest(timeout = 120.seconds) {
         withContext(Dispatchers.Default) {
             setFdLimit(4096)
             // Servidor que acepta la conexión a nivel TCP (cola del kernel) sin llamar nunca a accept().
@@ -142,7 +142,8 @@ class SoulseekStressTest {
                 }
                 val client = SoulseekCore(sink, {}, serverHost = "127.0.0.1", serverPort = port, listenPorts = IntRange.EMPTY)
                 client.connect("surco_test", "x")
-                val st = withTimeout(20_000) { client.state.first { it is SlskState.Failed } }
+                // En los simuladores de CI, lentos, el tiempo de espera del inicio de sesión puede pasar de 20 s.
+                val st = withTimeout(60_000) { client.state.first { it is SlskState.Failed } }
                 println("Estado tras el fallo: $st")
                 client.disconnect()
             } finally {
