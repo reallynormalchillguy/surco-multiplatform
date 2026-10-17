@@ -41,7 +41,13 @@ data class Settings(
     val palette: String = "",
     /** Negro puro para pantallas OLED: "" = automático (según la pantalla), "on" o "off". */
     val oled: String = "",
+    /** Tema con imagen: "" (ninguno) o "floral". */
+    val theme: String = "",
+    /** Clave propia de la API de Spotify (opcional): sólo para dar enlaces exactos al compartir. */
+    val spotifyId: String = "",
+    val spotifySecret: String = "",
 ) {
+    val spotifyReady get() = spotifyId.isNotBlank() && spotifySecret.isNotBlank()
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
     val lastfmLoggedIn get() = lastfmReady && lastfmSession.isNotBlank()
 }
@@ -88,6 +94,9 @@ class Prefs(
         autoScan = store.bool("autoScan", true),
         palette = str("palette", ""),
         oled = str("oled", ""),
+        theme = str("theme", ""),
+        spotifyId = str("spotifyId", ""),
+        spotifySecret = str("spotifySecret", ""),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -107,6 +116,9 @@ class Prefs(
                 "language" to s.language,
                 "palette" to s.palette,
                 "oled" to s.oled,
+                "theme" to s.theme,
+                "spotifyId" to s.spotifyId,
+                "spotifySecret" to s.spotifySecret,
             ),
             bools = mapOf(
                 "embedCovers" to s.embedCovers,
@@ -126,6 +138,8 @@ class Prefs(
         I18n.lang = if (s.language == "es") Lang.ES else Lang.EN
         val p = effectivePalette(Palette.decode(s.palette), s)
         if (SurcoColors.palette != p) SurcoColors.palette = p
+        val backdrop = s.theme.takeIf { it == "floral" }
+        if (SurcoColors.backdrop != backdrop) SurcoColors.backdrop = backdrop
     }
 
     companion object {
@@ -135,7 +149,11 @@ class Prefs(
         fun oledActive(s: Settings) = when (s.oled) { "on" -> true; "off" -> false; else -> deviceOled }
 
         /** La paleta tal como se ve: con negro puro si el modo OLED está activo. */
-        fun effectivePalette(base: Palette, s: Settings) = if (oledActive(s)) base.oled() else base
+        fun effectivePalette(base: Palette, s: Settings) = when {
+            s.theme == "floral" -> Palette.Floral
+            oledActive(s) -> base.oled()
+            else -> base
+        }
     }
 
     init {

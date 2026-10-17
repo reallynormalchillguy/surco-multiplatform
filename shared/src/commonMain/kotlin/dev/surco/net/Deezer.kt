@@ -63,6 +63,17 @@ class Deezer(private val http: HttpClient) {
         return Triple(album.long("id"), best.str("title"), album.str("title"))
     }
 
+    /** Código ISRC de una canción de Deezer (identifica la grabación en todas las tiendas). */
+    suspend fun isrcOf(artist: String, title: String): String? {
+        val q = if (artist.isNotBlank()) "artist:\"$artist\" track:\"$title\"" else title
+        val data = get("$BASE/search/track?q=${enc(q)}&limit=5")?.arr("data") ?: return null
+        val best = data.objects()
+            .filter { dev.surco.data.AlbumMatcher.similarity(it.str("title"), title) >= 0.8f }
+            .maxByOrNull { dev.surco.data.AlbumMatcher.similarity(it.obj("artist")?.str("name").orEmpty(), artist) }
+            ?: return null
+        return get("$BASE/track/${best.long("id")}")?.str("isrc")?.takeIf { it.isNotBlank() }
+    }
+
     /** Artistas que coinciden con una búsqueda, del más popular al menos. */
     suspend fun searchArtists(query: String, limit: Int = 8): List<Artist> {
         val data = get("$BASE/search/artist?q=${enc(query)}&limit=$limit")?.arr("data") ?: return emptyList()

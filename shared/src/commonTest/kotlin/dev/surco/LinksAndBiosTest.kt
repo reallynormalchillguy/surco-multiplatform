@@ -69,4 +69,31 @@ class LinksAndBiosTest {
         )
         assertEquals("Uno\n\nDos", BioCleaner.clean("\n\nUno\n\n\n\nDos\n\n"))
     }
+
+    @Test
+    fun findsTheSongInsideAnAlbumPage() {
+        // Página normal: etiquetas music:song con disco y pista.
+        val page = """<meta property="og:title" content="OK Computer"/>
+            <meta name="music:song" content="https://open.spotify.com/track/AAA"/><meta name="music:song:disc" content="1"/><meta name="music:song:track" content="1"/>
+            <meta name="music:song" content="https://open.spotify.com/track/BBB"/><meta name="music:song:disc" content="1"/><meta name="music:song:track" content="2"/>"""
+        val tracks = SpotifyPage.albumTracks(page)
+        assertEquals(2, tracks.size)
+        assertEquals("https://open.spotify.com/track/BBB", SpotifyPage.pickTrack(tracks, "Paranoid Android", 1, 2))
+        // Reproductor incrustado: URIs con su título.
+        val embed = """{"trackList":[{"uri":"spotify:track:AAA","uid":"x","title":"Airbag","subtitle":"Radiohead"},""" +
+            """{"uri":"spotify:track:BBB","uid":"y","title":"Paranoid Android","subtitle":"Radiohead"},""" +
+            """{"uri":"spotify:track:CCC","uid":"z","title":"Subterranean Homesick Alien","subtitle":"Radiohead"}]}"""
+        val t2 = SpotifyPage.albumTracks(embed)
+        assertEquals(3, t2.size)
+        assertEquals("https://open.spotify.com/track/CCC", SpotifyPage.pickTrack(t2, "Subterranean Homesick Alien (Remastered)", 0, 0))
+        assertEquals("https://open.spotify.com/track/BBB", SpotifyPage.pickTrack(t2, "Paranoid Android", 0, 0))
+        assertNull(SpotifyPage.pickTrack(t2, "Karma Police", 0, 0))
+    }
+
+    @Test
+    fun sleepTimerFormatsTheCountdown() {
+        assertEquals("0:45", dev.surco.playback.SleepTimer.format(45_000))
+        assertEquals("12:03", dev.surco.playback.SleepTimer.format(723_000))
+        assertEquals("1:05:09", dev.surco.playback.SleepTimer.format(3_909_000))
+    }
 }

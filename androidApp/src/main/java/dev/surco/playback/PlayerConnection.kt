@@ -115,6 +115,14 @@ class PlayerConnection(private val context: Context) : PlayerController {
             nextIdx = tl.getNextWindowIndex(c.currentMediaItemIndex, rep, c.shuffleModeEnabled)
             prevIdx = tl.getPreviousWindowIndex(c.currentMediaItemIndex, rep, c.shuffleModeEnabled)
         }
+        val order = ArrayList<Int>()
+        if (!tl.isEmpty) {
+            var i = tl.getFirstWindowIndex(c.shuffleModeEnabled)
+            while (i != C.INDEX_UNSET && order.size < tl.windowCount) {
+                order += i
+                i = tl.getNextWindowIndex(i, Player.REPEAT_MODE_OFF, c.shuffleModeEnabled)
+            }
+        }
         _state.value = PlayerUiState(
             connected = true,
             mediaId = c.currentMediaItem?.mediaId,
@@ -129,6 +137,7 @@ class PlayerConnection(private val context: Context) : PlayerController {
             upNext = upNext,
             prevIndex = prevIdx,
             nextIndex = nextIdx,
+            order = order,
         )
     }
 
@@ -219,6 +228,10 @@ class PlayerConnection(private val context: Context) : PlayerController {
         } else {
             c.addMediaItems(tracks.map { it.toMediaItem(c.currentMediaItem?.source() ?: "cola|Cola") })
         }
+    }
+
+    override fun seekToQueueIndex(index: Int) = withController { c ->
+        if (index in 0 until c.mediaItemCount) c.seekTo(index, 0L)
     }
 
     override fun skipToQueueIndex(index: Int) = withController { c ->

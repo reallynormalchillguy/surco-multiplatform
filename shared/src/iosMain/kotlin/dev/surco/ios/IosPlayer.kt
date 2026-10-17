@@ -9,6 +9,9 @@ import dev.surco.playback.ScrobbleTracker
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,7 +66,7 @@ import platform.UIKit.UIImage
  * controles en la pantalla de bloqueo / Centro de control y scrobbles con las mismas reglas que Android.
  */
 @OptIn(ExperimentalForeignApi::class)
-class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
+class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer: dev.surco.playback.SleepTimer) : PlayerController {
     private val player = AVPlayer()
     private val tracker = ScrobbleTracker(scope, repo)
     private val _state = MutableStateFlow(PlayerUiState(connected = true))
@@ -93,6 +96,23 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
             onInterruption(n)
         }
         setupRemoteCommands()
+        // Temporizador para dormir: en los últimos segundos baja el volumen poco a poco y pausa.
+        scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            sleepTimer.state.collectLatest { t ->
+                player.volume = 1f
+                if (t.endsAt <= 0) return@collectLatest
+                delay((t.endsAt - dev.surco.playback.SleepTimer.FADE_MS - dev.surco.util.nowMillis()).coerceAtLeast(0))
+                while (true) {
+                    val left = t.endsAt - dev.surco.util.nowMillis()
+                    if (left <= 0) break
+                    player.volume = (left.toFloat() / dev.surco.playback.SleepTimer.FADE_MS).coerceIn(0f, 1f)
+                    delay(100)
+                }
+                if (playing) pause()
+                player.volume = 1f
+                sleepTimer.finished()
+            }
+        }
     }
 
     // ---------------------------------------------------------------- Órdenes de la interfaz
@@ -198,6 +218,13 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
         queue = queue + tracks
         order = order + tracks.indices.map { first + it }
         publish()
+    }
+
+    override fun seekToQueueIndex(index: Int) {
+        val p = order.indexOf(index)
+        if (p < 0) return
+        pos = p
+        load(playing)
     }
 
     override fun skipToQueueIndex(index: Int) {
@@ -311,6 +338,16 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
     }
 
     private fun onEnded() {
+        // Temporizador «al acabar la canción»: se deja preparada la siguiente, en pausa.
+        if (sleepTimer.state.value.endOfTrack) {
+            sleepTimer.finished()
+            when {
+                pos + 1 < order.size -> { pos++; load(false) }
+                repeat == Repeat.ALL && order.isNotEmpty() -> { pos = 0; load(false) }
+                else -> { tracker.finish(); playing = false; player.seekToTime(CMTimeMakeWithSeconds(0.0, 1000)); player.pause(); publish(); updateNowPlaying() }
+            }
+            return
+        }
         when {
             repeat == Repeat.ONE -> { tracker.finish(); seekTo(0); current()?.let { tracker.onTrackStarted(it, true) }; player.play() }
             pos + 1 < order.size -> { pos++; load(true) }
@@ -366,6 +403,7 @@ class IosPlayer(scope: CoroutineScope, repo: Repository) : PlayerController {
             upNext = if (pos < 0) emptyList() else order.drop(pos + 1).take(500),
             prevIndex = order.getOrNull(pos - 1) ?: (if (repeat == Repeat.ALL && pos >= 0) order.lastOrNull() else null) ?: -1,
             nextIndex = order.getOrNull(pos + 1) ?: (if (repeat == Repeat.ALL && pos >= 0) order.firstOrNull() else null) ?: -1,
+            order = order,
         )
     }
 

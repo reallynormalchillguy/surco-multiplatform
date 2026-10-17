@@ -245,8 +245,9 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
         LocalPlayer provides playerState,
     ) {
         Box(Modifier.fillMaxSize().background(SurcoColors.Background)) {
+            ThemeBackdrop()
             Scaffold(
-                containerColor = SurcoColors.Background,
+                containerColor = SurcoColors.Behind,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 snackbarHost = {
                     SnackbarHost(snackbar) { data ->

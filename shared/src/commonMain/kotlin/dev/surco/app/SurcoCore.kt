@@ -75,7 +75,9 @@ abstract class SurcoCore(parts: PlatformParts) {
     val discovery = Discovery(parts.files, db.dao(), deezer, appScope)
     val metadata = MetadataSearch(api)
     val autoScan = AutoScan(prefs, repository, appScope)
-    val spotify = dev.surco.net.SpotifyLinks(api)
+    val spotify = dev.surco.net.SpotifyLinks(api, prefs, deezer)
+    /** Temporizador para dormir: lo programa la interfaz y lo ejecuta el reproductor de cada plataforma. */
+    val sleepTimer = dev.surco.playback.SleepTimer()
     val bios = dev.surco.data.ArtistBios(parts.files, dev.surco.net.BioSource(api, prefs), prefs, db.dao(), appScope)
 
     /**

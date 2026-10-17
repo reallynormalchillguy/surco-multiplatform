@@ -72,6 +72,8 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -102,6 +104,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.surco.data.Track
 import dev.surco.data.formatDuration
@@ -151,13 +154,8 @@ fun MiniPlayer(onOpen: () -> Unit) {
     ) {
         Row(Modifier.padding(start = 8.dp, top = 8.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             // Portada y título: deslizar a los lados cambia de canción, como en Spotify.
-            val (prevTrack, nextTrack) = rememberNeighbourTracks()
             SwipeTracks(
                 current = track,
-                previous = prevTrack,
-                next = nextTrack,
-                onNext = { actions.player.next() },
-                onPrevious = { actions.player.previousTrack() },
                 modifier = Modifier.weight(1f).clipToBounds(),
                 gap = 16.dp,
             ) { t -> if (t != null) MiniTrackInfo(t) }
@@ -226,6 +224,7 @@ fun NowPlayingScreen(onClose: () -> Unit) {
     val track = rememberCurrentTrack()
     val color = rememberArtColor(track?.artPath, Color(0xFF2E4A50))
     var showQueue by remember { mutableStateOf(false) }
+    var showTimer by remember { mutableStateOf(false) }
     var showLyrics by Overlays::lyrics
     var lyricsNonce by remember(track?.uri) { mutableIntStateOf(0) }
     val lyrics = rememberLyrics(track, lyricsNonce)
@@ -287,184 +286,186 @@ fun NowPlayingScreen(onClose: () -> Unit) {
             // Bloquea los toques para que no lleguen a la pantalla de debajo.
             .clickable(onClick = {}, indication = null, interactionSource = null),
     ) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(scroll)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-        ) {
-            // --- Cabecera + portada (zona para deslizar y cerrar)
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onClose, modifier = Modifier.offset(x = (-12).dp)) {
-                        Icon(Icons.Filled.KeyboardArrowDown, S.close, tint = Color.White, modifier = Modifier.size(32.dp))
-                    }
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            sourceLabel.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.8f),
-                            maxLines = 1,
-                        )
-                        Text(
-                            sourceName.ifBlank { track?.album ?: "" },
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                    IconButton(onClick = { track?.let { actions.menu(it) } }, modifier = Modifier.offset(x = 12.dp)) {
-                        Icon(Icons.Filled.MoreVert, S.more, tint = Color.White)
-                    }
-                }
-                Spacer(Modifier.height(28.dp))
-                // Portada: deslizar a la izquierda/derecha cambia de canción (con animación).
-                val (prevTrack, nextTrack) = rememberNeighbourTracks()
-                SwipeTracks(
-                    current = track,
-                    previous = prevTrack,
-                    next = nextTrack,
-                    onNext = { actions.player.next() },
-                    onPrevious = { actions.player.previousTrack() },
-                    modifier = Modifier.fillMaxWidth(),
-                    gap = 24.dp,
-                ) { t ->
-                    ArtImage(
-                        t?.artPath,
-                        Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
-                        RoundedCornerShape(SurcoShapes.Cover),
-                    )
-                }
-            }
-
-            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-                Spacer(Modifier.height(32.dp))
-                // --- Título y artista (con fundido al cambiar de canción)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.animation.AnimatedContent(
-                        targetState = track,
-                        contentKey = { it?.uri },
-                        transitionSpec = {
-                            androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) togetherWith
-                                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
-                        },
-                        modifier = Modifier.weight(1f),
-                        label = "titulo",
-                    ) { track ->
-                    Column(Modifier.fillMaxWidth()) {
-                        Text(
-                            track?.title ?: "",
-                            style = MaterialTheme.typography.headlineSmall,
-                            maxLines = 1,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            track?.artist ?: "",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable(enabled = track != null) {
-                                track?.let { onClose(); actions.openArtist(it.groupArtist) }
-                            },
-                        )
-                    }
-                    }
-                    if (track != null) {
-                        val liked = track.uri in LocalLiked.current
-                        IconButton(onClick = { actions.toggleLike(track.uri, liked) }, modifier = Modifier.offset(x = 10.dp)) {
-                            if (liked) Icon(Icons.Filled.CheckCircle, S.removeFavourite, tint = SurcoColors.Accent, modifier = Modifier.size(28.dp))
-                            else Icon(Icons.Outlined.AddCircleOutline, S.addFavourite, tint = Color.White, modifier = Modifier.size(28.dp))
+        // Como Spotify: la primera «página» ocupa la pantalla (cabecera, portada grande, título, barra,
+        // controles y una fila de acciones) y la letra asoma por abajo; se sube para verla.
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding()) {
+            val pageHeight = (maxHeight - 56.dp).coerceAtLeast(520.dp)
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+                Column(Modifier.fillMaxWidth().height(pageHeight).padding(horizontal = 24.dp)) {
+                    // --- Cabecera
+                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onClose, modifier = Modifier.offset(x = (-12).dp)) {
+                            Icon(Icons.Filled.KeyboardArrowDown, S.close, tint = Color.White, modifier = Modifier.size(32.dp))
+                        }
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                sourceLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                            )
+                            Text(
+                                sourceName.ifBlank { track?.album ?: "" },
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                        IconButton(onClick = { track?.let { actions.menu(it) } }, modifier = Modifier.offset(x = 12.dp)) {
+                            Icon(Icons.Filled.MoreVert, S.more, tint = Color.White)
                         }
                     }
-                }
 
-                Spacer(Modifier.height(16.dp))
-                SeekBar(state.position, state.duration, onSeek = { actions.player.seekTo(it) })
-                Row(Modifier.fillMaxWidth()) {
-                    Text(state.position.formatDuration(), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                    Spacer(Modifier.weight(1f))
-                    Text(state.duration.formatDuration(), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                }
-
-                // --- Controles
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ToggleIcon(Icons.Filled.Shuffle, state.shuffle, S.shuffle) { actions.player.toggleShuffle() }
-                    IconButton(onClick = { actions.player.previous() }, modifier = Modifier.size(60.dp)) {
-                        Icon(Icons.Filled.SkipPrevious, S.previous, tint = Color.White, modifier = Modifier.size(42.dp))
-                    }
-                    Box(
-                        Modifier
-                            .size(68.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .clickable { actions.player.togglePlay() },
-                        contentAlignment = Alignment.Center,
+                    // --- Portada, centrada en el espacio libre (algo más de aire debajo, como en Spotify).
+                    BoxWithConstraints(
+                        Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp, bottom = 28.dp),
+                        contentAlignment = androidx.compose.ui.BiasAlignment(0f, 0.1f),
                     ) {
-                        Icon(
-                            if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            if (state.isPlaying) S.pause else S.play,
-                            tint = Color.Black,
-                            modifier = Modifier.size(38.dp),
-                        )
-                    }
-                    IconButton(onClick = { actions.player.next() }, modifier = Modifier.size(60.dp)) {
-                        Icon(Icons.Filled.SkipNext, S.next, tint = Color.White, modifier = Modifier.size(42.dp))
-                    }
-                    ToggleIcon(
-                        if (state.repeat == dev.surco.playback.Repeat.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
-                        state.repeat != dev.surco.playback.Repeat.OFF,
-                        S.repeat,
-                    ) { actions.player.cycleRepeat() }
-                }
-
-                // --- Calidad + editar + cola
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    val quality = track?.qualityLabel().orEmpty()
-                    if (quality.isNotEmpty()) {
-                        Row(
-                            Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.1f))
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(quality, style = MaterialTheme.typography.labelMedium, color = SurcoColors.Accent, maxLines = 1)
+                        val side = if (maxWidth < maxHeight) maxWidth else maxHeight
+                        // Portada: deslizar a la izquierda/derecha cambia de canción (con animación).
+                        SwipeTracks(
+                            current = track,
+                            modifier = Modifier.size(side),
+                            gap = 24.dp,
+                        ) { t ->
+                            ArtImage(
+                                t?.artPath,
+                                Modifier
+                                    .size(side)
+                                    .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
+                                RoundedCornerShape(SurcoShapes.Cover),
+                            )
                         }
                     }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = { track?.let { onClose(); actions.editTrack(it.uri) } }) {
-                        Icon(Icons.Outlined.Edit, S.editTags, tint = Color.White, modifier = Modifier.size(22.dp))
-                    }
-                    IconButton(onClick = { showQueue = true }, modifier = Modifier.offset(x = 10.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.QueueMusic, S.queue, tint = Color.White, modifier = Modifier.size(24.dp))
-                    }
-                }
-            }
 
-            // --- Letra
-            if (track != null) {
-                Spacer(Modifier.height(20.dp))
-                LyricsCard(
-                    lyrics = lyrics,
-                    color = lerp(color, Color.White, 0.06f),
-                    position = state.position,
-                    onOpen = { showLyrics = true },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                Spacer(Modifier.height(32.dp))
+                    // --- Título y artista (con fundido al cambiar de canción)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.animation.AnimatedContent(
+                            targetState = track,
+                            contentKey = { it?.uri },
+                            transitionSpec = {
+                                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220, delayMillis = 60)) togetherWith
+                                    androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120))
+                            },
+                            modifier = Modifier.weight(1f),
+                            label = "titulo",
+                        ) { track ->
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(
+                                    track?.title ?: "",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    maxLines = 1,
+                                    modifier = Modifier.basicMarquee(),
+                                )
+                                Text(
+                                    track?.artist ?: "",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.clickable(enabled = track != null) {
+                                        track?.let { onClose(); actions.openArtist(it.groupArtist) }
+                                    },
+                                )
+                            }
+                        }
+                        if (track != null) {
+                            val liked = track.uri in LocalLiked.current
+                            IconButton(onClick = { actions.toggleLike(track.uri, liked) }, modifier = Modifier.offset(x = 10.dp)) {
+                                if (liked) Icon(Icons.Filled.CheckCircle, S.removeFavourite, tint = SurcoColors.Accent, modifier = Modifier.size(30.dp))
+                                else Icon(Icons.Outlined.AddCircleOutline, S.addFavourite, tint = Color.White, modifier = Modifier.size(30.dp))
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+                    SeekBar(state.position, state.duration, onSeek = { actions.player.seekTo(it) })
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(state.position.formatDuration(), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                        Spacer(Modifier.weight(1f))
+                        Text(state.duration.formatDuration(), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                    }
+
+                    // --- Controles: aleatorio · anterior · play · siguiente · temporizador
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ToggleIcon(Icons.Filled.Shuffle, state.shuffle, S.shuffle) { actions.player.toggleShuffle() }
+                        IconButton(onClick = { actions.player.previous() }, modifier = Modifier.size(60.dp)) {
+                            Icon(Icons.Filled.SkipPrevious, S.previous, tint = Color.White, modifier = Modifier.size(42.dp))
+                        }
+                        Box(
+                            Modifier
+                                .size(66.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .clickable { actions.player.togglePlay() },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                if (state.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                if (state.isPlaying) S.pause else S.play,
+                                tint = Color.Black,
+                                modifier = Modifier.size(38.dp),
+                            )
+                        }
+                        IconButton(onClick = { actions.player.next() }, modifier = Modifier.size(60.dp)) {
+                            Icon(Icons.Filled.SkipNext, S.next, tint = Color.White, modifier = Modifier.size(42.dp))
+                        }
+                        val timer by actions.container.sleepTimer.state.collectAsState()
+                        Box(Modifier.testTag("sleep_timer")) {
+                            ToggleIcon(Icons.Outlined.Timer, timer.active(), S.sleepTimer) { showTimer = true }
+                        }
+                    }
+
+                    // --- Fila de abajo: calidad a la izquierda; repetir, compartir y cola a la derecha
+                    Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val quality = track?.qualityLabel().orEmpty()
+                        if (quality.isNotEmpty()) {
+                            Row(
+                                Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Color.White.copy(alpha = 0.1f))
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(quality, style = MaterialTheme.typography.labelMedium, color = SurcoColors.Accent, maxLines = 1)
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        ToggleIcon(
+                            if (state.repeat == dev.surco.playback.Repeat.ONE) Icons.Filled.RepeatOne else Icons.Filled.Repeat,
+                            state.repeat != dev.surco.playback.Repeat.OFF,
+                            S.repeat,
+                            size = 24.dp,
+                        ) { actions.player.cycleRepeat() }
+                        IconButton(onClick = { track?.let { actions.share(it) } }) {
+                            Icon(Icons.Outlined.Share, S.share, tint = Color.White, modifier = Modifier.size(24.dp))
+                        }
+                        IconButton(onClick = { showQueue = true }, modifier = Modifier.offset(x = 10.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.QueueMusic, S.queue, tint = Color.White, modifier = Modifier.size(26.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(20.dp))
+                }
+
+                // --- Letra (asoma por debajo de la primera página)
+                if (track != null) {
+                    LyricsCard(
+                        lyrics = lyrics,
+                        color = lerp(color, Color.White, 0.06f),
+                        position = state.position,
+                        onOpen = { showLyrics = true },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    Spacer(Modifier.height(32.dp))
+                }
+                Spacer(Modifier.navigationBarsPadding())
             }
         }
 
@@ -486,12 +487,13 @@ fun NowPlayingScreen(onClose: () -> Unit) {
     }
 
     if (showQueue) QueueSheet(onDismiss = { showQueue = false })
+    if (showTimer) SleepTimerSheet(onDismiss = { showTimer = false })
 }
 
 @Composable
-private fun ToggleIcon(icon: ImageVector, active: Boolean, description: String, onClick: () -> Unit) {
+private fun ToggleIcon(icon: ImageVector, active: Boolean, description: String, size: Dp = 26.dp, onClick: () -> Unit) {
     Box(Modifier.size(48.dp).clip(CircleShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, description, tint = if (active) SurcoColors.Accent else Color.White, modifier = Modifier.size(26.dp))
+        Icon(icon, description, tint = if (active) SurcoColors.Accent else Color.White, modifier = Modifier.size(size))
         Box(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -616,6 +618,59 @@ private fun QueueRow(t: Track, isCurrent: Boolean, onClick: () -> Unit, onRemove
         }
         if (onRemove != null) {
             IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, S.removeFromQueue, tint = SurcoColors.TextSecondary) }
+        }
+    }
+}
+
+// ======================================================================= Temporizador
+
+/** Elegir cuándo se para la música: X minutos o al acabar la canción. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SleepTimerSheet(onDismiss: () -> Unit) {
+    val actions = LocalActions.current
+    val timer = actions.container.sleepTimer
+    val t by timer.state.collectAsState()
+    // Cuenta atrás en vivo.
+    var now by remember { mutableStateOf(dev.surco.util.nowMillis()) }
+    LaunchedEffect(t) {
+        while (t.endsAt > 0) { now = dev.surco.util.nowMillis(); kotlinx.coroutines.delay(500) }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = SurcoColors.Surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp).testTag("sleep_sheet")) {
+            Text(S.sleepTimer, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            if (t.active(now)) {
+                Text(
+                    if (t.endOfTrack) S.timerStopsAtEnd else S.timerStopsIn(dev.surco.playback.SleepTimer.format(t.remainingMs(now))),
+                    style = MaterialTheme.typography.bodyMedium, color = SurcoColors.Accent,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                )
+            }
+            HorizontalDivider(color = SurcoColors.SurfaceHigh, modifier = Modifier.padding(vertical = 8.dp))
+            @Composable
+            fun Option(label: String, selected: Boolean, onClick: () -> Unit) {
+                Row(
+                    Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(label, style = MaterialTheme.typography.bodyLarge, color = if (selected) SurcoColors.Accent else SurcoColors.TextPrimary, modifier = Modifier.weight(1f))
+                    if (selected) Icon(Icons.Filled.CheckCircle, null, tint = SurcoColors.Accent, modifier = Modifier.size(20.dp))
+                }
+            }
+            dev.surco.playback.SleepTimer.OPTIONS.forEach { m ->
+                Option(S.minutes(m), t.active(now) && !t.endOfTrack && t.minutes == m) {
+                    timer.start(m); actions.toast(S.timerSet(m)); onDismiss()
+                }
+            }
+            Option(S.endOfTrack, t.endOfTrack) { timer.endOfTrack(); actions.toast(S.timerStopsAtEnd); onDismiss() }
+            if (t.active(now)) {
+                HorizontalDivider(color = SurcoColors.SurfaceHigh, modifier = Modifier.padding(vertical = 4.dp))
+                Option(S.turnOffTimer, false) { timer.cancel(); actions.toast(S.timerOff); onDismiss() }
+            }
         }
     }
 }

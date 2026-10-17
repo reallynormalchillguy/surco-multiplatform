@@ -19,6 +19,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
@@ -86,7 +88,35 @@ class PlaybackService : MediaSessionService() {
                 tracker.onPlayingChanged(isPlaying)
                 if (!isPlaying) saveQueue()
             }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                // El temporizador «al acabar la canción» ya ha parado la música: se apaga.
+                if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM &&
+                    container.sleepTimer.state.value.endOfTrack
+                ) container.sleepTimer.finished()
+            }
         })
+
+        // Temporizador para dormir (sigue funcionando con la app cerrada, mientras suena la música).
+        scope.launch {
+            container.sleepTimer.state.collectLatest { t ->
+                player.pauseAtEndOfMediaItems = t.endOfTrack
+                player.volume = 1f
+                if (t.endsAt <= 0) return@collectLatest
+                delay((t.endsAt - SleepTimer.FADE_MS - System.currentTimeMillis()).coerceAtLeast(0))
+                // Últimos segundos: baja el volumen poco a poco y pausa.
+                while (true) {
+                    val left = t.endsAt - System.currentTimeMillis()
+                    if (left <= 0) break
+                    player.volume = (left.toFloat() / SleepTimer.FADE_MS).coerceIn(0f, 1f)
+                    delay(100)
+                }
+                player.pause()
+                player.volume = 1f
+                container.sleepTimer.finished()
+            }
+        }
+
 
         restoreQueue()
         repo.flushScrobblesAsync()

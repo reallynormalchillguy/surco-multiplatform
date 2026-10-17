@@ -592,4 +592,45 @@ object S {
         "Your screen doesn't seem to be OLED, but you can turn it on anyway",
         "Tu pantalla no parece OLED, pero puedes activarlo igualmente",
     )
+
+    // ------------------------------------------------------------------ Biografía editable
+    val noConnection get() = t("No connection", "Sin conexión")
+    val noBioFound get() = t("No biography was found online", "No se encontró ninguna biografía en internet")
+    val bioOptions get() = t("Biography options", "Opciones de la biografía")
+    val editBio get() = t("Edit biography", "Editar biografía")
+    val writeBio get() = t("Write a biography", "Escribir una biografía")
+    val searchBioOnline get() = t("Search online", "Buscar en internet")
+    val deleteBio get() = t("Delete biography", "Eliminar biografía")
+    val bioWrittenByYou get() = t("Written by you", "Escrita por ti")
+    val noBioYet get() = t("No biography yet", "Aún no hay biografía")
+    fun bioOf(name: String) = t("About $name", "Sobre $name")
+    val bioPlaceholder get() = t("Write about this artist…", "Escribe sobre este artista…")
+
+    // ------------------------------------------------------------------ Temas
+    val theme get() = t("Theme", "Tema")
+    val themeOwnColors get() = t("My colors", "Mis colores")
+    val themeFloral get() = t("Wine flowers", "Flores vino")
+
+    // ------------------------------------------------------------------ Spotify (clave propia)
+    val spotifyKeyTitle get() = t("Exact Spotify links", "Enlaces exactos de Spotify")
+    val spotifyKeyDesc get() = t(
+        "Without a key, Surco finds the exact link through MusicBrainz and Wikidata (most known albums and songs). " +
+            "To get it every time, create a free app at developer.spotify.com (needs a Premium account) and paste its Client ID and Client secret here.",
+        "Sin clave, Surco busca el enlace exacto en MusicBrainz y Wikidata (la mayoría de discos y canciones conocidos). " +
+            "Para tenerlo siempre, crea una app gratuita en developer.spotify.com (necesita una cuenta Premium) y pega aquí su Client ID y Client secret.",
+    )
+    val spotifyClientId get() = t("Client ID", "Client ID")
+    val spotifyClientSecret get() = t("Client secret", "Client secret")
+    val openSpotifyDashboard get() = t("Open the Spotify dashboard", "Abrir el panel de Spotify")
+    val spotifyKeySaved get() = t("Spotify key saved", "Clave de Spotify guardada")
+
+    // ------------------------------------------------------------------ Temporizador
+    val sleepTimer get() = t("Sleep timer", "Temporizador")
+    fun minutes(n: Int) = t("$n minutes", "$n minutos")
+    val endOfTrack get() = t("End of the song", "Al acabar la canción")
+    val turnOffTimer get() = t("Turn off timer", "Apagar el temporizador")
+    fun timerStopsIn(time: String) = t("Music stops in $time", "La música se para en $time")
+    val timerStopsAtEnd get() = t("Music stops when this song ends", "La música se para al acabar esta canción")
+    fun timerSet(n: Int) = t("Music will stop in $n minutes", "La música se parará en $n minutos")
+    val timerOff get() = t("Sleep timer off", "Temporizador apagado")
 }

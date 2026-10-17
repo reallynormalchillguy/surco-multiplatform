@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -103,7 +105,7 @@ fun CollectionScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
+                    .background(Brush.verticalGradient(listOf(color, SurcoColors.fadeTo(color))))
                     .statusBarsPadding()
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
@@ -330,7 +332,6 @@ fun ArtistScreen(name: String) {
             }
         },
         footer = {
-            item(key = "bio") { ArtistBioSection(name) }
             if (albums.isNotEmpty()) {
                 item { SectionTitle(S.discography) }
                 item {
@@ -348,6 +349,8 @@ fun ArtistScreen(name: String) {
                     TrackRow(t, onClick = { actions.play(appearsOn, i, source) }, onMore = { actions.menu(t) })
                 }
             }
+            // La biografía, al final (después de la discografía), como en Spotify.
+            item(key = "bio") { ArtistBioSection(name) }
         },
     )
 }
@@ -480,44 +483,127 @@ fun RecentScreen() {
 
 // ================================================================ Biografía del artista
 
-/** «Acerca de»: biografía de Wikipedia (o Last.fm), plegada a unas líneas; se despliega al tocarla. */
+/**
+ * «Acerca de»: biografía de Wikipedia o Last.fm, plegada a unas líneas (se despliega al tocarla).
+ * Se puede editar, escribir desde cero, volver a buscar en internet o quitar.
+ */
 @Composable
 private fun ArtistBioSection(name: String) {
     val actions = LocalActions.current
     val bios = actions.container.bios
     val version by bios.version.collectAsState()
     val lang = dev.surco.i18n.I18n.lang
-    val bio by produceState(bios.cached(name)?.takeIf { it.text.isNotBlank() }, name, version, lang) {
-        value = bios.cached(name)?.takeIf { it.text.isNotBlank() } ?: runCatching { bios.get(name) }.getOrNull()
+    var loaded by remember(name) { mutableStateOf(false) }
+    val bio by produceState(bios.cached(name), name, version, lang) {
+        value = bios.cached(name) ?: runCatching { bios.get(name) }.getOrNull() ?: bios.cached(name)
+        loaded = true
     }
-    val b = bio ?: return
     var expanded by remember(name) { mutableStateOf(false) }
+    var editing by remember(name) { mutableStateOf(false) }
+    var menu by remember(name) { mutableStateOf(false) }
+    var searching by remember(name) { mutableStateOf(false) }
     val uri = androidx.compose.ui.platform.LocalUriHandler.current
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("artist_bio")) {
-        Text(S.aboutArtist, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 10.dp))
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SurcoColors.Surface)
-                .clickable { expanded = !expanded }.padding(16.dp),
-        ) {
-            Text(
-                b.text,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = if (expanded) Int.MAX_VALUE else 6,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (expanded) S.showLess else S.showMore,
-                    style = MaterialTheme.typography.labelLarge, color = SurcoColors.TextPrimary,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    S.bioSource(b.source, b.lang),
-                    style = MaterialTheme.typography.labelSmall, color = SurcoColors.TextTertiary,
-                    modifier = Modifier.clickable(enabled = b.url != null) { b.url?.let { runCatching { uri.openUri(it) } } },
-                )
+    val b = bio?.takeIf { it.text.isNotBlank() }
+
+    fun searchOnline() {
+        searching = true
+        actions.scope.launch {
+            val ok = bios.refresh(name)
+            searching = false
+            when {
+                !ok -> actions.toast(S.noConnection)
+                bios.cached(name)?.text.isNullOrBlank() -> actions.toast(S.noBioFound)
             }
         }
+    }
+
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("artist_bio")) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+            Text(S.aboutArtist, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            if (searching) CircularProgressIndicator(Modifier.size(20.dp), color = SurcoColors.Accent, strokeWidth = 2.dp)
+            Box {
+                IconButton(onClick = { menu = true }, modifier = Modifier.testTag("bio_menu")) {
+                    Icon(Icons.Filled.MoreVert, S.bioOptions, tint = SurcoColors.TextSecondary)
+                }
+                androidx.compose.material3.DropdownMenu(
+                    expanded = menu, onDismissRequest = { menu = false },
+                    containerColor = SurcoColors.SurfaceHigh,
+                ) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(if (b != null) S.editBio else S.writeBio) },
+                        onClick = { menu = false; editing = true },
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(S.searchBioOnline) },
+                        onClick = { menu = false; searchOnline() },
+                    )
+                    if (b != null) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(S.deleteBio, color = SurcoColors.Error) },
+                            onClick = { menu = false; actions.scope.launch { bios.setManual(name, "") } },
+                        )
+                    }
+                }
+            }
+        }
+        if (b != null) {
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SurcoColors.Surface)
+                    .clickable { expanded = !expanded }.padding(16.dp),
+            ) {
+                Text(
+                    b.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (expanded) Int.MAX_VALUE else 6,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (expanded) S.showLess else S.showMore,
+                        style = MaterialTheme.typography.labelLarge, color = SurcoColors.TextPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        if (b.source == dev.surco.data.ArtistBios.MANUAL) S.bioWrittenByYou else S.bioSource(b.source, b.lang),
+                        style = MaterialTheme.typography.labelSmall, color = SurcoColors.TextTertiary,
+                        modifier = Modifier.clickable(enabled = b.url != null) { b.url?.let { runCatching { uri.openUri(it) } } },
+                    )
+                }
+            }
+        } else if (loaded) {
+            Text(S.noBioYet, style = MaterialTheme.typography.bodyMedium, color = SurcoColors.TextSecondary)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                androidx.compose.material3.OutlinedButton(onClick = { editing = true }) { Text(S.writeBio) }
+                androidx.compose.material3.OutlinedButton(onClick = { searchOnline() }, enabled = !searching) { Text(S.searchBioOnline) }
+            }
+        }
+    }
+
+    if (editing) {
+        var text by remember { mutableStateOf(b?.text.orEmpty()) }
+        AlertDialog(
+            onDismissRequest = { editing = false },
+            containerColor = SurcoColors.Surface,
+            title = { Text(S.bioOf(name)) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = text, onValueChange = { text = it },
+                    placeholder = { Text(S.bioPlaceholder, color = SurcoColors.TextTertiary) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp, max = 420.dp).testTag("bio_editor"),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SurcoColors.Accent, cursorColor = SurcoColors.Accent,
+                        unfocusedBorderColor = SurcoColors.SurfaceHigher,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    editing = false
+                    actions.scope.launch { bios.setManual(name, text) }
+                }) { Text(S.save, color = SurcoColors.Accent) }
+            },
+            dismissButton = { TextButton(onClick = { editing = false }) { Text(S.cancel) } },
+        )
     }
 }

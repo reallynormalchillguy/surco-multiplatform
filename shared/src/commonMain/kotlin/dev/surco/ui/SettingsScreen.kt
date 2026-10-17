@@ -3,6 +3,7 @@ package dev.surco.ui
 import dev.surco.i18n.S
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -143,6 +144,20 @@ fun SettingsScreen() {
             // ================= Apariencia
             Header(S.appearance)
             Card {
+                Text(S.theme, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ThemeChoice(S.themeOwnColors, settings.theme != "floral", "theme_own") {
+                        val p = dev.surco.data.Prefs.effectivePalette(dev.surco.ui.theme.Palette.decode(settings.palette), settings.copy(theme = ""))
+                        Box(Modifier.fillMaxSize().background(p.background)) {
+                            Box(Modifier.align(Alignment.Center).size(26.dp).clip(CircleShape).background(p.accent))
+                        }
+                    }
+                    ThemeChoice(S.themeFloral, settings.theme == "floral", "theme_floral") {
+                        FloralThumbnail(Modifier.fillMaxSize())
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
                 Row(
                     Modifier.fillMaxWidth().clickable { actions.openPalette() }.testTag("open_palette"),
                     verticalAlignment = Alignment.CenterVertically,
@@ -163,7 +178,7 @@ fun SettingsScreen() {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccentButton(S.shufflePalette) {
                         val p = dev.surco.ui.theme.Palette.random()
-                        repo.prefs.update { it.copy(palette = p.encode()) }
+                        repo.prefs.update { it.copy(palette = p.encode(), theme = "") }
                     }
                     OutlinedButton(onClick = { actions.openPalette() }) { Text(S.customize) }
                 }
@@ -280,6 +295,38 @@ fun SettingsScreen() {
                 JobRow(artistJob)
                 OutlinedButton(onClick = { repo.startFetchArtistImages() }, enabled = !artistJob.running) {
                     Text(S.downloadPhotosNow)
+                }
+            }
+
+            // ================= Spotify
+            Header("Spotify")
+            Card {
+                Text(S.spotifyKeyTitle, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text(S.spotifyKeyDesc, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+                Spacer(Modifier.height(10.dp))
+                if (settings.spotifyReady) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(10.dp).clip(CircleShape).background(SurcoColors.Accent))
+                        Spacer(Modifier.width(10.dp))
+                        Text(S.spotifyKeySaved, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedButton(onClick = { repo.prefs.update { it.copy(spotifyId = "", spotifySecret = "") } }) { Text(S.changeKeys) }
+                } else {
+                    var id by remember { mutableStateOf("") }
+                    var secret by remember { mutableStateOf("") }
+                    OutlinedTextField(id, { id = it }, label = { Text(S.spotifyClientId) }, singleLine = true, colors = textFieldColors(), modifier = Modifier.fillMaxWidth().testTag("spotify_id"))
+                    OutlinedTextField(secret, { secret = it }, label = { Text(S.spotifyClientSecret) }, singleLine = true, colors = textFieldColors(), modifier = Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AccentButton(S.save, enabled = id.isNotBlank() && secret.isNotBlank()) {
+                            repo.prefs.update { it.copy(spotifyId = id.trim(), spotifySecret = secret.trim()) }
+                        }
+                        OutlinedButton(onClick = {
+                            runCatching { uriHandler.openUri("https://developer.spotify.com/dashboard") }
+                        }) { Text(S.openSpotifyDashboard) }
+                    }
                 }
             }
 
@@ -514,5 +561,24 @@ fun OnboardingScreen(container: SurcoCore) {
             color = SurcoColors.TextTertiary,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/** Tarjeta para elegir un tema: miniatura + nombre, con borde de acento si está elegido. */
+@Composable
+private fun ThemeChoice(label: String, selected: Boolean, tag: String, onClickPreview: @Composable () -> Unit) {
+    val repo = LocalActions.current.repo
+    Column(
+        Modifier.width(96.dp).clickable {
+            repo.prefs.update { it.copy(theme = if (tag == "theme_floral") "floral" else "") }
+        }.testTag(tag),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier.size(width = 96.dp, height = 136.dp).clip(RoundedCornerShape(10.dp))
+                .border(if (selected) 3.dp else 1.dp, if (selected) SurcoColors.Accent else SurcoColors.SurfaceHigher, RoundedCornerShape(10.dp)),
+        ) { onClickPreview() }
+        Spacer(Modifier.height(6.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = if (selected) SurcoColors.Accent else SurcoColors.TextSecondary)
     }
 }

@@ -32,6 +32,7 @@ import coil3.size.Size
 import coil3.toBitmap
 import dev.surco.resources.Res
 import dev.surco.resources.figtree_bold
+import dev.surco.resources.floral_wine
 import dev.surco.resources.figtree_extrabold
 import dev.surco.resources.figtree_medium
 import dev.surco.resources.figtree_regular
@@ -106,6 +107,9 @@ actual fun figtreeFamily(): FontFamily = FontFamily(
     Font(Res.font.figtree_bold, FontWeight.Bold),
     Font(Res.font.figtree_extrabold, FontWeight.ExtraBold),
 )
+
+@Composable
+actual fun floralPainter(): androidx.compose.ui.graphics.painter.Painter = org.jetbrains.compose.resources.painterResource(Res.drawable.floral_wine)
 
 actual suspend fun extractArtColor(context: PlatformContext, path: String): Color? = runCatching {
     val data: Any = if (path.startsWith("http")) path else path.toPath()

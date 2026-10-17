@@ -241,7 +241,7 @@ fun ShareSheet(track: Track?, album: AlbumRow?, onDismiss: () -> Unit) {
                         val spotify = actions.container.spotify
                         val link = when {
                             album != null -> spotify.albumLink(album.artist, album.album)
-                            track != null -> spotify.trackLink(track.artist, track.title)
+                            track != null -> spotify.trackLink(track.artist, track.title, track.album, track.discNumber, track.trackNumber)
                             else -> null
                         }
                         busy = false

@@ -27,6 +27,8 @@ data class PlayerUiState(
     /** Canción anterior y siguiente al deslizar (respetan aleatorio y repetir todo); -1 si no hay. */
     val prevIndex: Int = -1,
     val nextIndex: Int = -1,
+    /** Toda la cola en el orden en que suena (respeta el aleatorio): para el carrusel de portadas. */
+    val order: List<Int> = emptyList(),
 )
 
 /** Lo que la interfaz puede pedirle al reproductor de la plataforma (Media3 en Android, AVFoundation en iOS). */
@@ -49,6 +51,8 @@ interface PlayerController {
     /** Quita de la cola todas las apariciones de estas canciones (p. ej. tras borrarlas del dispositivo). */
     fun removeFromQueue(uris: Collection<String>)
     fun skipToQueueIndex(index: Int)
+    /** Salta a una canción de la cola sin cambiar play/pausa (para el gesto de deslizar). */
+    fun seekToQueueIndex(index: Int)
     fun removeFromQueue(index: Int)
     fun moveInQueue(from: Int, to: Int)
     /** Sólo para las capturas de pantalla automáticas (CI). */

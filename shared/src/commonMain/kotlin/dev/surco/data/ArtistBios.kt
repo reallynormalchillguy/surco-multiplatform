@@ -42,8 +42,46 @@ class ArtistBios(
     private fun lang() = if (prefs.current.language == "es") "es" else "en"
     private fun name(artist: String, lang: String) = "bio_${Md5.hex(artist.trim().lowercase())}_$lang.json"
 
-    /** Biografía guardada (texto vacío = se buscó y no hay), o null si aún no se ha buscado. */
+    /** Biografía escrita (o borrada) a mano: vale para todos los idiomas y nunca se sustituye sola. */
+    private fun manualName(artist: String) = "bio_${Md5.hex(artist.trim().lowercase())}_manual.json"
+
+    private fun manual(artist: String): BioText? {
+        val o = files.readText(manualName(artist))?.let { runCatching { parseJson(it).obj() }.getOrNull() } ?: return null
+        val src = o.str("source")
+        if (src != MANUAL && src != DELETED) return null // «descartada» al volver a buscar en internet
+        return BioText(o.str("text"), src, null, lang())
+    }
+
+    private fun writeManual(artist: String, text: String, source: String) {
+        val json = buildJsonObject { put("text", JsonPrimitive(text)); put("source", JsonPrimitive(source)) }
+        files.writeText(manualName(artist), JsonParser.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), json))
+    }
+
+    /** Guarda una biografía escrita por el usuario (vacía = «sin biografía», y no se vuelve a buscar). */
+    suspend fun setManual(artist: String, text: String) {
+        val t = text.trim()
+        kotlinx.coroutines.withContext(IoDispatcher) { writeManual(artist, t, if (t.isEmpty()) DELETED else MANUAL) }
+        _version.value++
+    }
+
+    /** Vuelve a buscarla en internet (descarta la escrita a mano y la guardada). Devuelve false si no hay red. */
+    suspend fun refresh(artist: String): Boolean = mutex.withLock {
+        val lang = lang()
+        val bio = when (val o = source.fetch(artist, lang)) {
+            is BioSource.Outcome.Found -> o.bio
+            BioSource.Outcome.NotFound -> BioText("", "", null, lang)
+            BioSource.Outcome.Failed -> return@withLock false
+        }
+        kotlinx.coroutines.withContext(IoDispatcher) {
+            if (files.readText(manualName(artist)) != null) writeManual(artist, "", "")
+            put(artist, bio)
+        }
+        true
+    }
+
+    /** Biografía guardada (texto vacío = se buscó y no hay, o se borró), o null si aún no se ha buscado. */
     fun cached(artist: String, lang: String = lang()): BioText? {
+        manual(artist)?.let { return it }
         val o = files.readText(name(artist, lang))?.let { parseJson(it).obj() } ?: return null
         if (o.str("text").isBlank() && nowMillis() - o.long("at") > RETRY_MS) return null
         return BioText(o.str("text"), o.str("source"), o.str("url").ifBlank { null }, o.str("lang", lang))
@@ -94,6 +132,8 @@ class ArtistBios(
     }
 
     companion object {
+        const val MANUAL = "manual"
+        const val DELETED = "deleted"
         private const val RETRY_MS = 30L * 24 * 3600 * 1000
     }
 }

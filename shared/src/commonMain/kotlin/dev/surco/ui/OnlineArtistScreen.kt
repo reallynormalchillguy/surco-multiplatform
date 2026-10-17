@@ -179,7 +179,7 @@ fun OnlineArtistScreen(id: Long) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
+                    .background(Brush.verticalGradient(listOf(color, SurcoColors.fadeTo(color))))
                     .statusBarsPadding(),
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {

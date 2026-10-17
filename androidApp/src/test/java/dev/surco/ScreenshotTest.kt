@@ -283,8 +283,14 @@ class ScreenshotTest {
         compose.onNodeWithTag("tab_home").performClick()
         snap("05_inicio_reproduciendo")
 
+        c.sleepTimer.endOfTrack() // sin cuenta atrás: la prueba no espera a un reloj que no para
         compose.onNodeWithTag("mini_player").performClick()
         snap("06_reproductor")
+        // Temporizador para dormir.
+        compose.onNodeWithTag("sleep_timer").performClick()
+        snapScreen("06b_temporizador")
+        compose.onNodeWithText(S.turnOffTimer).performClick()
+        settle()
 
         compose.onNodeWithTag("lyrics_card").performScrollTo()
         snap("07_reproductor_letra")
@@ -319,6 +325,18 @@ class ScreenshotTest {
         compose.onNodeWithTag("tab_home").performClick()
         snap("11d_inicio_con_paleta")
         c.prefs.update { it.copy(palette = "") }
+
+        // Tema floral (fondo vino con flores).
+        c.prefs.update { it.copy(theme = "floral") }
+        compose.onNodeWithTag("tab_home").performClick()
+        snap("11e_tema_floral")
+        compose.onNodeWithTag("tab_library").performClick()
+        snap("11f_tema_floral_biblioteca")
+        compose.onAllNodesWithText("Raíz")[0].performClick()
+        snap("11g_tema_floral_album")
+        compose.onNodeWithTag("tab_home").performClick()
+        compose.onNodeWithTag("tab_home").performClick()
+        c.prefs.update { it.copy(theme = "") }
 
         // El mismo Inicio en español, para comprobar el cambio de idioma en caliente.
         c.prefs.update { it.copy(language = "es") }

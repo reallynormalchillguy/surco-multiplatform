@@ -26,7 +26,7 @@ class IosContainer : SurcoCore(
         lastfmSecret = bundleString("SurcoLastfmSecret"),
     )
 ) {
-    override val player = IosPlayer(appScope, repository)
+    override val player = IosPlayer(appScope, repository, sleepTimer)
     override val soulseek: SoulseekService = IosSoulseek(prefs, repository, appScope)
 
     init {

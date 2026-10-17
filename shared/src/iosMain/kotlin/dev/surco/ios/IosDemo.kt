@@ -26,6 +26,8 @@ object IosDemo {
     val enabled get() = "--surco-demo" in args
     val route: String? get() = args.firstOrNull { it.startsWith("--surco-route=") }?.substringAfter('=')
     val openPlayer get() = "--surco-player" in args
+    /** Tema con imagen para la captura («--surco-theme=floral»). */
+    val theme: String get() = args.firstOrNull { it.startsWith("--surco-theme=") }?.substringAfter('=').orEmpty()
 
     private val albums = listOf(
         Triple("Night Transit", "Velvet Arcade", 0x7B2D5B), Triple("Hojas de Cobre", "Los Faros", 0x1F4E5F),
@@ -75,10 +77,10 @@ object IosDemo {
                 c.repository.createPlaylist("Para correr").let { id -> c.repository.addToPlaylist(id, tracks.take(12).map { it.uri }) }
             }
             // «demo:» no es una carpeta real: el escaneo falla sin borrar nada.
-            c.prefs.update { it.copy(treeUri = "demo:", language = "en", discover = false) }
+            c.prefs.update { it.copy(treeUri = "demo:", language = "en", discover = false, theme = theme) }
             if (openPlayer) {
                 val first = dao.allTracksOnce().first()
-                c.player.debugSetState(PlayerUiState(connected = true, mediaId = first.uri, isPlaying = true, position = 72_000, duration = first.durationMs, source = "album|${first.album}"))
+                c.player.debugSetState(PlayerUiState(connected = true, mediaId = first.uri, isPlaying = true, position = 72_000, duration = first.durationMs, source = "album|${first.album}", queue = listOf(first.uri), queueIndex = 0))
             }
         }
     }

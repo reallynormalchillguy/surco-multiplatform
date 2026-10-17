@@ -113,6 +113,78 @@ object SpotifyPage {
         }.orEmpty()
     }
 
+    /** Una canción dentro de la ficha de un álbum de Spotify. */
+    data class AlbumTrack(val url: String, val title: String?, val disc: Int?, val number: Int?)
+
+    private val trackUriRegex = Regex(""""uri"\s*:\s*"spotify:track:([A-Za-z0-9]+)"""")
+    private val titleKeyRegex = Regex(""""(?:title|name)"\s*:\s*"((?:[^"\\]|\\.)*)"""")
+    private val songMetaRegex = Regex("""<meta\s[^>]*>""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Las canciones de la ficha de un álbum. Sirve tanto la página normal (etiquetas «music:song»,
+     * con disco y número de pista) como la del reproductor incrustado (/embed/album/…, con los títulos).
+     */
+    fun albumTracks(html: String): List<AlbumTrack> {
+        val out = ArrayList<AlbumTrack>()
+        // 1) Etiquetas music:song / music:song:disc / music:song:track, en orden.
+        var cur: AlbumTrack? = null
+        for (m in songMetaRegex.findAll(html)) {
+            val attrs = attrRegex.findAll(m.value).associate { it.groupValues[1].lowercase() to it.groupValues[2] }
+            val key = attrs["property"] ?: attrs["name"] ?: continue
+            val content = attrs["content"] ?: continue
+            when (key) {
+                "music:song" -> { cur?.let(out::add); cur = AlbumTrack(content, null, null, null) }
+                "music:song:disc" -> cur = cur?.copy(disc = content.toIntOrNull())
+                "music:song:track" -> cur = cur?.copy(number = content.toIntOrNull())
+            }
+        }
+        cur?.let(out::add)
+        // 2) Datos del reproductor incrustado: «"uri":"spotify:track:ID"» con su título cerca.
+        for (m in trackUriRegex.findAll(html)) {
+            val id = m.groupValues[1]
+            val url = "https://open.spotify.com/track/$id"
+            val start = (m.range.first - 400).coerceAtLeast(0)
+            val end = (m.range.last + 400).coerceAtMost(html.length)
+            // El título dentro del mismo objeto JSON; si no, el más cercano a la URI.
+            val objStart = html.lastIndexOf('{', m.range.first).coerceAtLeast(0)
+            val objEnd = html.indexOf('}', m.range.last).let { if (it < 0) html.length else it }
+            val title = (titleKeyRegex.find(html.substring(objStart, objEnd))
+                ?: titleKeyRegex.findAll(html.substring(start, end)).minByOrNull { kotlin.math.abs(start + it.range.first - m.range.first) })
+                ?.groupValues?.get(1)?.let(::unescapeJson)
+            val i = out.indexOfFirst { it.url.endsWith("/track/$id") }
+            if (i >= 0) { if (out[i].title == null) out[i] = out[i].copy(title = title) }
+            else out.add(AlbumTrack(url, title, null, null))
+        }
+        return out
+    }
+
+    /** La canción del álbum que corresponde a la nuestra: por título y, si no, por disco + número de pista. */
+    fun pickTrack(tracks: List<AlbumTrack>, title: String, disc: Int, number: Int): String? {
+        tracks.filter { it.title != null }
+            .map { it to dev.surco.data.AlbumMatcher.similarity(it.title!!, title) }
+            .filter { it.second >= 0.8f }
+            .maxByOrNull { it.second }?.let { return it.first.url }
+        if (number <= 0) return null
+        return tracks.firstOrNull { it.number == number && (it.disc ?: 1) == (disc.takeIf { d -> d > 0 } ?: 1) }?.url
+    }
+
+    private fun unescapeJson(s: String): String {
+        if ('\\' !in s) return s
+        val sb = StringBuilder()
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            if (c != '\\' || i + 1 >= s.length) { sb.append(c); i++; continue }
+            when (val n = s[i + 1]) {
+                'n' -> sb.append('\n'); 't' -> sb.append('\t'); 'r' -> {}
+                'u' -> { s.substring(i + 2, minOf(i + 6, s.length)).toIntOrNull(16)?.let { sb.append(it.toChar()) }; i += 4 }
+                else -> sb.append(n)
+            }
+            i += 2
+        }
+        return sb.toString()
+    }
+
     /** Enlace de búsqueda de Spotify (cuando no se conoce el enlace exacto): abre la búsqueda en la app de Spotify. */
     fun searchUrl(query: String): String = "https://open.spotify.com/search/" + encodePath(query)
 
