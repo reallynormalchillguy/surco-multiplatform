@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.TagsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-17T22:37:36" hostname="runnervmk1d70" time="0.04">
+  <properties/>
+  <testcase name="flacRewriteKeepsAudioAndOtherFields" classname="dev.surco.TagsTest" time="0.014"/>
+  <testcase name="mp3RewriteToId3v24" classname="dev.surco.TagsTest" time="0.01"/>
+  <testcase name="mp3WithoutTagGetsOne" classname="dev.surco.TagsTest" time="0.003"/>
+  <testcase name="mp4Read" classname="dev.surco.TagsTest" time="0.008"/>
+  <testcase name="flacRead" classname="dev.surco.TagsTest" time="0.003"/>
+  <testcase name="mp3ReadAndDuration" classname="dev.surco.TagsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

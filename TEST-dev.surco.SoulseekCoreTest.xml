@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.SoulseekCoreTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-17T22:37:36" hostname="runnervmk1d70" time="0.077">
+  <properties/>
+  <testcase name="loginSearchAndDownload" classname="dev.surco.SoulseekCoreTest" time="0.077"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
