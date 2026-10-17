@@ -314,6 +314,8 @@ class ScreenshotTest {
         compose.onNodeWithTag("tab_home").performClick()
         settle()
         compose.onAllNodesWithContentDescription(S.settings)[0].performClick()
+        snap("10b_panel_perfil")
+        compose.onNodeWithTag("drawer_settings").performClick()
         snap("11_ajustes")
 
         // Paleta de colores: generador aleatorio y edición manual.

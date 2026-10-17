@@ -91,7 +91,7 @@ fun HomeScreen() {
                 .padding(start = 16.dp, top = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppAvatar(onClick = { actions.openSettings() })
+            AppAvatar(onClick = { Overlays.drawer = true })
             Spacer(Modifier.width(10.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(end = 16.dp)) {
                 items(HomeFilter.entries.toList()) { f ->

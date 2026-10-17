@@ -134,7 +134,7 @@ fun StatsScreen() {
             Modifier.fillMaxWidth().statusBarsPadding().padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppAvatarOrLastFm(settings.lastfmLoggedIn, state.report?.profile?.imageUrl) { actions.openSettings() }
+            AppAvatarOrLastFm(settings.lastfmLoggedIn && viewing == null, state.report?.profile?.imageUrl) { Overlays.drawer = true }
             Spacer(Modifier.width(14.dp))
             Text(S.stats, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             if (settings.lastfmReady) {

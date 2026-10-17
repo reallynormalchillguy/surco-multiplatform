@@ -92,6 +92,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -318,8 +319,16 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                     }
 
                     // --- Portada, centrada en el espacio libre (algo más de aire debajo, como en Spotify).
+                    // Al abrir el reproductor la portada aparece creciendo y encendiéndose, como en Spotify.
+                    val coverIn = remember { androidx.compose.animation.core.Animatable(0f) }
+                    LaunchedEffect(Unit) { coverIn.animateTo(1f, androidx.compose.animation.core.tween(520, delayMillis = 60, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
                     BoxWithConstraints(
-                        Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp, bottom = 28.dp),
+                        Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp, bottom = 28.dp)
+                            .graphicsLayer {
+                                val k = coverIn.value
+                                scaleX = 0.88f + 0.12f * k; scaleY = 0.88f + 0.12f * k
+                                alpha = 0.3f + 0.7f * k
+                            },
                         contentAlignment = androidx.compose.ui.BiasAlignment(0f, 0.1f),
                     ) {
                         val side = if (maxWidth < maxHeight) maxWidth else maxHeight

@@ -58,6 +58,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -93,6 +96,10 @@ fun CollectionScreen(
     showArt: Boolean = true,
     playlistId: Long? = null,
     footer: LazyListScope.() -> Unit = {},
+    /** Título de la barra de arriba, que aparece al bajar (como en Spotify). */
+    title: String = "",
+    /** Cabecera a pantalla completa con efecto parallax (página de artista); recibe cuánto se ha bajado. */
+    hero: (@Composable (scrolled: () -> Float) -> Unit)? = null,
 ) {
     val actions = LocalActions.current
     val state = LocalPlayer.current
@@ -100,17 +107,25 @@ fun CollectionScreen(
     val playingHere = state.source == source && state.mediaId != null && tracks.any { it.uri == state.mediaId }
     val multiDisc = numbered && tracks.map { it.discNumber }.distinct().size > 1
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
+    val listState = rememberLazyListState()
+    Box(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = 32.dp)) {
+        if (hero != null) {
+            item(key = "hero") {
+                hero { if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset.toFloat() else 100_000f }
+            }
+        }
         item {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
-                    .statusBarsPadding()
+                    .then(
+                        if (hero == null) Modifier.background(Brush.verticalGradient(listOf(color, SurcoColors.Background))).statusBarsPadding()
+                        else Modifier
+                    )
             ) {
-                IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
-                }
+                // Sitio para la barra de arriba (que va por encima y no se mueve).
+                if (hero == null) Spacer(Modifier.height(56.dp))
                 Column(Modifier.padding(horizontal = 16.dp)) { header() }
                 Row(
                     Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
@@ -174,6 +189,50 @@ fun CollectionScreen(
         }
         footer()
     }
+        CollapsingTopBar(listState, color, title, heroMode = hero != null)
+    }
+}
+
+/**
+ * Barra de arriba con «atrás»: transparente al principio y, según bajas, se rellena del color de la
+ * pantalla y aparece el título (como en Spotify).
+ */
+@Composable
+internal fun CollapsingTopBar(listState: androidx.compose.foundation.lazy.LazyListState, color: Color, title: String, heroMode: Boolean) {
+    val actions = LocalActions.current
+    val fraction by remember(listState) {
+        androidx.compose.runtime.derivedStateOf {
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            when {
+                first == null -> 0f
+                first.index > 0 -> 1f
+                else -> ((-first.offset).toFloat() / (first.size * (if (heroMode) 0.72f else 0.6f)).coerceAtLeast(1f)).coerceIn(0f, 1f)
+            }
+        }
+    }
+    val bar = androidx.compose.ui.graphics.lerp(color, SurcoColors.Background, 0.45f)
+    Row(
+        Modifier.fillMaxWidth().background(bar.copy(alpha = fraction)).statusBarsPadding().height(56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(start = 4.dp)) {
+            Box(
+                Modifier.size(36.dp).clip(CircleShape).background(Color.Black.copy(alpha = if (heroMode) 0.35f * (1f - fraction) else 0f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
+            }
+        }
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(end = 16.dp).graphicsLayer {
+                val t = ((fraction - 0.65f) / 0.35f).coerceIn(0f, 1f)
+                alpha = t; translationY = (1f - t) * 12.dp.toPx()
+            },
+        )
+    }
 }
 
 private fun summary(tracks: List<Track>): String {
@@ -214,6 +273,7 @@ fun AlbumScreen(albumKey: String) {
         tracks = tracks,
         source = source,
         color = color,
+        title = a?.album.orEmpty(),
         numbered = true,
         showArt = false,
         header = {
@@ -297,31 +357,49 @@ fun ArtistScreen(name: String) {
         tracks = popular,
         source = source,
         color = color,
-        header = {
+        title = name,
+        hero = { scrolled ->
+            // Foto a todo lo ancho que se queda atrás (parallax) y se apaga al bajar; el nombre, encima.
             Box(
-                Modifier.size(200.dp).align(Alignment.CenterHorizontally)
+                Modifier.fillMaxWidth().height(360.dp).clipToBounds()
                     .clickable { actions.artistPicture(name) }.testTag("artist_photo"),
             ) {
-                ArtImage(image, Modifier.size(200.dp), CircleShape, Icons.Filled.Person)
                 Box(
-                    Modifier.align(Alignment.BottomEnd).padding(8.dp).size(38.dp).clip(CircleShape)
-                        .background(SurcoColors.SurfaceHigher),
+                    Modifier.matchParentSize().graphicsLayer {
+                        val s = scrolled()
+                        translationY = s * 0.5f
+                        alpha = (1f - s / size.height).coerceIn(0f, 1f)
+                        val zoom = 1f + (1f - (s / size.height).coerceIn(0f, 1f)) * 0.04f
+                        scaleX = zoom; scaleY = zoom
+                    },
+                ) {
+                    ArtImage(image, Modifier.fillMaxSize(), androidx.compose.ui.graphics.RectangleShape, Icons.Filled.Person)
+                }
+                Box(
+                    Modifier.matchParentSize().background(
+                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.25f), 0.35f to Color.Transparent, 0.75f to SurcoColors.Background.copy(alpha = 0.55f), 1f to SurcoColors.Background),
+                    ),
+                )
+                Column(
+                    Modifier.align(Alignment.BottomStart).padding(horizontal = 16.dp, vertical = 12.dp)
+                        .graphicsLayer { alpha = (1f - scrolled() / (size.height * 2.2f)).coerceIn(0f, 1f) },
+                ) {
+                    Text(name, style = MaterialTheme.typography.displaySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        "${S.albumsCount(albums.size)} • ${S.songs(tracks.size)}",
+                        style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
+                    )
+                }
+                Box(
+                    Modifier.align(Alignment.BottomEnd).padding(12.dp).size(36.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.45f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Filled.PhotoCamera, S.changeArtistPhoto, tint = SurcoColors.TextPrimary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.PhotoCamera, S.changeArtistPhoto, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            Text(name, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            Text(
-                "${S.albumsCount(albums.size)} • ${S.songs(tracks.size)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = SurcoColors.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(S.popular, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
+        },
+        header = {
+            Text(S.popular, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 4.dp))
         },
         toolbar = {
             TextButton(onClick = { actions.play(tracks, 0, source) }) {
@@ -373,6 +451,7 @@ fun PlaylistScreen(id: Long) {
         tracks = tracks,
         source = "lista|${p.name}",
         color = color,
+        title = p.name,
         playlistId = id,
         header = {
             Mosaic(art, Modifier.size(220.dp).align(Alignment.CenterHorizontally))
@@ -429,6 +508,7 @@ fun LikedScreen() {
         tracks = tracks,
         source = "favoritas|${S.likedSongs}",
         color = Color(0xFF4A2FBF),
+        title = S.likedSongs,
         header = {
             LikedArt(Modifier.size(200.dp).align(Alignment.CenterHorizontally))
             Spacer(Modifier.height(18.dp))
@@ -447,6 +527,7 @@ fun GenreScreen(genre: String) {
         tracks = tracks,
         source = "género|$genre",
         color = color,
+        title = genre,
         header = {
             Text(genre, style = MaterialTheme.typography.headlineLarge)
             Text(summary(tracks), style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)

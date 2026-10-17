@@ -779,4 +779,6 @@ object S {
     fun minutesAgo(n: Int) = t("$n min ago", "hace $n min")
     fun hoursAgo(n: Int) = t(if (n == 1) "1 hour ago" else "$n hours ago", if (n == 1) "hace 1 hora" else "hace $n horas")
     val yesterday get() = t("yesterday", "ayer")
+    val viewProfile get() = t("View profile", "Ver perfil")
+    val listeningStats get() = t("Listening stats", "Estadísticas de escucha")
 }

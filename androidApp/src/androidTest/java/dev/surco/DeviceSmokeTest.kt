@@ -221,7 +221,7 @@ class DeviceSmokeTest {
 
         // Ajustes → Abrir Soulseek (el botón que cerraba la app) → atrás
         tap(compose.onNodeWithTag("tab_home"))
-        tap(compose.firstDesc(S.settings))
+        tap(compose.firstDesc(S.settings)); Thread.sleep(500); tap(compose.onNodeWithTag("drawer_settings"))
         compose.first(S.openSoulseek).performScrollTo()
         tap(compose.first(S.openSoulseek))
         compose.first(S.connectAccount).assertExists()
@@ -289,7 +289,7 @@ class DeviceSmokeTest {
         // Cambiar el idioma en caliente
         tap(compose.onNodeWithTag("tab_home"))
         tap(compose.onNodeWithTag("tab_home"))
-        tap(compose.firstDesc(S.settings))
+        tap(compose.firstDesc(S.settings)); Thread.sleep(500); tap(compose.onNodeWithTag("drawer_settings"))
         tap(compose.first("Español"), "espanol")
         compose.onAllNodes(hasText("Ajustes"))[0].assertExists()
         tap(compose.first("English"))
@@ -329,7 +329,7 @@ class DeviceSmokeTest {
 
         // Paleta de colores: sortear y volver a la original
         tap(compose.onNodeWithTag("tab_home"))
-        tap(compose.firstDesc(S.settings))
+        tap(compose.firstDesc(S.settings)); Thread.sleep(500); tap(compose.onNodeWithTag("drawer_settings"))
         // Se baja hasta Soulseek para que la fila de la paleta no quede bajo el mini reproductor.
         compose.first(S.openSoulseek).performScrollTo()
         tap(compose.onNodeWithTag("open_palette"), "paleta")

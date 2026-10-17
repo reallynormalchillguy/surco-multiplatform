@@ -118,7 +118,7 @@ fun LibraryScreen() {
             Modifier.fillMaxWidth().statusBarsPadding().padding(start = 16.dp, end = 4.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppAvatar(onClick = { actions.openSettings() })
+            AppAvatar(onClick = { Overlays.drawer = true })
             Spacer(Modifier.width(14.dp))
             Text(S.yourLibrary, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = { actions.openTab("search") }) {

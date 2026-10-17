@@ -96,7 +96,7 @@ fun SearchScreen() {
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppAvatar(onClick = { actions.openSettings() })
+            AppAvatar(onClick = { Overlays.drawer = true })
             Spacer(Modifier.width(14.dp))
             Text(S.search, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = { actions.openSoulseek() }) {

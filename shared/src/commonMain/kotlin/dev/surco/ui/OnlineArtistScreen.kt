@@ -41,6 +41,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -174,30 +177,45 @@ fun OnlineArtistScreen(id: Long) {
     }
     val a = d.artist
 
-    LazyColumn(Modifier.fillMaxSize().testTag("online_artist_screen"), contentPadding = PaddingValues(bottom = 32.dp)) {
-        // ---- Cabecera
-        item {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
-                    .statusBarsPadding(),
-            ) {
-                IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, S.back, tint = SurcoColors.TextPrimary)
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    Box(Modifier.fillMaxSize()) {
+    LazyColumn(Modifier.fillMaxSize().testTag("online_artist_screen"), state = listState, contentPadding = PaddingValues(bottom = 32.dp)) {
+        // ---- Cabecera: foto a todo lo ancho con parallax y el nombre encima (como en Spotify)
+        item(key = "hero") {
+            val scrolled = { if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset.toFloat() else 100_000f }
+            Box(Modifier.fillMaxWidth().height(360.dp).clipToBounds()) {
+                Box(
+                    Modifier.matchParentSize().graphicsLayer {
+                        val sc = scrolled()
+                        translationY = sc * 0.5f
+                        alpha = (1f - sc / size.height).coerceIn(0f, 1f)
+                        val zoom = 1f + (1f - (sc / size.height).coerceIn(0f, 1f)) * 0.04f
+                        scaleX = zoom; scaleY = zoom
+                    },
+                ) {
+                    ArtImage(a.picture, Modifier.fillMaxSize(), androidx.compose.ui.graphics.RectangleShape, Icons.Filled.Person)
                 }
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    ArtImage(a.picture, Modifier.size(200.dp), CircleShape, Icons.Filled.Person)
-                    Spacer(Modifier.height(18.dp))
-                    Text(a.name, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(4.dp))
+                Box(
+                    Modifier.matchParentSize().background(
+                        Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.25f), 0.35f to Color.Transparent, 0.75f to SurcoColors.Background.copy(alpha = 0.55f), 1f to SurcoColors.Background),
+                    ),
+                )
+                Column(
+                    Modifier.align(Alignment.BottomStart).padding(horizontal = 16.dp, vertical = 12.dp)
+                        .graphicsLayer { alpha = (1f - scrolled() / (size.height * 2.2f)).coerceIn(0f, 1f) },
+                ) {
+                    Text(a.name, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
                         listOfNotNull(formatFans(a.fans), a.albums.takeIf { it > 0 }?.let { S.albumsCount(it) }).joinToString(" • "),
                         style = MaterialTheme.typography.bodySmall,
                         color = SurcoColors.TextSecondary,
                     )
                 }
-                Spacer(Modifier.height(18.dp))
+            }
+        }
+        item {
+            Column(Modifier.fillMaxWidth()) {
+                Spacer(Modifier.height(8.dp))
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     val inLib = local
                     if (inLib != null) {
@@ -309,5 +327,7 @@ fun OnlineArtistScreen(id: Long) {
                 }
             }
         }
+    }
+    CollapsingTopBar(listState, color, a.name, heroMode = true)
     }
 }

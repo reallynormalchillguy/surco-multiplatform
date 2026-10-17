@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 object Overlays {
     var player by mutableStateOf(false)
     var lyrics by mutableStateOf(false)
+    /** Panel lateral del perfil (al tocar tu foto). */
+    var drawer by mutableStateOf(false)
     /** Enlace (de Spotify) que llegó de otra app con «Compartir», pendiente de abrir. */
     var pendingLink by mutableStateOf<String?>(null)
 
@@ -21,6 +23,7 @@ object Overlays {
     fun back(): Boolean = when {
         lyrics -> { lyrics = false; true }
         player -> { player = false; true }
+        drawer -> { drawer = false; true }
         else -> false
     }
 }
