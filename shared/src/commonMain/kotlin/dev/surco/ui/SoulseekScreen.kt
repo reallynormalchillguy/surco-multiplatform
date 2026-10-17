@@ -92,6 +92,11 @@ private data class FolderGroup(
     /** Carpeta superior, salvo la raíz compartida («@@music»), que no aporta nada. */
     val parent get() = folder.substringBeforeLast('\\', "").substringAfterLast('\\').takeUnless { it.startsWith("@@") }.orEmpty()
     val lossless get() = audio.isNotEmpty() && audio.all { it.lossless }
+    /**
+     * Calidad de una carpeta de MP3: el bitrate de su peor canción (una carpeta vale lo que su archivo más flojo).
+     * Sin bitrate conocido, al final.
+     */
+    val mp3Quality: Int get() = audio.map { it.bitrate }.let { b -> if (b.isEmpty() || b.any { it <= 0 }) 0 else b.min() }
 }
 
 /** Filtro de formato. Se aplica a cada archivo: de una carpeta mixta sólo se ve (y se baja) lo que encaja. */
@@ -121,9 +126,17 @@ private fun group(results: List<UserResult>, format: Format): List<FolderGroup> 
     }
         .filter { it.audio.isNotEmpty() }
         .sortedWith(
-            compareByDescending<FolderGroup> { it.slotFree }
-                .thenByDescending { it.audio.size >= 3 }
-                .thenByDescending { it.speed }
+            if (format == Format.MP3) {
+                // MP3: primero la mejor calidad (320 → 256 → V0 → …); a igual calidad, como siempre.
+                compareByDescending<FolderGroup> { it.mp3Quality }
+                    .thenByDescending { it.slotFree }
+                    .thenByDescending { it.audio.size >= 3 }
+                    .thenByDescending { it.speed }
+            } else {
+                compareByDescending<FolderGroup> { it.slotFree }
+                    .thenByDescending { it.audio.size >= 3 }
+                    .thenByDescending { it.speed }
+            }
         )
 
 private fun qualityOf(files: List<SlskFile>): String {

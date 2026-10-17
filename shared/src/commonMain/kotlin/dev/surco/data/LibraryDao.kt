@@ -93,6 +93,9 @@ interface LibraryDao {
     @Query("SELECT DISTINCT groupArtist FROM tracks WHERE groupArtist NOT IN (SELECT name FROM artist_images)")
     suspend fun artistsWithoutImageCheck(): List<String>
 
+    @Query("SELECT DISTINCT groupArtist FROM tracks")
+    suspend fun artistNames(): List<String>
+
     @Upsert
     suspend fun upsertArtistImage(img: ArtistImage)
 

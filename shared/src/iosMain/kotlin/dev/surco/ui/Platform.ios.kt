@@ -122,3 +122,23 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
 }.getOrNull()
 
 actual fun folderLabel(root: String): String = runCatching { IosLibrary.label(root) }.getOrDefault(root)
+
+@Composable
+actual fun rememberSharer(): Sharer = remember {
+    object : Sharer {
+        override fun shareText(text: String, title: String) = presentShareSheet(listOf(text))
+
+        override fun shareFile(track: dev.surco.data.Track) {
+            val url = NSURL.URLWithString(track.uri) ?: return
+            presentShareSheet(listOf(url))
+        }
+    }
+}
+
+/** Hoja de compartir de iOS (AirDrop, Mensajes, WhatsApp, Guardar en Archivos…). */
+private fun presentShareSheet(items: List<Any>) {
+    val top = topViewController() ?: return
+    val vc = platform.UIKit.UIActivityViewController(activityItems = items, applicationActivities = null)
+    vc.popoverPresentationController?.sourceView = top.view
+    top.presentViewController(vc, animated = true, completion = null)
+}

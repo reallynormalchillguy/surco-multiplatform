@@ -40,7 +40,11 @@ private fun appVersion(): String = bundleString("CFBundleShortVersionString").if
 /** Estado global de la app de iOS (Swift lo usa como `IosApp.shared`). */
 object IosApp {
     val versionName: String get() = appVersion()
-    val container: IosContainer by lazy { IosContainer() }
+    val container: IosContainer by lazy {
+        // Negro puro automático en pantallas OLED (antes de crear los ajustes, que aplican la paleta).
+        dev.surco.data.Prefs.deviceOled = IosDevice.isOled()
+        IosContainer()
+    }
     internal var openPlayerSignal by mutableIntStateOf(0)
 
     private var started = false

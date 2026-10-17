@@ -136,7 +136,15 @@ fun SearchScreen() {
             }
         }
 
-        if (query.isBlank()) SearchHome() else SearchResultsList(query, results)
+        // Un enlace de Spotify pegado en el buscador abre ese álbum o esa canción.
+        val link = remember(query) { dev.surco.net.SpotifyPage.findLink(query) }
+        LaunchedEffect(link) {
+            if (link != null) {
+                query = ""
+                actions.openLink(link)
+            }
+        }
+        if (query.isBlank() || link != null) SearchHome() else SearchResultsList(query, results)
     }
 }
 

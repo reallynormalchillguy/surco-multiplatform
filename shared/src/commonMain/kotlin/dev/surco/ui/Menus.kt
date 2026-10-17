@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,6 +96,7 @@ fun TrackMenuSheet(track: Track, playlistId: Long?, onDismiss: () -> Unit, onNav
             }
             MenuItem(Icons.Filled.Album, S.goToAlbum) { onDismiss(); onNavigate(); actions.openAlbum(track.albumKey) }
             MenuItem(Icons.Filled.Person, S.goToArtist) { onDismiss(); onNavigate(); actions.openArtist(track.groupArtist) }
+            MenuItem(Icons.Filled.Share, S.share) { onDismiss(); actions.share(track) }
             MenuItem(Icons.Filled.Edit, S.editTags) { onDismiss(); onNavigate(); actions.editTrack(track.uri) }
         }
     }

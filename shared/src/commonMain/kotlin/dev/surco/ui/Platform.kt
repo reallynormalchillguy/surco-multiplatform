@@ -31,3 +31,13 @@ expect suspend fun extractArtColor(context: PlatformContext, path: String): Colo
 
 /** Nombre legible de la carpeta elegida, para mostrarlo en Ajustes. */
 expect fun folderLabel(root: String): String
+
+/** Compartir con otras apps (hoja del sistema). */
+interface Sharer {
+    fun shareText(text: String, title: String)
+    /** Comparte el archivo de audio tal cual (MP3, FLAC…). */
+    fun shareFile(track: dev.surco.data.Track)
+}
+
+@Composable
+expect fun rememberSharer(): Sharer

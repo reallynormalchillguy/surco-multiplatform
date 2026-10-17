@@ -24,6 +24,7 @@ class SurcoApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         CrashReporter.install(this)
+        dev.surco.data.Prefs.deviceOled = OledDetector.isOled(this)
         container = AppContainer(this)
     }
 

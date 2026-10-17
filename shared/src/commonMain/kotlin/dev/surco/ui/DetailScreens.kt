@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Pause
@@ -50,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -323,8 +325,12 @@ fun ArtistScreen(name: String) {
             TextButton(onClick = { actions.play(tracks, 0, source) }) {
                 Text(S.playAll(tracks.size), color = SurcoColors.TextPrimary)
             }
+            IconButton(onClick = { actions.openSoulseek(name) }, modifier = Modifier.testTag("artist_soulseek")) {
+                Icon(Icons.Filled.CloudDownload, S.searchArtistOnSoulseek, tint = SurcoColors.TextSecondary)
+            }
         },
         footer = {
+            item(key = "bio") { ArtistBioSection(name) }
             if (albums.isNotEmpty()) {
                 item { SectionTitle(S.discography) }
                 item {
@@ -467,6 +473,51 @@ fun RecentScreen() {
             Text(S.nothingPlayedYet, color = SurcoColors.TextSecondary, modifier = Modifier.padding(16.dp))
         } else {
             AlbumsGrid(list)
+        }
+    }
+}
+
+
+// ================================================================ Biografía del artista
+
+/** «Acerca de»: biografía de Wikipedia (o Last.fm), plegada a unas líneas; se despliega al tocarla. */
+@Composable
+private fun ArtistBioSection(name: String) {
+    val actions = LocalActions.current
+    val bios = actions.container.bios
+    val version by bios.version.collectAsState()
+    val lang = dev.surco.i18n.I18n.lang
+    val bio by produceState(bios.cached(name)?.takeIf { it.text.isNotBlank() }, name, version, lang) {
+        value = bios.cached(name)?.takeIf { it.text.isNotBlank() } ?: runCatching { bios.get(name) }.getOrNull()
+    }
+    val b = bio ?: return
+    var expanded by remember(name) { mutableStateOf(false) }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("artist_bio")) {
+        Text(S.aboutArtist, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 10.dp))
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(SurcoColors.Surface)
+                .clickable { expanded = !expanded }.padding(16.dp),
+        ) {
+            Text(
+                b.text,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = if (expanded) Int.MAX_VALUE else 6,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (expanded) S.showLess else S.showMore,
+                    style = MaterialTheme.typography.labelLarge, color = SurcoColors.TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    S.bioSource(b.source, b.lang),
+                    style = MaterialTheme.typography.labelSmall, color = SurcoColors.TextTertiary,
+                    modifier = Modifier.clickable(enabled = b.url != null) { b.url?.let { runCatching { uri.openUri(it) } } },
+                )
+            }
         }
     }
 }

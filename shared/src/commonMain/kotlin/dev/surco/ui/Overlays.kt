@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 object Overlays {
     var player by mutableStateOf(false)
     var lyrics by mutableStateOf(false)
+    /** Enlace (de Spotify) que llegó de otra app con «Compartir», pendiente de abrir. */
+    var pendingLink by mutableStateOf<String?>(null)
 
     /** Cierra la capa superior. Devuelve true si había alguna abierta. */
     fun back(): Boolean = when {

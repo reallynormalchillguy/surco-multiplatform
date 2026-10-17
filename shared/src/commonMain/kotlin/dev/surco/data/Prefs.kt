@@ -39,6 +39,8 @@ data class Settings(
     val autoScan: Boolean = true,
     /** Paleta de colores de la interfaz ("" = la original). Ver [dev.surco.ui.theme.Palette.encode]. */
     val palette: String = "",
+    /** Negro puro para pantallas OLED: "" = automático (según la pantalla), "on" o "off". */
+    val oled: String = "",
 ) {
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
     val lastfmLoggedIn get() = lastfmReady && lastfmSession.isNotBlank()
@@ -85,6 +87,7 @@ class Prefs(
         discover = store.bool("discover", true),
         autoScan = store.bool("autoScan", true),
         palette = str("palette", ""),
+        oled = str("oled", ""),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -103,6 +106,7 @@ class Prefs(
                 "slskFormat" to s.slskFormat,
                 "language" to s.language,
                 "palette" to s.palette,
+                "oled" to s.oled,
             ),
             bools = mapOf(
                 "embedCovers" to s.embedCovers,
@@ -120,8 +124,18 @@ class Prefs(
 
     private fun applyLanguage(s: Settings) {
         I18n.lang = if (s.language == "es") Lang.ES else Lang.EN
-        val p = Palette.decode(s.palette)
+        val p = effectivePalette(Palette.decode(s.palette), s)
         if (SurcoColors.palette != p) SurcoColors.palette = p
+    }
+
+    companion object {
+        /** La pantalla del móvil parece OLED (lo detecta la plataforma al arrancar). */
+        @Volatile var deviceOled = false
+
+        fun oledActive(s: Settings) = when (s.oled) { "on" -> true; "off" -> false; else -> deviceOled }
+
+        /** La paleta tal como se ve: con negro puro si el modo OLED está activo. */
+        fun effectivePalette(base: Palette, s: Settings) = if (oledActive(s)) base.oled() else base
     }
 
     init {

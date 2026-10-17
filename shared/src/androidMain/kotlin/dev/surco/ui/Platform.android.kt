@@ -98,3 +98,38 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
 }
 
 actual fun folderLabel(root: String): String = Uri.decode(root.substringAfterLast("/"))
+
+@Composable
+actual fun rememberSharer(): Sharer {
+    val context = LocalContext.current
+    return remember(context) {
+        object : Sharer {
+            override fun shareText(text: String, title: String) {
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, text)
+                    putExtra(Intent.EXTRA_TITLE, title)
+                }
+                runCatching { context.startActivity(Intent.createChooser(send, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }
+
+            override fun shareFile(track: dev.surco.data.Track) {
+                val uri = Uri.parse(track.uri)
+                // El permiso de la carpeta es de Surco: se presta sólo para leer este archivo a la app elegida.
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = track.mime.ifBlank { "audio/*" }
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_TITLE, track.fileName)
+                    clipData = android.content.ClipData.newRawUri(track.fileName, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                runCatching {
+                    context.startActivity(
+                        Intent.createChooser(send, track.fileName)
+                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+            }
+        }
+    }
+}

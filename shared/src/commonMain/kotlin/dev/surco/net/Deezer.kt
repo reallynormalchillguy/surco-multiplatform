@@ -42,6 +42,27 @@ class Deezer(private val http: HttpClient) {
         return list.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: list.firstOrNull()
     }
 
+    /** Álbum que mejor casa con «artista + título» (para abrir enlaces de otras plataformas). */
+    suspend fun findAlbum(artist: String, title: String): Album? {
+        val q = if (artist.isNotBlank()) "artist:\"$artist\" album:\"$title\"" else title
+        var data = get("$BASE/search/album?q=${enc(q)}&limit=10")?.arr("data")
+        if (data == null || data.isEmpty()) data = get("$BASE/search/album?q=${enc("$artist $title".trim())}&limit=10")?.arr("data") ?: return null
+        return data.objects().map { album(it, "") }
+            .maxByOrNull { dev.surco.data.AlbumMatcher.similarity(it.title, title) * 2 + dev.surco.data.AlbumMatcher.similarity(it.artist, artist) }
+    }
+
+    /** Canción que mejor casa con «artista + título»: devuelve (id del álbum, título, álbum). */
+    suspend fun findTrack(artist: String, title: String): Triple<Long, String, String>? {
+        val q = if (artist.isNotBlank()) "artist:\"$artist\" track:\"$title\"" else title
+        val data = get("$BASE/search/track?q=${enc(q)}&limit=10")?.arr("data") ?: return null
+        val best = data.objects().maxByOrNull {
+            dev.surco.data.AlbumMatcher.similarity(it.str("title"), title) * 2 +
+                dev.surco.data.AlbumMatcher.similarity(it.obj("artist")?.str("name").orEmpty(), artist)
+        } ?: return null
+        val album = best.obj("album") ?: return null
+        return Triple(album.long("id"), best.str("title"), album.str("title"))
+    }
+
     /** Artistas que coinciden con una búsqueda, del más popular al menos. */
     suspend fun searchArtists(query: String, limit: Int = 8): List<Artist> {
         val data = get("$BASE/search/artist?q=${enc(query)}&limit=$limit")?.arr("data") ?: return emptyList()

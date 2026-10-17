@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -115,6 +116,7 @@ fun AlbumMenuSheet(albumKey: String, onDismiss: () -> Unit) {
             SheetItem(Icons.Filled.AutoAwesome, S.fillFromInternet, "album_fill_info") { onDismiss(); actions.albumInfo(albumKey) }
             SheetItem(Icons.Filled.ImageSearch, S.findCover) { onDismiss(); actions.searchCovers(albumKey) }
             a?.let { al ->
+                SheetItem(Icons.Filled.Share, S.share, "album_share") { onDismiss(); actions.shareAlbum(al) }
                 SheetItem(Icons.Filled.Person, S.goToArtist) { onDismiss(); actions.openArtist(al.artist) }
             }
             HorizontalDivider(color = SurcoColors.SurfaceHigh, modifier = Modifier.padding(vertical = 6.dp))

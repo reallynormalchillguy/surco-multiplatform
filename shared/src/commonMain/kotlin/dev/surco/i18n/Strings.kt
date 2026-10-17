@@ -551,4 +551,45 @@ object S {
         "Add new songs and folders to the library as soon as they appear in your music folder",
         "Añade a la biblioteca las canciones y carpetas nuevas en cuanto aparecen en tu carpeta de música",
     )
+
+    // ------------------------------------------------------------------ Enlaces de Spotify y compartir
+    val spotifyLink get() = t("Spotify link", "Enlace de Spotify")
+    val readingLink get() = t("Reading the link…", "Leyendo el enlace…")
+    val couldNotReadLink get() = t(
+        "Couldn't read that link. Check your connection, or that it's an album, song or artist link.",
+        "No se pudo leer el enlace. Comprueba la conexión, o que sea de un álbum, una canción o un artista.",
+    )
+    fun linkKind(kind: String) = when (kind) {
+        "ALBUM" -> t("Album", "Álbum")
+        "TRACK" -> t("Song", "Canción")
+        else -> t("Artist", "Artista")
+    }
+    fun fromAlbum(album: String) = t("from “$album”", "de «$album»")
+    val seeAlbumDetails get() = t("See the album", "Ver el álbum")
+    val share get() = t("Share", "Compartir")
+    val shareSpotifyLink get() = t("Spotify link", "Enlace de Spotify")
+    fun shareAudioFile(ext: String) = t("Audio file${if (ext.isNotBlank()) " ($ext)" else ""}", "Archivo de audio${if (ext.isNotBlank()) " ($ext)" else ""}")
+    val findingSpotifyLink get() = t("Looking for the Spotify link…", "Buscando el enlace de Spotify…")
+    val sharedSpotifySearch get() = t(
+        "No exact Spotify link was found, so a Spotify search was shared instead",
+        "No se encontró el enlace exacto: se compartió una búsqueda de Spotify",
+    )
+
+    // ------------------------------------------------------------------ Biografía
+    val aboutArtist get() = t("About", "Acerca de")
+    val showMore get() = t("Show more", "Ver más")
+    val showLess get() = t("Show less", "Ver menos")
+    fun bioSource(source: String, lang: String) =
+        source + (if (lang == "en" && I18n.lang == Lang.ES) " · en inglés" else "") + if (source == "Wikipedia") " · CC BY-SA" else ""
+
+    // ------------------------------------------------------------------ OLED
+    val oledBlack get() = t("Pure black (OLED)", "Negro puro (OLED)")
+    val oledDetected get() = t(
+        "Your screen looks like OLED: a black background turns pixels off, saving battery",
+        "Tu pantalla parece OLED: el fondo negro apaga los píxeles y ahorra batería",
+    )
+    val oledNotDetected get() = t(
+        "Your screen doesn't seem to be OLED, but you can turn it on anyway",
+        "Tu pantalla no parece OLED, pero puedes activarlo igualmente",
+    )
 }

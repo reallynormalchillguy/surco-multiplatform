@@ -42,6 +42,17 @@ data class Palette(
         Role.TEXT -> text
     }
 
+    /**
+     * Versión para pantallas OLED: fondo negro puro (los píxeles se apagan: ahorra batería y el contraste es
+     * máximo) y tarjetas casi negras con el mismo matiz. Una paleta clara se deja como está.
+     */
+    fun oled(): Palette {
+        if (isLight) return this
+        val (h, s, _) = toHsv(surface)
+        val card = hsv(h, s, minOf(toHsv(surface).third, 0.075f))
+        return of(accent, Color.Black, card, text)
+    }
+
     /** "rrggbb,rrggbb,rrggbb,rrggbb" (acento, fondo, superficie, texto). */
     fun encode(): String = base.joinToString(",") { hex(it) }
 

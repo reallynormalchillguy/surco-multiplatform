@@ -41,6 +41,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -55,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.surco.i18n.S
+import dev.surco.data.Prefs
 import dev.surco.ui.theme.Palette
 import dev.surco.ui.theme.SurcoColors
 
@@ -74,19 +76,25 @@ private fun roleName(r: Palette.Role) = when (r) {
 fun PaletteScreen() {
     val actions = LocalActions.current
     val prefs = actions.repo.prefs
-    val palette = SurcoColors.palette
+    val settings by prefs.settings.collectAsState()
+    /** Mientras se arrastra un control, la paleta aún sin guardar. */
+    var draft by remember { mutableStateOf<Palette?>(null) }
+    /** La paleta que se edita (la elegida por el usuario, sin el negro del modo OLED). */
+    val palette = draft ?: Palette.decode(settings.palette)
+    /** La que se ve en la maqueta: con negro puro si el modo OLED está activo. */
+    val shown = Prefs.effectivePalette(palette, settings)
     val history = remember { mutableStateListOf<Palette>() }
     var editing by remember { mutableStateOf<Palette.Role?>(Palette.Role.ACCENT) }
     /** Cambia cuando la paleta entera cambia desde fuera del editor (sortear, deshacer…): reinicia los controles. */
     var generation by remember { mutableIntStateOf(0) }
 
     /** Aplica sin guardar (mientras se arrastra un control). */
-    fun preview(p: Palette) { SurcoColors.palette = p }
+    fun preview(p: Palette) { draft = p; SurcoColors.palette = Prefs.effectivePalette(p, prefs.current) }
     /** Aplica y guarda. */
     fun commit(p: Palette, remember: Boolean = true) {
         val before = Palette.decode(prefs.current.palette)
         if (remember && before != p) { history.add(before); if (history.size > 20) history.removeAt(0) }
-        SurcoColors.palette = p
+        draft = null
         prefs.update { it.copy(palette = if (p == Palette.Default) "" else p.encode()) }
     }
     fun replaceAll(p: Palette, remember: Boolean = true) { commit(p, remember); generation++ }
@@ -99,7 +107,9 @@ fun PaletteScreen() {
             Text(S.colorPalette, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         }
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-            PalettePreview(palette)
+            PalettePreview(shown)
+            // Negro puro (OLED): el fondo se queda en negro sea cual sea la paleta.
+            OledRow(settings) { on -> prefs.update { it.copy(oled = if (on) "on" else "off") } }
             Spacer(Modifier.height(16.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -150,7 +160,7 @@ fun PaletteScreen() {
                 )
             }
 
-            ContrastWarnings(palette)
+            ContrastWarnings(shown)
             Spacer(Modifier.height(48.dp))
             Spacer(Modifier.navigationBarsPadding())
         }
@@ -300,5 +310,27 @@ private fun ContrastWarnings(p: Palette) {
             Spacer(Modifier.width(8.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = SurcoColors.Error)
         }
+    }
+}
+
+@Composable
+fun OledRow(settings: dev.surco.data.Settings, onChange: (Boolean) -> Unit) {
+    val on = Prefs.oledActive(settings)
+    Row(
+        Modifier.fillMaxWidth().clickable { onChange(!on) }.padding(top = 14.dp).testTag("oled_switch"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(S.oledBlack, style = MaterialTheme.typography.titleSmall)
+            Text(
+                if (Prefs.deviceOled) S.oledDetected else S.oledNotDetected,
+                style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        androidx.compose.material3.Switch(
+            checked = on, onCheckedChange = onChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = SurcoColors.Accent),
+        )
     }
 }

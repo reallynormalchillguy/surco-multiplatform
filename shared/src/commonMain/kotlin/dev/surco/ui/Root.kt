@@ -87,6 +87,7 @@ class AppActions(
     private val onOpenPlayer: () -> Unit,
     private val onAlbumMenu: (String) -> Unit = {},
     private val onArtistPicture: (String) -> Unit = {},
+    private val onShare: (Track?, dev.surco.data.AlbumRow?) -> Unit = { _, _ -> },
 ) {
     val repo get() = container.repository
     val player get() = container.player
@@ -152,6 +153,10 @@ class AppActions(
     fun artistPicture(name: String) = onArtistPicture(name)
     fun albumInfo(key: String) = go("album_info/${encodeArg(key)}")
     fun openPalette() = go("palette")
+    /** Abre un enlace de Spotify (pegado o compartido con Surco). */
+    fun openLink(url: String) = go("spotify?u=${encodeArg(url)}")
+    fun share(track: Track) = onShare(track, null)
+    fun shareAlbum(album: dev.surco.data.AlbumRow) = onShare(null, album)
 
     fun toggleLike(uri: String, liked: Boolean) {
         scope.launch { repo.setLiked(uri, !liked) }
@@ -190,6 +195,7 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
     var playlistPickFor by remember { mutableStateOf<List<Track>?>(null) }
     var albumMenuFor by remember { mutableStateOf<String?>(null) }
     var artistPictureFor by remember { mutableStateOf<String?>(null) }
+    var shareFor by remember { mutableStateOf<Pair<Track?, dev.surco.data.AlbumRow?>?>(null) }
 
     val playerState by container.player.state.collectAsState()
     val likedList by remember { container.db.dao().likedUris() }.collectAsState(initial = emptyList())
@@ -213,7 +219,17 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
             onOpenPlayer = { showPlayer = true },
             onAlbumMenu = { albumMenuFor = it },
             onArtistPicture = { artistPictureFor = it },
+            onShare = { t, a -> shareFor = t to a },
         )
+    }
+    // Enlace compartido desde otra app (p. ej. un álbum de Spotify que te mandaron por WhatsApp).
+    val pending = Overlays.pendingLink
+    LaunchedEffect(pending) {
+        if (pending != null) {
+            Overlays.pendingLink = null
+            showPlayer = false
+            actions.openLink(pending)
+        }
     }
 
     // Ruta inicial opcional (capturas automáticas de iOS).
@@ -312,6 +328,9 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
                         AlbumInfoScreen(it.stringArg("key"))
                     }
                     composable("palette") { PaletteScreen() }
+                    composable("spotify?u={u}", listOf(navArgument("u") { type = NavType.StringType; defaultValue = "" })) {
+                        SpotifyLinkScreen(it.stringArg("u"))
+                    }
                 }
             }
 
@@ -335,6 +354,9 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
         }
         artistPictureFor?.let { name ->
             ArtistPictureSheet(name, onDismiss = { artistPictureFor = null })
+        }
+        shareFor?.let { (t, a) ->
+            ShareSheet(t, a, onDismiss = { shareFor = null })
         }
     }
 }

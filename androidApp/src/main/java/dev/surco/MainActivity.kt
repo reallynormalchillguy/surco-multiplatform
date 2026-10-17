@@ -75,6 +75,16 @@ class MainActivity : ComponentActivity() {
             openPlayerSignal.intValue += 1
             intent.removeExtra(EXTRA_OPEN_PLAYER)
         }
+        // Enlace de Spotify compartido con Surco («Compartir → Surco») o abierto con «Abrir con…».
+        val text = when (intent?.action) {
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_VIEW -> intent.dataString
+            else -> null
+        }
+        text?.let { dev.surco.net.SpotifyPage.findLink(it) }?.let { link ->
+            dev.surco.ui.Overlays.pendingLink = link
+            intent?.action = null
+        }
     }
 
     override fun onStart() {

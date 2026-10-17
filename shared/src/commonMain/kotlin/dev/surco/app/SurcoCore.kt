@@ -75,12 +75,18 @@ abstract class SurcoCore(parts: PlatformParts) {
     val discovery = Discovery(parts.files, db.dao(), deezer, appScope)
     val metadata = MetadataSearch(api)
     val autoScan = AutoScan(prefs, repository, appScope)
+    val spotify = dev.surco.net.SpotifyLinks(api)
+    val bios = dev.surco.data.ArtistBios(parts.files, dev.surco.net.BioSource(api, prefs), prefs, db.dao(), appScope)
 
     /**
      * Arranque común, una vez creado el reproductor de la plataforma: precarga la letra de cada canción
      * que empieza a sonar, para que al abrir el reproductor ya esté lista.
      */
     fun startBackgroundWork() {
+        // Biografías de los artistas nuevos tras cada escaneo (y la primera vez, de toda la biblioteca).
+        appScope.launch {
+            scanner.state.collect { if (it is dev.surco.data.ScanState.Done) bios.fetchMissing() }
+        }
         appScope.launch {
             player.state.map { it.mediaId }.distinctUntilChanged().filterNotNull().collect { id ->
                 db.dao().track(id)?.let(lyrics::prefetch)
