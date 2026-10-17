@@ -39,10 +39,8 @@ data class Settings(
     val autoScan: Boolean = true,
     /** Paleta de colores de la interfaz ("" = la original). Ver [dev.surco.ui.theme.Palette.encode]. */
     val palette: String = "",
-    /** Negro puro para pantallas OLED: "" = automático (según la pantalla), "on" o "off". */
+    /** Negro puro para pantallas OLED: "on" si lo activas; "" u "off", apagado. */
     val oled: String = "",
-    /** Tema con imagen: "" (ninguno) o "floral". */
-    val theme: String = "",
     /** Clave propia de la API de Spotify (opcional): sólo para dar enlaces exactos al compartir. */
     val spotifyId: String = "",
     val spotifySecret: String = "",
@@ -94,7 +92,6 @@ class Prefs(
         autoScan = store.bool("autoScan", true),
         palette = str("palette", ""),
         oled = str("oled", ""),
-        theme = str("theme", ""),
         spotifyId = str("spotifyId", ""),
         spotifySecret = str("spotifySecret", ""),
     )
@@ -116,7 +113,6 @@ class Prefs(
                 "language" to s.language,
                 "palette" to s.palette,
                 "oled" to s.oled,
-                "theme" to s.theme,
                 "spotifyId" to s.spotifyId,
                 "spotifySecret" to s.spotifySecret,
             ),
@@ -138,22 +134,16 @@ class Prefs(
         I18n.lang = if (s.language == "es") Lang.ES else Lang.EN
         val p = effectivePalette(Palette.decode(s.palette), s)
         if (SurcoColors.palette != p) SurcoColors.palette = p
-        val backdrop = s.theme.takeIf { it == "floral" }
-        if (SurcoColors.backdrop != backdrop) SurcoColors.backdrop = backdrop
     }
 
     companion object {
         /** La pantalla del móvil parece OLED (lo detecta la plataforma al arrancar). */
         var deviceOled = false
 
-        fun oledActive(s: Settings) = when (s.oled) { "on" -> true; "off" -> false; else -> deviceOled }
+        fun oledActive(s: Settings) = s.oled == "on" // sólo si lo activas tú (la detección sólo lo sugiere)
 
         /** La paleta tal como se ve: con negro puro si el modo OLED está activo. */
-        fun effectivePalette(base: Palette, s: Settings) = when {
-            s.theme == "floral" -> Palette.Floral
-            oledActive(s) -> base.oled()
-            else -> base
-        }
+        fun effectivePalette(base: Palette, s: Settings) = if (oledActive(s)) base.oled() else base
     }
 
     init {

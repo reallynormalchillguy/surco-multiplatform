@@ -3,7 +3,6 @@ package dev.surco.ui
 import dev.surco.i18n.S
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -144,20 +143,6 @@ fun SettingsScreen() {
             // ================= Apariencia
             Header(S.appearance)
             Card {
-                Text(S.theme, style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ThemeChoice(S.themeOwnColors, settings.theme != "floral", "theme_own") {
-                        val p = dev.surco.data.Prefs.effectivePalette(dev.surco.ui.theme.Palette.decode(settings.palette), settings.copy(theme = ""))
-                        Box(Modifier.fillMaxSize().background(p.background)) {
-                            Box(Modifier.align(Alignment.Center).size(26.dp).clip(CircleShape).background(p.accent))
-                        }
-                    }
-                    ThemeChoice(S.themeFloral, settings.theme == "floral", "theme_floral") {
-                        FloralThumbnail(Modifier.fillMaxSize())
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
                 Row(
                     Modifier.fillMaxWidth().clickable { actions.openPalette() }.testTag("open_palette"),
                     verticalAlignment = Alignment.CenterVertically,
@@ -178,7 +163,7 @@ fun SettingsScreen() {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccentButton(S.shufflePalette) {
                         val p = dev.surco.ui.theme.Palette.random()
-                        repo.prefs.update { it.copy(palette = p.encode(), theme = "") }
+                        repo.prefs.update { it.copy(palette = p.encode()) }
                     }
                     OutlinedButton(onClick = { actions.openPalette() }) { Text(S.customize) }
                 }
@@ -238,7 +223,7 @@ fun SettingsScreen() {
                 if (settings.scrobbleMode == ScrobbleMode.BUILTIN) {
                     Spacer(Modifier.height(12.dp))
                     when {
-                        !settings.lastfmReady -> ApiKeysForm(onOpenLink = {
+                        !settings.lastfmReady -> LastFmKeysForm(onOpenLink = {
                             runCatching { uriHandler.openUri("https://www.last.fm/api/account/create") }
                         })
                         settings.lastfmLoggedIn -> {
@@ -264,7 +249,7 @@ fun SettingsScreen() {
                                 if (pending > 0) AccentButton(S.sendNow) { repo.flushScrobblesAsync() }
                             }
                         }
-                        else -> LoginForm()
+                        else -> LastFmLoginForm()
                     }
                 }
             }
@@ -453,7 +438,7 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 @Composable
-private fun ApiKeysForm(onOpenLink: () -> Unit) {
+internal fun LastFmKeysForm(onOpenLink: () -> Unit) {
     val repo = LocalActions.current.repo
     var key by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
@@ -476,7 +461,7 @@ private fun ApiKeysForm(onOpenLink: () -> Unit) {
 }
 
 @Composable
-private fun LoginForm() {
+internal fun LastFmLoginForm() {
     val actions = LocalActions.current
     val repo = actions.repo
     var user by remember { mutableStateOf("") }
@@ -561,24 +546,5 @@ fun OnboardingScreen(container: SurcoCore) {
             color = SurcoColors.TextTertiary,
             textAlign = TextAlign.Center,
         )
-    }
-}
-
-/** Tarjeta para elegir un tema: miniatura + nombre, con borde de acento si está elegido. */
-@Composable
-private fun ThemeChoice(label: String, selected: Boolean, tag: String, onClickPreview: @Composable () -> Unit) {
-    val repo = LocalActions.current.repo
-    Column(
-        Modifier.width(96.dp).clickable {
-            repo.prefs.update { it.copy(theme = if (tag == "theme_floral") "floral" else "") }
-        }.testTag(tag),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            Modifier.size(width = 96.dp, height = 136.dp).clip(RoundedCornerShape(10.dp))
-                .border(if (selected) 3.dp else 1.dp, if (selected) SurcoColors.Accent else SurcoColors.SurfaceHigher, RoundedCornerShape(10.dp)),
-        ) { onClickPreview() }
-        Spacer(Modifier.height(6.dp))
-        Text(label, style = MaterialTheme.typography.labelLarge, color = if (selected) SurcoColors.Accent else SurcoColors.TextSecondary)
     }
 }

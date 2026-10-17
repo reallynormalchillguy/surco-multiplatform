@@ -78,6 +78,14 @@ abstract class SurcoCore(parts: PlatformParts) {
     val spotify = dev.surco.net.SpotifyLinks(api, prefs, deezer)
     /** Temporizador para dormir: lo programa la interfaz y lo ejecuta el reproductor de cada plataforma. */
     val sleepTimer = dev.surco.playback.SleepTimer()
+    /** Fotos de artista de varias fuentes (para elegir una). */
+    val artistPhotos = dev.surco.net.ArtistPhotos(api)
+    /** Estadísticas de Last.fm (pestaña «Estadísticas»). */
+    val stats = dev.surco.data.StatsRepository(
+        dev.surco.net.LastFmStats(api, prefs), deezer, db.dao(), prefs, appScope,
+        offset = { sec -> dev.surco.util.utcOffsetSeconds(sec) },
+        now = { dev.surco.util.nowMillis() },
+    )
     val bios = dev.surco.data.ArtistBios(parts.files, dev.surco.net.BioSource(api, prefs), prefs, db.dao(), appScope)
 
     /**
@@ -97,5 +105,7 @@ abstract class SurcoCore(parts: PlatformParts) {
     }
 
     abstract val player: PlayerController
+    /** Escuchas previas de 30 s de canciones que no tienes (recomendaciones y artistas de internet). */
+    abstract val preview: dev.surco.playback.PreviewPlayer
     abstract val soulseek: SoulseekService
 }

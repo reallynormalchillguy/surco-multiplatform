@@ -7,6 +7,9 @@ import kotlin.math.roundToLong
 /** Hora actual en milisegundos UNIX. */
 expect fun nowMillis(): Long
 
+/** Diferencia con UTC (segundos) de la zona horaria del móvil en ese instante (segundos desde 1970). */
+expect fun utcOffsetSeconds(epochSec: Long): Int
+
 /** Hilo(s) para E/S bloqueante (archivos, etiquetas…). */
 expect val IoDispatcher: CoroutineDispatcher
 

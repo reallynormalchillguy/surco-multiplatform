@@ -25,14 +25,6 @@ import dev.surco.ui.figtreeFamily
  */
 object SurcoColors {
     var palette by mutableStateOf(Palette.Default)
-    /** Tema con imagen de fondo (p. ej. «Floral vino»): las pantallas dejan ver el dibujo detrás. */
-    var backdrop by mutableStateOf<String?>(null)
-
-    /** Fondo de pantalla: transparente si hay imagen de tema (se ve el dibujo), si no el color de fondo. */
-    val Behind: Color get() = if (backdrop != null) Color.Transparent else palette.background
-
-    /** Final de un degradado de cabecera: el fondo, o la misma tinta transparente si hay imagen de tema. */
-    fun fadeTo(c: Color): Color = if (backdrop != null) c.copy(alpha = 0f) else palette.background
 
     val Background: Color get() = palette.background
     val Surface: Color get() = palette.surface

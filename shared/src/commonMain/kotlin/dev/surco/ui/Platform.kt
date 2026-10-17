@@ -26,10 +26,6 @@ expect fun rememberImagePicker(onPicked: (ByteArray?) -> Unit): () -> Unit
 @Composable
 expect fun figtreeFamily(): FontFamily
 
-/** Imagen del tema «Flores vino» (en Android desde sus recursos, en iOS desde los de Compose). */
-@Composable
-expect fun floralPainter(): androidx.compose.ui.graphics.painter.Painter
-
 /** Color dominante de una portada (archivo local o URL), o null si no se puede leer. */
 expect suspend fun extractArtColor(context: PlatformContext, path: String): Color?
 

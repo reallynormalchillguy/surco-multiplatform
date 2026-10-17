@@ -131,6 +131,7 @@ fun OnlineArtistRow(a: Deezer.Artist, local: ArtistRow?) {
 @Composable
 fun OnlineArtistScreen(id: Long) {
     val actions = LocalActions.current
+    PreviewLifecycle()
     var data by remember(id) { mutableStateOf(onlineArtistCache[id]) }
     var failed by remember(id) { mutableStateOf(false) }
     var local by remember(id) { mutableStateOf<ArtistRow?>(null) }
@@ -179,7 +180,7 @@ fun OnlineArtistScreen(id: Long) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.fadeTo(color))))
+                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
                     .statusBarsPadding(),
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
@@ -255,6 +256,7 @@ fun OnlineArtistScreen(id: Long) {
                         Text(t.album, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Text((t.durationSec * 1000L).formatDuration(), style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+                    PreviewButton(t.preview, Modifier.padding(start = 4.dp))
                 }
             }
             item {

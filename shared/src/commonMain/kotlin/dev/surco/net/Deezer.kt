@@ -13,7 +13,7 @@ class Deezer(private val http: HttpClient) {
     data class Artist(val id: Long, val name: String, val picture: String?, val fans: Int = 0, val albums: Int = 0)
 
     /** Canción popular de un artista. */
-    data class TopTrack(val title: String, val artist: String, val album: String, val albumId: Long, val cover: String?, val durationSec: Int)
+    data class TopTrack(val title: String, val artist: String, val album: String, val albumId: Long, val cover: String?, val durationSec: Int, val preview: String? = null)
 
     data class Album(
         val id: Long,
@@ -25,7 +25,7 @@ class Deezer(private val http: HttpClient) {
         val fans: Int,
     )
 
-    data class Song(val title: String, val artist: String, val durationSec: Int)
+    data class Song(val title: String, val artist: String, val durationSec: Int, val preview: String? = null)
 
     data class AlbumDetail(
         val album: Album,
@@ -95,6 +95,7 @@ class Deezer(private val http: HttpClient) {
                 albumId = al?.long("id") ?: 0L,
                 cover = al?.str("cover_big")?.takeIf { c -> c.isNotBlank() },
                 durationSec = t.int("duration"),
+                preview = t.str("preview").takeIf { p -> p.startsWith("http") },
             )
         }
     }
@@ -114,7 +115,7 @@ class Deezer(private val http: HttpClient) {
         val artistName = o.obj("artist")?.str("name").orEmpty()
         val genres = o.obj("genres")?.arr("data")?.objects()?.map { it.str("name") }.orEmpty()
         val tracks = o.obj("tracks")?.arr("data")?.objects()?.map { tr ->
-            Song(tr.str("title"), tr.obj("artist")?.str("name") ?: artistName, tr.int("duration"))
+            Song(tr.str("title"), tr.obj("artist")?.str("name") ?: artistName, tr.int("duration"), tr.str("preview").takeIf { p -> p.startsWith("http") })
         }.orEmpty()
         return AlbumDetail(
             album = album(o, artistName),

@@ -49,6 +49,7 @@ class AppContainer(app: Application) : SurcoCore(
     )
 ) {
     override val player = PlayerConnection(app)
+    override val preview = dev.surco.playback.ExoPreviewPlayer(app, player)
     override val soulseek = SoulseekManager(app, prefs, repository)
 
     init {

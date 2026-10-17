@@ -76,6 +76,7 @@ class RepositoryTest {
         )
     ) {
         override val player: PlayerController get() = error("sin reproductor")
+        override val preview: dev.surco.playback.PreviewPlayer get() = error("sin vista previa")
         override val soulseek: SoulseekService get() = error("sin soulseek")
     }
 

@@ -166,7 +166,7 @@ class ScreenshotTest {
         discoverDetailCache[1000L] = Deezer.AlbumDetail(
             album = Deezer.Album(1000L, "Glass Hours", "Aurora Static", fakeArt("rec0", 3), 2018, "album", 1000),
             genres = listOf("Synthpop", "Electronic"), label = "Satellite Records", durationSec = 2580,
-            tracks = songNames.take(10).map { Deezer.Song(it, "Aurora Static", 200 + it.length * 7) },
+            tracks = songNames.take(10).map { Deezer.Song(it, "Aurora Static", 200 + it.length * 7, preview = "https://cdn.example.com/$it.mp3") },
         )
         c
     }
@@ -219,7 +219,7 @@ class ScreenshotTest {
         onlineSearchCache["aurora"] = listOf(aurora, Deezer.Artist(7002L, "Aurora Fields", fakeArt("af", 8), fans = 8_400))
         onlineArtistCache[7000L] = OnlineArtist(
             aurora,
-            top = songNames.take(5).mapIndexed { i, n -> Deezer.TopTrack(n, "Aurora Static", listOf("Glass Hours", "Small Weather")[i % 2], 1000L, fakeArt("rec${i % 2}", 3 + i % 2), 190 + i * 17) },
+            top = songNames.take(5).mapIndexed { i, n -> Deezer.TopTrack(n, "Aurora Static", listOf("Glass Hours", "Small Weather")[i % 2], 1000L, fakeArt("rec${i % 2}", 3 + i % 2), 190 + i * 17, preview = "https://cdn.example.com/preview$i.mp3") },
             albums = listOf(
                 Deezer.Album(1000L, "Glass Hours", "Aurora Static", fakeArt("rec0", 3), 2018, "album", 900),
                 Deezer.Album(1001L, "Small Weather", "Aurora Static", fakeArt("rec1", 4), 2021, "album", 600),
@@ -326,17 +326,25 @@ class ScreenshotTest {
         snap("11d_inicio_con_paleta")
         c.prefs.update { it.copy(palette = "") }
 
-        // Tema floral (fondo vino con flores).
-        c.prefs.update { it.copy(theme = "floral") }
+
+        // Estadísticas: sin cuenta (invita a conectarla o crearla) y con datos de ejemplo.
+        compose.onNodeWithTag("tab_stats").performClick()
+        snap("15_estadisticas_conectar")
+        c.stats.debugSet(fakeStats(c))
+        c.prefs.update { it.copy(lastfmKey = "k", lastfmSecret = "s", lastfmSession = "x", lastfmUser = "surco_demo") }
+        settle()
+        snap("15b_estadisticas")
+        for ((tag, shot) in listOf(
+            "stats_clock" to "15c_estadisticas_reloj", "stats_week" to "15d_estadisticas_semana",
+            "stats_activity" to "15e_estadisticas_actividad", "stats_artists" to "15f_estadisticas_artistas",
+            "stats_tracks" to "15g_estadisticas_canciones", "stats_facts" to "15h_estadisticas_datos",
+        )) {
+            compose.onNodeWithTag("stats_list").performScrollToNode(hasTestTag(tag))
+            snap(shot)
+        }
+        c.prefs.update { it.copy(lastfmSession = "", lastfmUser = "") }
         compose.onNodeWithTag("tab_home").performClick()
-        snap("11e_tema_floral")
-        compose.onNodeWithTag("tab_library").performClick()
-        snap("11f_tema_floral_biblioteca")
-        compose.onAllNodesWithText("Raíz")[0].performClick()
-        snap("11g_tema_floral_album")
-        compose.onNodeWithTag("tab_home").performClick()
-        compose.onNodeWithTag("tab_home").performClick()
-        c.prefs.update { it.copy(theme = "") }
+        settle()
 
         // El mismo Inicio en español, para comprobar el cambio de idioma en caliente.
         c.prefs.update { it.copy(language = "es") }
@@ -351,6 +359,41 @@ class ScreenshotTest {
         settle()
         compose.onNodeWithTag("artist_photo").performClick()
         snapScreen("13_foto_artista")
+    }
+
+    /** Estadísticas de ejemplo: un mes de escuchas, más de tarde-noche, con un domingo muy intenso. */
+    private fun fakeStats(c: AppContainer): dev.surco.data.StatsReport {
+        val rnd = Random(7)
+        val now = System.currentTimeMillis() / 1000
+        val artists = listOf("Carmen Duna", "Velvet Arcade", "Los Faros", "Lumen Drift", "Paper Moons", "Kestrel", "Nadia Ferro", "Aurora Static")
+        val weights = listOf(1, 1, 1, 0, 0, 0, 0, 1, 2, 3, 3, 3, 4, 3, 3, 4, 5, 6, 8, 9, 11, 12, 10, 5)
+        val scrobbles = ArrayList<dev.surco.data.Scrobble>()
+        for (day in 0 until 30) {
+            if (day % 9 == 4) continue
+            val n = 12 + rnd.nextInt(30) + if (day == 11) 60 else 0
+            repeat(n) {
+                var h = rnd.nextInt(24)
+                while (rnd.nextInt(12) > weights[h]) h = rnd.nextInt(24)
+                val at = now - day * 86_400L - (now % 86_400) + h * 3600L + rnd.nextInt(3600)
+                val a = artists[minOf(artists.size - 1, (rnd.nextDouble().let { it * it } * artists.size).toInt())]
+                scrobbles += dev.surco.data.Scrobble(at, a, songNames[rnd.nextInt(songNames.size)], "Raíz")
+            }
+        }
+        repeat(9) { scrobbles += dev.surco.data.Scrobble(now - 3 * 86_400 + it * 240L, "Carmen Duna", "Kilómetro cero", "Raíz") }
+        val byArtist = scrobbles.groupingBy { it.artist }.eachCount().entries.sortedByDescending { it.value }
+        val top = byArtist.mapIndexed { i, (a, n) -> dev.surco.data.TopItem(a, a, n.toLong(), fakeArt("artist${i % 6}", i + 4), "") }
+        val albums = listOf("Raíz", "Night Transit", "Hojas de Cobre", "Marea Baja", "Static Bloom", "Arena y Sal").mapIndexed { i, al ->
+            dev.surco.data.TopItem(al, artists[i], (180 - i * 23).toLong(), fakeArt("album$i", i), "")
+        }
+        val tracks = songNames.take(8).mapIndexed { i, t -> dev.surco.data.TopItem(t, artists[i % 3], (64 - i * 6).toLong(), null, "") }
+        val profile = dev.surco.data.LfmProfile("surco_demo", "Surco Demo", null, 48_213, 1_284, 2_407, 9_872, 1_394_000_000L, "Spain", "https://www.last.fm/user/surco_demo")
+        val library = runBlocking { c.db.dao().allTracksOnce() }.map { dev.surco.data.StatsMath.key(it.artist, it.title) }.toSet()
+        return dev.surco.data.StatsMath.report(
+            profile, dev.surco.data.StatsPeriod.MONTH, scrobbles.size.toLong(), scrobbles, true, top, albums, tracks,
+            listOf("Flamenco" to 0.31f, "Indie pop" to 0.24f, "Synthpop" to 0.17f, "Ambient" to 0.12f, "Dream pop" to 0.09f, "Electronic" to 0.07f)
+                .map { dev.surco.data.GenreShare(it.first, it.second) },
+            library, 312, now, { 7200 },
+        )
     }
 
     private fun fakeResults(): List<UserResult> {

@@ -413,7 +413,10 @@ object S {
     val searchArtistOnSoulseek get() = t("Search the artist on Soulseek", "Buscar al artista en Soulseek")
     val openInLibrary get() = t("Open in your library", "Abrir en tu biblioteca")
     val notInLibrary get() = t("Not in your library", "No está en tu biblioteca")
-    val tapSongToSearch get() = t("Tap a song to search for it on Soulseek.", "Toca una canción para buscarla en Soulseek.")
+    val tapSongToSearch get() = t("Tap ▶ to hear a 30-second preview, or a song to search for it on Soulseek.", "Toca ▶ para escuchar 30 segundos, o la canción para buscarla en Soulseek.")
+    val playPreview get() = t("Play preview", "Escuchar vista previa")
+    val stopPreview get() = t("Stop preview", "Parar vista previa")
+    val previewFailed get() = t("This preview can't be played right now", "No se puede reproducir esta vista previa ahora")
     val artistsToExplore get() = t("Artists to explore", "Artistas para explorar")
     val inYourLibrary get() = t("In your library", "En tu biblioteca")
     fun fans(v: String) = t("$v fans", "$v seguidores")
@@ -585,8 +588,8 @@ object S {
     // ------------------------------------------------------------------ OLED
     val oledBlack get() = t("Pure black (OLED)", "Negro puro (OLED)")
     val oledDetected get() = t(
-        "Your screen looks like OLED: a black background turns pixels off, saving battery",
-        "Tu pantalla parece OLED: el fondo negro apaga los píxeles y ahorra batería",
+        "Your screen looks like OLED: turn this on and the black background switches pixels off, saving battery",
+        "Tu pantalla parece OLED: si lo activas, el fondo negro apaga los píxeles y ahorra batería",
     )
     val oledNotDetected get() = t(
         "Your screen doesn't seem to be OLED, but you can turn it on anyway",
@@ -605,11 +608,6 @@ object S {
     val noBioYet get() = t("No biography yet", "Aún no hay biografía")
     fun bioOf(name: String) = t("About $name", "Sobre $name")
     val bioPlaceholder get() = t("Write about this artist…", "Escribe sobre este artista…")
-
-    // ------------------------------------------------------------------ Temas
-    val theme get() = t("Theme", "Tema")
-    val themeOwnColors get() = t("My colors", "Mis colores")
-    val themeFloral get() = t("Wine flowers", "Flores vino")
 
     // ------------------------------------------------------------------ Spotify (clave propia)
     val spotifyKeyTitle get() = t("Exact Spotify links", "Enlaces exactos de Spotify")
@@ -633,4 +631,124 @@ object S {
     val timerStopsAtEnd get() = t("Music stops when this song ends", "La música se para al acabar esta canción")
     fun timerSet(n: Int) = t("Music will stop in $n minutes", "La música se parará en $n minutos")
     val timerOff get() = t("Sleep timer off", "Temporizador apagado")
+
+    // ------------------------------------------------------------------ Estadísticas (Last.fm)
+    val stats get() = t("Stats", "Estadísticas")
+    val statsConnectTitle get() = t("Your music, in numbers", "Tu música, en números")
+    val statsConnectBody get() = t(
+        "Connect your Last.fm account to see when you listen the most, your top artists, albums and songs, your streaks, your musical DNA and much more.",
+        "Conecta tu cuenta de Last.fm para ver a qué horas escuchas más, tus artistas, álbumes y canciones top, tus rachas, tu ADN musical y mucho más.",
+    )
+    val createLastfmAccount get() = t("Create a free Last.fm account", "Crear una cuenta gratis en Last.fm")
+    val noLastfmAccountYet get() = t("Don't have an account yet?", "¿Aún no tienes cuenta?")
+    val statsReadOnlyNote get() = t(
+        "Surco only reads your stats here. It won't send scrobbles unless you turn that on in Settings.",
+        "Aquí Surco sólo lee tus estadísticas. No enviará scrobbles a menos que lo actives en Ajustes.",
+    )
+    val statsLoadFailed get() = t("Couldn't load your stats. Check your connection.", "No se pudieron cargar tus estadísticas. Comprueba la conexión.")
+    val lastfmUserNotFound get() = t("Last.fm doesn't know that user.", "Last.fm no conoce a ese usuario.")
+    fun readingScrobbles(pct: Int) = t("Reading your scrobbles… $pct%", "Leyendo tus escuchas… $pct%")
+    fun periodChip(p: String) = when (p) {
+        "WEEK" -> t("7 days", "7 días")
+        "MONTH" -> t("Month", "Mes")
+        "QUARTER" -> t("3 months", "3 meses")
+        "HALF" -> t("6 months", "6 meses")
+        "YEAR" -> t("Year", "Año")
+        else -> t("All time", "Siempre")
+    }
+    fun periodTitle(p: String) = when (p) {
+        "WEEK" -> t("Last 7 days", "Últimos 7 días")
+        "MONTH" -> t("Last month", "Último mes")
+        "QUARTER" -> t("Last 3 months", "Últimos 3 meses")
+        "HALF" -> t("Last 6 months", "Últimos 6 meses")
+        "YEAR" -> t("Last year", "Último año")
+        else -> t("All time", "Desde siempre")
+    }
+    val scrobblesTotal get() = t("scrobbles in total", "escuchas en total")
+    fun since(month: Int, year: Int) = t("Since ${monthLong(month)} $year", "Desde ${monthLong(month)} de $year")
+    val songs get() = t("Songs", "Canciones")
+    val scrobblesWord get() = t("Scrobbles", "Escuchas")
+    val hoursOfMusic get() = t("Hours of music", "Horas de música")
+    val perDay get() = t("Per day", "Al día")
+    val clockTitle get() = t("Your listening clock", "Tu reloj musical")
+    val clockSub get() = t("The hours you listen to music the most. Tap an hour.", "Las horas a las que más música escuchas. Toca una hora.")
+    fun chronotypeName(c: String) = when (c) {
+        "EARLY_BIRD" -> t("Early bird", "Madrugador")
+        "DAYTIME" -> t("Daytime listener", "De día")
+        "AFTERNOON" -> t("Afternoon soul", "Alma de tarde")
+        "EVENING" -> t("Golden hour", "Hora dorada")
+        else -> t("Night owl", "Noctámbulo")
+    }
+    fun chronotypeText(c: String, hour: String) = when (c) {
+        "EARLY_BIRD" -> t("Your music wakes up with you. Peak at $hour.", "Tu música se despierta contigo. Hora punta: $hour.")
+        "DAYTIME" -> t("Music to get through the day. Peak at $hour.", "Música para llevar el día. Hora punta: $hour.")
+        "AFTERNOON" -> t("Your moment comes after lunch. Peak at $hour.", "Tu momento llega después de comer. Hora punta: $hour.")
+        "EVENING" -> t("You unwind with music as the day ends. Peak at $hour.", "Desconectas con música al caer la tarde. Hora punta: $hour.")
+        else -> t("Your best songs play after dark. Peak at $hour.", "Tus mejores canciones suenan de noche. Hora punta: $hour.")
+    }
+    fun playsShare(n: String, pct: Int) = t("$n plays · $pct%", "$n escuchas · $pct%")
+    fun dayPart(i: Int) = when (i) {
+        0 -> t("Late night", "Madrugada")
+        1 -> t("Morning", "Mañana")
+        2 -> t("Afternoon", "Tarde")
+        else -> t("Evening", "Noche")
+    }
+    val weekTitle get() = t("Your week", "Tu semana")
+    val weekSub get() = t("Day and hour: the brighter, the more you listen", "Día y hora: cuanto más intenso, más escuchas")
+    fun weekdayShort(i: Int) = if (I18n.lang == Lang.ES) "LMXJVSD"[i].toString() else "MTWTFSS"[i].toString()
+    fun weekdayLong(i: Int) = if (I18n.lang == Lang.ES)
+        listOf("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")[i]
+    else listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[i]
+    fun yourMoment(day: Int, hour: String) = t(
+        "Your moment: ${weekdayLong(day)}s at $hour",
+        "Tu momento: los ${weekdayLong(day).lowercase().let { if (it.endsWith("s")) it else it + "s" }} a las $hour",
+    )
+    fun slotDetail(day: Int, from: String, to: String, n: String) = t("${weekdayLong(day)} · $from–$to · $n plays", "${weekdayLong(day)} · $from–$to · $n escuchas")
+    val heatLess get() = t("Less", "Menos")
+    val heatMore get() = t("More", "Más")
+    val activityTitle get() = t("Activity", "Actividad")
+    fun activitySub(bucketDays: Int) = when (bucketDays) {
+        1 -> t("Plays per day", "Escuchas por día")
+        7 -> t("Plays per week", "Escuchas por semana")
+        else -> t("Plays per month", "Escuchas por mes")
+    }
+    fun bucketDetail(date: String, n: String) = t("$date · $n plays", "$date · $n escuchas")
+    fun weekOf(date: String) = t("Week of $date", "Semana del $date")
+    val currentStreak get() = t("Current streak", "Racha actual")
+    val bestStreak get() = t("Longest streak", "Racha más larga")
+    val activeDays get() = t("Days with music", "Días con música")
+    fun daysN(n: Int) = t(if (n == 1) "1 day" else "$n days", if (n == 1) "1 día" else "$n días")
+    val recordDay get() = t("Record day", "Día récord")
+    val topArtistsTitle get() = t("Top artists", "Artistas top")
+    val topAlbumsTitle get() = t("Top albums", "Álbumes top")
+    val topTracksTitle get() = t("Top songs", "Canciones top")
+    fun playsN(n: String) = t("$n plays", "$n escuchas")
+    val genresTitle get() = t("Your musical DNA", "Tu ADN musical")
+    val genresSub get() = t("Genres of your top artists, weighted by plays", "Géneros de tus artistas top, según cuánto los escuchas")
+    val factsTitle get() = t("Fun facts", "Datos curiosos")
+    val factLoyalty get() = t("Loyalty", "Fidelidad")
+    val factLoyaltyText get() = t("of your plays are your top 5 artists", "de tus escuchas son de tus 5 artistas top")
+    val factVariety get() = t("Variety", "Variedad")
+    val factVarietyText get() = t("different artists", "artistas distintos")
+    val factObsession get() = t("On repeat", "En bucle")
+    fun factObsessionText(title: String, artist: String, date: String) = t("“$title” by $artist on $date", "«$title» de $artist el $date")
+    val factMarathon get() = t("Marathon", "Maratón")
+    fun factMarathonText(n: Int, date: String) = t("$n songs non-stop on $date", "$n canciones sin parar el $date")
+    val factLibrary get() = t("In Surco", "En Surco")
+    val factLibraryText get() = t("of what you play is in your library", "de lo que escuchas está en tu biblioteca")
+    val factLoved get() = t("Loved", "Favoritas")
+    val factLovedText get() = t("songs with ♥ on Last.fm", "canciones con ♥ en Last.fm")
+    val viewLastfmProfile get() = t("Open profile on Last.fm", "Ver perfil en Last.fm")
+    fun sampleNote(n: String) = t("Charts use your last $n scrobbles", "Los gráficos usan tus últimas $n escuchas")
+    val dataFromLastfm get() = t("Data from Last.fm", "Datos de Last.fm")
+    val noScrobblesInPeriod get() = t("No scrobbles in this period yet", "Aún no hay escuchas en este periodo")
+    fun monthShort(m: Int) = if (I18n.lang == Lang.ES)
+        listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")[m - 1]
+    else listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[m - 1]
+    fun monthLong(m: Int) = if (I18n.lang == Lang.ES)
+        listOf("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")[m - 1]
+    else listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")[m - 1]
+    fun dayMonth(d: Int, m: Int) = if (I18n.lang == Lang.ES) "$d ${monthShort(m)}" else "${monthShort(m)} $d"
+    fun monthYear(m: Int, y: Int) = if (I18n.lang == Lang.ES) "${monthShort(m)} $y" else "${monthShort(m)} $y"
+    fun hoursMinutes(min: Int) = if (min >= 60) "${min / 60} h ${min % 60} min" else "$min min"
 }

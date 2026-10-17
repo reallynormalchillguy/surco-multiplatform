@@ -27,6 +27,7 @@ class IosContainer : SurcoCore(
     )
 ) {
     override val player = IosPlayer(appScope, repository, sleepTimer)
+    override val preview: dev.surco.playback.PreviewPlayer = IosPreviewPlayer(player)
     override val soulseek: SoulseekService = IosSoulseek(prefs, repository, appScope)
 
     init {

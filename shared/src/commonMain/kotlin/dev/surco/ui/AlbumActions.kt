@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.surco.data.Track
 import dev.surco.i18n.S
-import dev.surco.net.Deezer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import dev.surco.ui.components.ArtImage
 import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.delay
@@ -306,36 +306,51 @@ fun ArtistPictureSheet(name: String, onDismiss: () -> Unit) {
 private fun OnlineArtistPhotos(name: String, onDismiss: () -> Unit) {
     val actions = LocalActions.current
     val repo = actions.repo
-    var results by remember { mutableStateOf<List<Deezer.Artist>?>(null) }
+    val finder = actions.container.artistPhotos
+    var results by remember { mutableStateOf<List<dev.surco.net.ArtistPhoto>>(emptyList()) }
+    var pending by remember { mutableStateOf(finder.sources.size) }
     var saving by remember { mutableStateOf(false) }
+    // Todas las fuentes a la vez; cada una añade sus fotos en cuanto llegan.
     LaunchedEffect(name) {
-        results = runCatching { actions.container.deezer.searchArtists(name, 18) }.getOrDefault(emptyList())
-            .filter { !it.picture.isNullOrBlank() && !it.picture.contains("/artist//") }
+        kotlinx.coroutines.coroutineScope {
+            finder.sources.forEach { source ->
+                launch {
+                    val found = runCatching { source(name) }.getOrDefault(emptyList())
+                    results = (results + found).distinctBy { it.full }
+                    pending--
+                }
+            }
+        }
     }
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         containerColor = SurcoColors.Surface,
-        title = { Text(S.chooseAPhoto) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(S.chooseAPhoto, modifier = Modifier.weight(1f))
+                if (pending > 0 && !saving) CircularProgressIndicator(Modifier.size(18.dp), color = SurcoColors.Accent, strokeWidth = 2.dp)
+            }
+        },
         text = {
             val list = results
             when {
-                list == null || saving -> Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                saving || (list.isEmpty() && pending > 0) -> Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = SurcoColors.Accent)
                 }
                 list.isEmpty() -> Text(S.noArtistPhotoFound, color = SurcoColors.TextSecondary)
                 else -> LazyVerticalGrid(
-                    columns = GridCells.Adaptive(96.dp),
-                    modifier = Modifier.heightIn(max = 420.dp),
-                    contentPadding = PaddingValues(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    columns = GridCells.Adaptive(92.dp),
+                    modifier = Modifier.heightIn(max = 460.dp).testTag("artist_photo_grid"),
+                    contentPadding = PaddingValues(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(list, key = { it.id }) { a ->
+                    items(list, key = { it.full }) { p ->
                         Column(
                             Modifier.clickable {
                                 saving = true
                                 actions.scope.launch {
-                                    val bytes = a.picture?.let { repo.covers.download(it) }
+                                    val bytes = repo.covers.download(p.full) ?: repo.covers.download(p.thumb)
                                     val ok = bytes != null && repo.setArtistImage(name, bytes)
                                     actions.toast(if (ok) S.artistPhotoUpdated else S.couldNotDownloadImage)
                                     saving = false
@@ -345,11 +360,11 @@ private fun OnlineArtistPhotos(name: String, onDismiss: () -> Unit) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             AsyncImage(
-                                a.picture, null, contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape).background(SurcoColors.SurfaceHigh),
+                                p.thumb, null, contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(SurcoColors.SurfaceHigh),
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Text(a.name, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(3.dp))
+                            Text(p.source, style = MaterialTheme.typography.labelSmall, color = SurcoColors.TextTertiary, maxLines = 1)
                         }
                     }
                 }

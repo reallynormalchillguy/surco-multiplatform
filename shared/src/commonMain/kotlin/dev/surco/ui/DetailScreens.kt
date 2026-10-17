@@ -105,7 +105,7 @@ fun CollectionScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.fadeTo(color))))
+                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
                     .statusBarsPadding()
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {

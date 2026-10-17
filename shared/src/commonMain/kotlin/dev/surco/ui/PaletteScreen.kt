@@ -82,21 +82,20 @@ fun PaletteScreen() {
     /** La paleta que se edita (la elegida por el usuario, sin el negro del modo OLED). */
     val palette = draft ?: Palette.decode(settings.palette)
     /** La que se ve en la maqueta: con negro puro si el modo OLED está activo. */
-    val shown = Prefs.effectivePalette(palette, settings.copy(theme = ""))
+    val shown = Prefs.effectivePalette(palette, settings)
     val history = remember { mutableStateListOf<Palette>() }
     var editing by remember { mutableStateOf<Palette.Role?>(Palette.Role.ACCENT) }
     /** Cambia cuando la paleta entera cambia desde fuera del editor (sortear, deshacer…): reinicia los controles. */
     var generation by remember { mutableIntStateOf(0) }
 
     /** Aplica sin guardar (mientras se arrastra un control). */
-    fun preview(p: Palette) { draft = p; SurcoColors.palette = Prefs.effectivePalette(p, prefs.current.copy(theme = "")) }
+    fun preview(p: Palette) { draft = p; SurcoColors.palette = Prefs.effectivePalette(p, prefs.current) }
     /** Aplica y guarda. */
     fun commit(p: Palette, remember: Boolean = true) {
         val before = Palette.decode(prefs.current.palette)
         if (remember && before != p) { history.add(before); if (history.size > 20) history.removeAt(0) }
         draft = null
-        // Tocar los colores sale del tema con imagen: vuelve a tus colores.
-        prefs.update { it.copy(palette = if (p == Palette.Default) "" else p.encode(), theme = "") }
+        prefs.update { it.copy(palette = if (p == Palette.Default) "" else p.encode()) }
     }
     fun replaceAll(p: Palette, remember: Boolean = true) { commit(p, remember); generation++ }
 

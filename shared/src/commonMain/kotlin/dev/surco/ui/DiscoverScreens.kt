@@ -114,6 +114,7 @@ val discoverDetailCache = HashMap<Long, Deezer.AlbumDetail>()
 @Composable
 fun DiscoverAlbumScreen(id: Long) {
     val actions = LocalActions.current
+    PreviewLifecycle()
     var detail by remember(id) { mutableStateOf(discoverDetailCache[id]) }
     var failed by remember(id) { mutableStateOf(false) }
     var owned by remember(id) { mutableStateOf<AlbumRow?>(null) }
@@ -148,7 +149,7 @@ fun DiscoverAlbumScreen(id: Long) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(color, SurcoColors.fadeTo(color))))
+                    .background(Brush.verticalGradient(listOf(color, SurcoColors.Background)))
                     .statusBarsPadding(),
             ) {
                 IconButton(onClick = { actions.nav.popBackStack() }, modifier = Modifier.padding(4.dp)) {
@@ -241,6 +242,7 @@ fun DiscoverAlbumScreen(id: Long) {
                     }
                 }
                 Text((t.durationSec * 1000L).formatDuration(), style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+                PreviewButton(t.preview, Modifier.padding(start = 4.dp))
             }
         }
     }

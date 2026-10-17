@@ -26,9 +26,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -177,6 +179,7 @@ private val tabs = listOf(
     Tab("home", Icons.Outlined.Home, Icons.Filled.Home),
     Tab("search", Icons.Outlined.Search, Icons.Filled.Search),
     Tab("library", Icons.Outlined.LibraryMusic, Icons.Filled.LibraryMusic),
+    Tab("stats", Icons.Outlined.BarChart, Icons.Filled.BarChart),
 )
 
 @Composable
@@ -245,9 +248,8 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
         LocalPlayer provides playerState,
     ) {
         Box(Modifier.fillMaxSize().background(SurcoColors.Background)) {
-            ThemeBackdrop()
             Scaffold(
-                containerColor = SurcoColors.Behind,
+                containerColor = SurcoColors.Background,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 snackbarHost = {
                     SnackbarHost(snackbar) { data ->
@@ -291,6 +293,7 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
                     composable("home") { HomeScreen() }
                     composable("search") { SearchScreen() }
                     composable("library") { LibraryScreen() }
+                    composable("stats") { StatsScreen() }
                     composable("settings") { SettingsScreen() }
                     composable("online_artist/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
                         OnlineArtistScreen(it.longArg("id"))
@@ -365,6 +368,7 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
 private fun tabLabel(route: String) = when (route) {
     "home" -> S.home
     "search" -> S.search
+    "stats" -> S.stats
     else -> S.yourLibrary
 }
 

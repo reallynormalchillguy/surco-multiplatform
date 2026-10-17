@@ -80,9 +80,6 @@ private val figtree = FontFamily(
 @Composable
 actual fun figtreeFamily(): FontFamily = figtree
 
-@Composable
-actual fun floralPainter(): androidx.compose.ui.graphics.painter.Painter = androidx.compose.ui.res.painterResource(R.drawable.floral_wine)
-
 actual suspend fun extractArtColor(context: PlatformContext, path: String): Color? = withContext(Dispatchers.IO) {
     val bmp = if (path.startsWith("http")) {
         runCatching {

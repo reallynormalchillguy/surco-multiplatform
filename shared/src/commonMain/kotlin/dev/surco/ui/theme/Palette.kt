@@ -72,19 +72,6 @@ data class Palette(
             onAccent = Color(0xFF000000),
         )
 
-        /**
-         * Tema «Floral vino»: los colores salen de la imagen (fondo vino, ornamentos rosa empolvado).
-         * Las tarjetas son un vino más oscuro, para que se lean sobre el dibujo.
-         */
-        val Floral: Palette by lazy {
-            of(
-                accent = Color(0xFFEFA9B1),
-                background = Color(0xFF6F1527),
-                surface = Color(0xFF55101E),
-                text = Color(0xFFFFF1F2),
-            )
-        }
-
         /** Construye una paleta completa a partir de los cuatro colores base. */
         fun of(accent: Color, background: Color, surface: Color, text: Color): Palette {
             val p = Palette(
