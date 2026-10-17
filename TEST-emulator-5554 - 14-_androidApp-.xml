@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="dev.surco.DeviceSmokeTest" tests="5" failures="0" errors="0" skipped="0" time="154.495" timestamp="2026-10-17T22:31:26" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":androidApp" />
+  </properties>
+  <testcase name="navigatesThroughTheAppWithoutCrashing" classname="dev.surco.DeviceSmokeTest" time="92.62" />
+  <testcase name="soulseekFiltersAndBulkActions" classname="dev.surco.DeviceSmokeTest" time="16.503" />
+  <testcase name="regexesCompileOnAndroid" classname="dev.surco.DeviceSmokeTest" time="4.14" />
+  <testcase name="albumQueueDeleteAndPalette" classname="dev.surco.DeviceSmokeTest" time="29.232" />
+  <testcase name="swipingTheCoverChangesTheSong" classname="dev.surco.DeviceSmokeTest" time="11.07" />
+</testsuite>
