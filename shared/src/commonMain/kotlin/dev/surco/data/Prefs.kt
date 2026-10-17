@@ -130,7 +130,7 @@ class Prefs(
 
     companion object {
         /** La pantalla del móvil parece OLED (lo detecta la plataforma al arrancar). */
-        @Volatile var deviceOled = false
+        var deviceOled = false
 
         fun oledActive(s: Settings) = when (s.oled) { "on" -> true; "off" -> false; else -> deviceOled }
 
