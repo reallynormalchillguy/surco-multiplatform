@@ -72,6 +72,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -169,7 +174,7 @@ private fun ConnectLastFm() {
         item {
             // Ilustración: un reloj de escucha de ejemplo, el mismo gráfico que verás con tus datos.
             Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                ListeningClock(DEMO_HOURS, selected = 22, onSelect = {}, modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth())
+                ListeningClock(DEMO_HOURS, selected = 22, onSelect = {}, modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(), showValue = false)
             }
             Text(S.statsConnectTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
@@ -355,17 +360,13 @@ private fun ClockCard(r: StatsReport) {
     var selected by remember(r) { mutableIntStateOf(peak) }
     val total = r.hours.sum().coerceAtLeast(1)
     StatsCard(S.clockTitle, S.clockSub, tag = "stats_clock") {
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            ListeningClock(r.hours, selected, onSelect = { selected = it }, modifier = Modifier.widthIn(max = 300.dp).fillMaxWidth())
-            if (selected >= 0) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(hh(selected), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        S.playsShare(fmt(r.hours[selected].toLong()), (r.hours[selected] * 100f / total).roundToInt()),
-                        style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
-                    )
-                }
-            }
+        ListeningClock(r.hours, selected, onSelect = { selected = it }, modifier = Modifier.fillMaxWidth())
+        if (selected >= 0) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                hh(selected) + " · " + S.playsShare(fmt(r.hours[selected].toLong()), (r.hours[selected] * 100f / total).roundToInt()),
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+            )
         }
         if (peak >= 0) {
             val type = StatsMath.chronotype(peak).name
@@ -405,65 +406,108 @@ private fun Meter(fraction: Float, modifier: Modifier = Modifier) {
 }
 
 /**
- * Reloj de 24 horas: una barra radial por hora, que crece hacia fuera según cuánto escuchas a esa hora.
- * La hora elegida (por defecto la de más escuchas) va en el color de acento; el resto, en el mismo tono más suave.
+ * Escucha por horas del día: una curva suave sobre un degradado azul → violeta → rosa, con una línea
+ * vertical cada dos horas y las horas en diagonal debajo. Al tocar, se marca la hora más cercana.
  */
 @Composable
-fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val accent = SurcoColors.Accent
-    val track = SurcoColors.TextPrimary.copy(alpha = 0.04f)
-    val labelColor = SurcoColors.TextSecondary
+fun ListeningClock(hours: List<Int>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, showValue: Boolean = true) {
     val measurer = rememberTextMeasurer()
     val grow = remember(hours) { Animatable(0f) }
-    LaunchedEffect(hours) { grow.animateTo(1f, tween(700, easing = FastOutSlowInEasing)) }
+    LaunchedEffect(hours) { grow.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
     val max = (hours.maxOrNull() ?: 0).coerceAtLeast(1)
+    val es = I18n.lang == Lang.ES
     Canvas(
-        modifier.aspectRatio(1f).pointerInput(hours) {
-            detectTapGestures { pos ->
-                val c = Offset(size.width / 2f, size.height / 2f)
-                val d = hypot(pos.x - c.x, pos.y - c.y)
-                if (d < size.width * 0.16f) return@detectTapGestures
-                var deg = atan2((pos.y - c.y).toDouble(), (pos.x - c.x).toDouble()) * 180 / PI + 90
-                if (deg < 0) deg += 360
-                // Cada barra está centrada en su hora (la de las 00 justo arriba).
-                onSelect(((deg + 7.5) / 15).toInt() % 24)
-            }
-        },
+        modifier
+            .aspectRatio(1.39f)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(listOf(CLOCK_BLUE, CLOCK_VIOLET, CLOCK_PINK)))
+            .pointerInput(hours) {
+                detectTapGestures { pos ->
+                    val left = size.width * 0.145f
+                    val right = size.width * 0.905f
+                    onSelect((((pos.x - left) / (right - left)) * 23).roundToInt().coerceIn(0, 23))
+                }
+            },
     ) {
-        val c = center
-        val labelPad = 18.dp.toPx()
-        val outer = size.minDimension / 2 - labelPad
-        val inner = outer * 0.46f
-        val slot = 360f / 24
-        for (h in 0 until 24) {
-            val start = -90f + h * slot - slot * 0.36f
-            val sweep = slot * 0.72f
-            annular(c, inner, outer, start, sweep, track)
-            val v = hours.getOrElse(h) { 0 }
-            if (v > 0) {
-                val r1 = inner + (outer - inner) * (v.toFloat() / max) * grow.value
-                annular(c, inner, r1.coerceAtLeast(inner + 2.dp.toPx()), start, sweep, if (h == selected) accent else accent.copy(alpha = 0.42f))
+        val left = size.width * 0.145f
+        val right = size.width * 0.905f
+        val top = size.height * 0.097f
+        val bottom = size.height * 0.845f
+        val yHigh = top + (bottom - top) * 0.03f
+        val yLow = bottom - (bottom - top) * 0.12f
+        fun x(h: Int) = left + (right - left) * h / 23f
+        fun y(v: Int) = yLow - (yLow - yHigh) * v.toFloat() / max
+
+        // Líneas verticales cada dos horas (y la última, las 23) y sus horas en diagonal.
+        val ticks = (0..20 step 2) + 23
+        val labelStyle = TextStyle(color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        for (h in ticks) {
+            drawLine(Color.White.copy(alpha = 0.28f), Offset(x(h), top), Offset(x(h), bottom), strokeWidth = 1.dp.toPx())
+            val text = if (es) "${if (h < 10) "0$h" else "$h"}h" else when {
+                h == 0 -> "12AM"; h < 12 -> "${h}AM"; h == 12 -> "12PM"; else -> "${h - 12}PM"
+            }
+            val layout = measurer.measure(text, labelStyle)
+            val pivot = Offset(x(h) + 2.dp.toPx(), bottom + 3.dp.toPx())
+            rotate(-45f, pivot) {
+                drawText(layout, topLeft = Offset(pivot.x - layout.size.width, pivot.y - layout.size.height / 2f))
             }
         }
-        // Horas de referencia por fuera: 00, 06, 12, 18.
-        val style = TextStyle(color = labelColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        for (h in listOf(0, 6, 12, 18)) {
-            val a = (-90.0 + h * 15) * PI / 180
-            val rr = outer + labelPad * 0.55f
-            val layout = measurer.measure(hh(h).take(2), style)
-            drawText(layout, topLeft = Offset(c.x + (rr * cos(a)).toFloat() - layout.size.width / 2f, c.y + (rr * sin(a)).toFloat() - layout.size.height / 2f))
+
+        // Curva suave (interpolación monótona: nunca se sale por encima ni por debajo de los datos).
+        val pts = (0 until 24).map { Offset(x(it), y(hours.getOrElse(it) { 0 })) }
+        val path = smoothPath(pts)
+        clipRect(right = left + (right - left) * grow.value + 4.dp.toPx()) {
+            drawPath(path, Color.White.copy(alpha = 0.82f), style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
+
+        // La hora elegida: un punto sobre la curva y una etiqueta con sus escuchas.
+        if (showValue && selected in 0..23 && grow.value > 0.99f) {
+            val p = pts[selected]
+            drawCircle(Color.White.copy(alpha = 0.35f), radius = 9.dp.toPx(), center = p)
+            drawCircle(Color.White, radius = 5.dp.toPx(), center = p)
+            val label = measurer.measure(
+                "${hh(selected)} · ${hours.getOrElse(selected) { 0 }}",
+                TextStyle(color = CLOCK_INK, fontSize = 12.sp, fontWeight = FontWeight.Bold),
+            )
+            val padH = 8.dp.toPx(); val padV = 4.dp.toPx()
+            val w = label.size.width + padH * 2
+            val hgt = label.size.height + padV * 2
+            val lx = (p.x - w / 2).coerceIn(4.dp.toPx(), size.width - w - 4.dp.toPx())
+            val above = p.y - 14.dp.toPx() - hgt
+            val ly = if (above > 2.dp.toPx()) above else p.y + 14.dp.toPx()
+            drawRoundRect(Color.White.copy(alpha = 0.92f), Offset(lx, ly), Size(w, hgt), CornerRadius(hgt / 2))
+            drawText(label, topLeft = Offset(lx + padH, ly + padV))
         }
     }
 }
 
-/** Sector de corona circular (una barra radial). */
-private fun DrawScope.annular(c: Offset, r0: Float, r1: Float, startDeg: Float, sweepDeg: Float, color: Color) {
-    val path = Path().apply {
-        arcTo(androidx.compose.ui.geometry.Rect(c, r1), startDeg, sweepDeg, forceMoveTo = true)
-        arcTo(androidx.compose.ui.geometry.Rect(c, r0), startDeg + sweepDeg, -sweepDeg, forceMoveTo = false)
-        close()
+private val CLOCK_BLUE = Color(0xFF6B90E8)
+private val CLOCK_VIOLET = Color(0xFF977ADA)
+private val CLOCK_PINK = Color(0xFFC456BF)
+private val CLOCK_INK = Color(0xFF3B2A6E)
+
+/** Curva suave que pasa por todos los puntos sin pasarse (cúbica monótona de Fritsch–Carlson). */
+private fun smoothPath(p: List<Offset>): Path {
+    val path = Path()
+    if (p.isEmpty()) return path
+    path.moveTo(p[0].x, p[0].y)
+    if (p.size < 3) { p.drop(1).forEach { path.lineTo(it.x, it.y) }; return path }
+    val n = p.size
+    val d = FloatArray(n - 1) { (p[it + 1].y - p[it].y) / (p[it + 1].x - p[it].x) }
+    val m = FloatArray(n)
+    m[0] = d[0]; m[n - 1] = d[n - 2]
+    for (i in 1 until n - 1) m[i] = if (d[i - 1] * d[i] <= 0f) 0f else (d[i - 1] + d[i]) / 2
+    for (i in 0 until n - 1) {
+        if (d[i] == 0f) { m[i] = 0f; m[i + 1] = 0f; continue }
+        val a = m[i] / d[i]; val b = m[i + 1] / d[i]
+        val s = a * a + b * b
+        if (s > 9f) { val t = 3f / kotlin.math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i] }
     }
-    drawPath(path, color)
+    for (i in 0 until n - 1) {
+        val dx = (p[i + 1].x - p[i].x) / 3
+        path.cubicTo(p[i].x + dx, p[i].y + m[i] * dx, p[i + 1].x - dx, p[i + 1].y - m[i + 1] * dx, p[i + 1].x, p[i + 1].y)
+    }
+    return path
 }
 
 // ----------------------------------------------------------------------- Semana
