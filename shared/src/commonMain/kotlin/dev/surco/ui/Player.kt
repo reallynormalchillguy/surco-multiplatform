@@ -123,9 +123,14 @@ fun rememberCurrentTrack(): Track? {
     val actions = LocalActions.current
     val id = LocalPlayer.current.mediaId ?: return null
     val flow = remember(id) { actions.container.db.dao().trackFlow(id) }
-    val track by flow.collectAsState(initial = null)
+    // Se arranca con la última versión conocida de la canción: así el reproductor abre ya completo
+    // (portada, título, color) en lugar de aparecer vacío y rellenarse a mitad de la animación.
+    val track by flow.collectAsState(initial = trackMemo[id])
+    track?.let { if (trackMemo[id] !== it) trackMemo[id] = it }
     return track
 }
+
+private val trackMemo = HashMap<String, Track>()
 
 /** Convierte "álbum|Sol.Hz" en ("Reproduciendo desde el álbum", "Sol.Hz"). */
 fun sourceHeader(source: String): Pair<String, String> {
@@ -346,9 +351,6 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                     }
 
                     // --- Portada, centrada en el espacio libre (algo más de aire debajo, como en Spotify).
-                    // Al abrir el reproductor la portada aparece creciendo y encendiéndose, como en Spotify.
-                    val coverIn = remember { androidx.compose.animation.core.Animatable(0f) }
-                    LaunchedEffect(Unit) { coverIn.animateTo(1f, androidx.compose.animation.core.tween(520, delayMillis = 60, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
                     // Cinco toques seguidos en la portada la convierten en espectrograma (y otros cinco, al revés).
                     val spectro by remember { actions.repo.prefs.settings }.collectAsState()
                     var taps by remember { androidx.compose.runtime.mutableIntStateOf(0) }
@@ -366,12 +368,7 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                                     }
                                 })
                             }
-                            .testTag("player_cover")
-                            .graphicsLayer {
-                                val k = coverIn.value
-                                scaleX = 0.88f + 0.12f * k; scaleY = 0.88f + 0.12f * k
-                                alpha = 0.3f + 0.7f * k
-                            },
+                            .testTag("player_cover"),
                         contentAlignment = androidx.compose.ui.BiasAlignment(0f, 0.1f),
                     ) {
                         val side = if (maxWidth < maxHeight) maxWidth else maxHeight
@@ -387,15 +384,13 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                                     playing = state.isPlaying,
                                     modifier = Modifier
                                         .size(side)
-                                        .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover))
                                         .clip(RoundedCornerShape(SurcoShapes.Cover)),
                                 )
                             } else {
                                 ArtImage(
                                     t?.artPath,
                                     Modifier
-                                        .size(side)
-                                        .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
+                                        .size(side),
                                     RoundedCornerShape(SurcoShapes.Cover),
                                 )
                             }

@@ -1,5 +1,7 @@
 package dev.surco.ui
 
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import dev.surco.i18n.S
 
 import androidx.compose.animation.AnimatedVisibility
@@ -397,18 +399,27 @@ private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initia
 
             // Al abrir el reproductor, lo de detrás se oscurece mientras sube (como en Spotify).
             val playerVisible = showPlayer && playerState.mediaId != null
-            val dim by androidx.compose.animation.core.animateFloatAsState(
-                if (playerVisible) 0.7f else 0f, androidx.compose.animation.core.tween(320), label = "dim",
+            val dim = androidx.compose.animation.core.animateFloatAsState(
+                if (playerVisible) 0.7f else 0f, androidx.compose.animation.core.tween(if (playerVisible) 420 else 260), label = "dim",
             )
-            if (dim > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dim)))
+            // El valor animado se lee al dibujar, no al componer: así la pantalla de detrás no se
+            // recompone en cada fotograma de la animación (eso daba los tirones).
+            if (playerState.mediaId != null) Box(Modifier.fillMaxSize().drawBehind { if (dim.value > 0.01f) drawRect(Color.Black.copy(alpha = dim.value)) })
             AnimatedVisibility(
                 visible = playerVisible,
-                enter = slideInVertically(androidx.compose.animation.core.tween(380, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it },
-                exit = slideOutVertically(androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it },
+                // Curvas «enfatizadas» de Material: sube rápido y frena suave; al cerrar, acelera hacia abajo.
+                enter = slideInVertically(androidx.compose.animation.core.tween(420, easing = androidx.compose.animation.core.CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))) { it },
+                exit = slideOutVertically(androidx.compose.animation.core.tween(260, easing = androidx.compose.animation.core.CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f))) { it },
             ) {
                 // Esquinas redondeadas mientras sube o baja; rectas cuando ocupa la pantalla.
-                val corner by transition.animateDp(label = "esquinas") { if (it == androidx.compose.animation.EnterExitState.Visible) 0.dp else 22.dp }
-                Box(Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = corner, topEnd = corner))) {
+                val corner = transition.animateDp(label = "esquinas") { if (it == androidx.compose.animation.EnterExitState.Visible) 0.dp else 22.dp }
+                Box(
+                    Modifier.fillMaxSize().graphicsLayer {
+                        val c = corner.value
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = c, topEnd = c)
+                        clip = c > 0.dp
+                    },
+                ) {
                     NowPlayingScreen(onClose = { showPlayer = false })
                 }
             }

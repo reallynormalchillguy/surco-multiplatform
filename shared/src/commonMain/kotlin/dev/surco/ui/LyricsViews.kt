@@ -73,11 +73,17 @@ import kotlinx.coroutines.launch
 /** Esperas entre reintentos automáticos cuando no se puede contactar con LRCLIB (-1 = rendirse). */
 private val LYRICS_RETRY_DELAYS_MS = longArrayOf(3_000, 10_000, 30_000, -1)
 
+private val lyricsMemo = HashMap<String, Lyrics>()
+
 @Composable
 fun rememberLyrics(track: Track?, nonce: Int): Lyrics {
     val repo = LocalActions.current.container.lyrics
     val uri = track?.uri
-    val value by produceState<Lyrics>(Lyrics.Loading, uri, nonce) {
+    // La letra ya cargada se enseña al instante al volver a abrir el reproductor (sin «cargando»
+    // que cambie el tamaño de la tarjeta mientras sube la pantalla).
+    val known = if (nonce == 0) uri?.let { lyricsMemo[it] } else null
+    val value by produceState(known ?: Lyrics.Loading, uri, nonce) {
+        if (known != null) { value = known; return@produceState }
         value = Lyrics.Loading
         if (track == null) { value = Lyrics.None; return@produceState }
         // Si falla la red, se reintenta solo (sin guardar «sin letra»): antes había que forzar la recarga.
@@ -89,7 +95,10 @@ fun rememberLyrics(track: Track?, nonce: Int): Lyrics {
             } catch (_: Exception) {
                 Lyrics.Failed
             }
-            if (r != Lyrics.Failed) { value = r; return@produceState }
+            if (r != Lyrics.Failed) {
+                if (r != Lyrics.Loading) lyricsMemo[track.uri] = r
+                value = r; return@produceState
+            }
             if (wait < 0) { value = Lyrics.Failed; return@produceState }
             kotlinx.coroutines.delay(wait)
         }
