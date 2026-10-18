@@ -2,7 +2,22 @@ package dev.surco.ui
 
 import dev.surco.i18n.S
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
+import dev.surco.data.Track
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -77,6 +92,10 @@ fun LibraryScreen() {
     val settings by actions.repo.prefs.settings.collectAsState()
     var filter by rememberSaveable { mutableStateOf<String?>(null) }
     var creating by remember { mutableStateOf(false) }
+    // Buscar dentro de la biblioteca (como en Spotify): filtra lo que ya está aquí, sin ir a «Buscar».
+    var searching by rememberSaveable { mutableStateOf(false) }
+    var libQuery by rememberSaveable { mutableStateOf("") }
+    val q = libQuery.trim()
 
     val playlists by remember { dao.playlists() }.collectAsState(initial = emptyList())
     val albums by remember { dao.albums() }.collectAsState(initial = emptyList())
@@ -111,17 +130,33 @@ fun LibraryScreen() {
         } else emptyList()
         liked + sorted
     }
+    val shown = remember(entries, q) {
+        if (q.isEmpty()) entries else {
+            val needle = foldText(q)
+            entries.filter { foldText(it.title).contains(needle) || (it.kind != LibKind.ARTIST && foldText(it.subtitle).contains(needle)) }
+        }
+    }
+    // Canciones de la biblioteca que coinciden (sólo al buscar y sin filtro, o con ninguno elegido).
+    var songs by remember { mutableStateOf<List<Track>>(emptyList()) }
+    LaunchedEffect(q, filter) {
+        if (q.isEmpty() || filter != null) { songs = emptyList(); return@LaunchedEffect }
+        kotlinx.coroutines.delay(150)
+        songs = runCatching { actions.repo.search(q).tracks }.getOrDefault(emptyList()).take(60)
+    }
+    fun closeSearch() { searching = false; libQuery = "" }
+    PlatformBack(enabled = searching) { closeSearch() }
 
     Column(Modifier.fillMaxSize()) {
-        // ---- Cabecera
-        Row(
+        // ---- Cabecera (o, al buscar, el campo de búsqueda en su lugar)
+        if (searching) LibrarySearchField(libQuery, { libQuery = it }, onClose = { closeSearch() })
+        else Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(start = 16.dp, end = 4.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AppAvatar(onClick = { Overlays.drawer = true })
             Spacer(Modifier.width(14.dp))
             Text(S.yourLibrary, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = { actions.openTab("search") }) {
+            IconButton(onClick = { searching = true }, modifier = Modifier.testTag("library_search")) {
                 Icon(Icons.Filled.Search, S.search, tint = SurcoColors.TextPrimary, modifier = Modifier.size(28.dp))
             }
             IconButton(onClick = { creating = true }) {
@@ -163,7 +198,44 @@ fun LibraryScreen() {
 
         val gridState = rememberTabGridState("library")
         val listState = rememberTabListState("library")
-        if (settings.libraryGrid) {
+        if (searching && q.isNotEmpty()) {
+            // Resultados: lo de la biblioteca que coincide y, debajo, las canciones.
+            LazyColumn(Modifier.fillMaxSize().testTag("library_search_results"), contentPadding = PaddingValues(bottom = 24.dp)) {
+                if (shown.isEmpty() && songs.isEmpty()) {
+                    item {
+                        Text(
+                            S.nothingInLibrary(q),
+                            color = SurcoColors.TextSecondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+                        )
+                    }
+                }
+                items(shown, key = { it.key }) { item ->
+                    LibraryRow(
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        circle = item.kind == LibKind.ARTIST,
+                        onClick = { open(actions, item) },
+                        onLongClick = if (item.kind == LibKind.ALBUM) ({ actions.albumMenu(item.ref) }) else null,
+                    ) { m -> LibArt(item, m) }
+                }
+                if (songs.isNotEmpty()) {
+                    item {
+                        Text(S.songs, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp))
+                    }
+                    items(songs, key = { "s:" + it.uri }) { t ->
+                        LibraryRow(
+                            title = t.title,
+                            subtitle = S.songBy(t.artist),
+                            artSize = 52.dp,
+                            onClick = { actions.scope.launch { playTrackInAlbum(actions, t) } },
+                            onLongClick = { actions.menu(t) },
+                        ) { m -> ArtImage(t.artPath, m) }
+                    }
+                }
+            }
+        } else if (settings.libraryGrid) {
             LazyVerticalGrid(
                 state = gridState,
                 columns = GridCells.Adaptive(104.dp),
@@ -244,5 +316,71 @@ private fun LibGridCell(item: LibItem) {
         Spacer(Modifier.height(6.dp))
         Text(item.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(item.subtitle, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Para comparar sin mayúsculas ni tildes: «Rosalía» encuentra «rosalia» y al revés. */
+private fun foldText(s: String): String {
+    val sb = StringBuilder(s.length)
+    for (c in s.lowercase()) sb.append(
+        when (c) {
+            'á', 'à', 'ä', 'â', 'ã', 'å' -> 'a'
+            'é', 'è', 'ë', 'ê' -> 'e'
+            'í', 'ì', 'ï', 'î' -> 'i'
+            'ó', 'ò', 'ö', 'ô', 'õ', 'ø' -> 'o'
+            'ú', 'ù', 'ü', 'û' -> 'u'
+            'ñ' -> 'n'
+            'ç' -> 'c'
+            else -> c
+        }
+    )
+    return sb.toString()
+}
+
+/** Campo «Buscar en tu biblioteca»: ocupa el sitio de la cabecera, con flecha para salir. */
+@Composable
+private fun LibrarySearchField(value: String, onChange: (String) -> Unit, onClose: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() }; keyboard?.show() }
+    Row(
+        Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, end = 16.dp, top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = { keyboard?.hide(); onClose() }, modifier = Modifier.testTag("library_search_close")) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, S.closeSearch, tint = SurcoColors.TextPrimary)
+        }
+        Row(
+            Modifier
+                .weight(1f)
+                .height(44.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(SurcoColors.SurfaceHigh)
+                .padding(start = 12.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Search, null, tint = SurcoColors.TextSecondary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            androidx.compose.foundation.layout.Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty()) {
+                    Text(S.searchYourLibrary, style = MaterialTheme.typography.bodyLarge, color = SurcoColors.TextSecondary, maxLines = 1)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = SurcoColors.TextPrimary),
+                    cursorBrush = SolidColor(SurcoColors.Accent),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("library_search_field"),
+                )
+            }
+            if (value.isNotEmpty()) {
+                IconButton(onClick = { onChange("") }, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Filled.Close, S.clearText, tint = SurcoColors.TextSecondary, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
     }
 }

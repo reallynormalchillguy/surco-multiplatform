@@ -45,3 +45,7 @@ expect fun rememberSharer(): Sharer
 /** Esconde las barras del sistema mientras se muestra (pantalla completa de verdad). */
 @androidx.compose.runtime.Composable
 expect fun HideSystemBars()
+
+/** El gesto o botón «atrás» del sistema (en iOS no hay botón: no hace nada). */
+@androidx.compose.runtime.Composable
+expect fun PlatformBack(enabled: Boolean, onBack: () -> Unit)

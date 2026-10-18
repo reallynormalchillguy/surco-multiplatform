@@ -169,3 +169,6 @@ private fun samplePixels(bmp: android.graphics.Bitmap): List<Int> {
     }
     return out
 }
+
+@Composable
+actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) = androidx.activity.compose.BackHandler(enabled, onBack)

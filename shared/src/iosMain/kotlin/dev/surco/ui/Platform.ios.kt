@@ -147,3 +147,6 @@ private fun presentShareSheet(items: List<Any>) {
 /** En el iPhone la barra de estado ya se esconde sola en horizontal. */
 @androidx.compose.runtime.Composable
 actual fun HideSystemBars() {}
+
+@androidx.compose.runtime.Composable
+actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) {}

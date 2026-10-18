@@ -431,6 +431,19 @@ class ScreenshotTest {
         compose.onNodeWithTag("tab_home").performClick()
         settle()
 
+        // Buscar dentro de «Tu biblioteca» (sin ir a la pestaña «Buscar»).
+        compose.onNodeWithTag("tab_library").performClick()
+        settle()
+        compose.onNodeWithTag("library_search").performClick()
+        settle()
+        compose.onNodeWithTag("library_search_field").performTextInput("velvet")
+        settle()
+        snap("22_biblioteca_buscar")
+        compose.onNodeWithTag("library_search_results").assertExists()
+        compose.onNodeWithTag("library_search_close").performClick()
+        compose.onNodeWithTag("tab_home").performClick()
+        settle()
+
         // Historial de búsquedas.
         runBlocking {
             c.repository.rememberQuery("velvet arcade")
