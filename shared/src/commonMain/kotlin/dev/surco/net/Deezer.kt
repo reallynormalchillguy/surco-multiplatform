@@ -53,12 +53,26 @@ class Deezer(private val http: HttpClient) {
 
     /** Canción que mejor casa con «artista + título»: devuelve (id del álbum, título, álbum). */
     suspend fun findTrack(artist: String, title: String): Triple<Long, String, String>? {
-        val q = if (artist.isNotBlank()) "artist:\"$artist\" track:\"$title\"" else title
-        val data = get("$BASE/search/track?q=${enc(q)}&limit=10")?.arr("data") ?: return null
-        val best = data.objects().maxByOrNull {
-            dev.surco.data.AlbumMatcher.similarity(it.str("title"), title) * 2 +
+        // Last.fm guarda títulos como «Creep - Remastered 2009» o «Song (feat. X)»: si la búsqueda
+        // exacta no da nada, se prueba sin esos añadidos y, al final, con una búsqueda libre.
+        val clean = cleanTrackTitle(title)
+        val queries = listOfNotNull(
+            if (artist.isNotBlank()) "artist:\"$artist\" track:\"$title\"" else title,
+            if (artist.isNotBlank() && clean != title) "artist:\"$artist\" track:\"$clean\"" else null,
+            "$artist $clean".trim(),
+        ).distinct()
+        var found: List<JsonObject> = emptyList()
+        for (q in queries) {
+            val data = get("$BASE/search/track?q=${enc(q)}&limit=10")?.arr("data") ?: continue
+            found = data.objects()
+            if (found.isNotEmpty()) break
+        }
+        val best = found.maxByOrNull {
+            dev.surco.data.AlbumMatcher.similarity(it.str("title"), clean) * 2 +
                 dev.surco.data.AlbumMatcher.similarity(it.obj("artist")?.str("name").orEmpty(), artist)
         } ?: return null
+        // Un resultado de otro artista no sirve: mejor no abrir nada que abrir un álbum ajeno.
+        if (artist.isNotBlank() && dev.surco.data.AlbumMatcher.similarity(best.obj("artist")?.str("name").orEmpty(), artist) < 0.4f) return null
         val album = best.obj("album") ?: return null
         return Triple(album.long("id"), best.str("title"), album.str("title"))
     }
@@ -155,4 +169,13 @@ class Deezer(private val http: HttpClient) {
     companion object {
         private const val BASE = "https://api.deezer.com"
     }
+}
+
+/** «Creep - Remastered 2009», «Song (feat. X)», «Tema [Live]» → el título a secas, para buscarlo. */
+fun cleanTrackTitle(title: String): String {
+    var t = title
+    t = t.replace(Regex("""\s*[\(\[][^\)\]]*\b(feat\.?|ft\.?|with|remaster(ed)?|live|version|versión|mono|stereo|edit|mix|deluxe|bonus|demo|acoustic)\b[^\)\]]*[\)\]]""", RegexOption.IGNORE_CASE), "")
+    t = t.replace(Regex("""\s+-\s+.*\b(remaster(ed)?|live|version|versión|mono|stereo|edit|mix|demo|acoustic|single|radio)\b.*$""", RegexOption.IGNORE_CASE), "")
+    t = t.replace(Regex("""\s+(feat\.?|ft\.?)\s+.*$""", RegexOption.IGNORE_CASE), "")
+    return t.trim().ifBlank { title }
 }

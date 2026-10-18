@@ -89,12 +89,7 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
     } else {
         BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 8 })
     } ?: return@withContext null
-    runCatching {
-        val p = Palette.from(bmp).maximumColorCount(16).generate()
-        val swatch = p.darkVibrantSwatch ?: p.vibrantSwatch ?: p.mutedSwatch ?: p.dominantSwatch ?: return@runCatching null
-        // Oscurecemos un poco para que el texto blanco siempre se lea.
-        lerp(Color(swatch.rgb), Color.Black, 0.25f)
-    }.getOrNull()
+    runCatching { dominantColor(samplePixels(bmp)) }.getOrNull()
 }
 
 actual fun folderLabel(root: String): String = Uri.decode(root.substringAfterLast("/"))
@@ -160,4 +155,17 @@ actual fun HideSystemBars() {
         set(true)
         onDispose { set(false) }
     }
+}
+
+/** Unos 600 píxeles repartidos por toda la portada: de sobra para saber su color. */
+private fun samplePixels(bmp: android.graphics.Bitmap): List<Int> {
+    val step = maxOf(1, minOf(bmp.width, bmp.height) / 24)
+    val out = ArrayList<Int>()
+    var y = step / 2
+    while (y < bmp.height) {
+        var x = step / 2
+        while (x < bmp.width) { out += bmp.getPixel(x, y); x += step }
+        y += step
+    }
+    return out
 }

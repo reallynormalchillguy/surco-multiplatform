@@ -118,4 +118,52 @@ class NewFeaturesTest {
             assertTrue(!dev.surco.data.ScanRules.isAlbumLeftover(it), it)
         }
     }
+
+    // ---------------------------------------------------------------- Color de fondo de la portada
+
+    private fun hsvOf(c: androidx.compose.ui.graphics.Color): Triple<Float, Float, Float> {
+        val mx = maxOf(c.red, c.green, c.blue); val mn = minOf(c.red, c.green, c.blue)
+        val d = mx - mn
+        val h = when {
+            d == 0f -> 0f
+            mx == c.red -> ((c.green - c.blue) / d).mod(6f) * 60f
+            mx == c.green -> ((c.blue - c.red) / d + 2) * 60f
+            else -> ((c.red - c.green) / d + 4) * 60f
+        }
+        return Triple(h, if (mx == 0f) 0f else d / mx, mx)
+    }
+
+    @Test
+    fun coverColorTakesTheDominantHueNotTheLoudestOne() {
+        // Portada casi negra con mucho azul oscuro y una manchita roja muy viva (como la del ejemplo).
+        val px = ArrayList<Int>()
+        repeat(500) { px += 0xFF050608.toInt() }
+        repeat(300) { px += 0xFF1E3A5F.toInt() }
+        repeat(25) { px += 0xFFE01010.toInt() }
+        val c = dev.surco.ui.dominantColor(px)!!
+        val (h, s, v) = hsvOf(c)
+        assertTrue(h in 195f..235f, "tono azul, no rojo: $h")
+        assertTrue(s in 0.3f..0.65f, "apagado: $s")
+        assertTrue(v in 0.3f..0.45f, "oscuro para leer texto blanco: $v")
+    }
+
+    @Test
+    fun greyCoverGivesNeutralBackground() {
+        val px = ArrayList<Int>()
+        repeat(400) { px += 0xFF808080.toInt() }
+        repeat(400) { px += 0xFFF4F4F4.toInt() }
+        repeat(200) { px += 0xFF000000.toInt() }
+        val (_, s, v) = hsvOf(dev.surco.ui.dominantColor(px)!!)
+        assertTrue(s <= 0.1f, "gris: $s")
+        assertTrue(v in 0.25f..0.35f, "oscuro: $v")
+    }
+
+    @Test
+    fun scrobbleTitlesAreCleanedForSearch() {
+        assertEquals("Creep", dev.surco.net.cleanTrackTitle("Creep - Remastered 2009"))
+        assertEquals("Song", dev.surco.net.cleanTrackTitle("Song (feat. Someone)"))
+        assertEquals("Tema", dev.surco.net.cleanTrackTitle("Tema [Live]"))
+        assertEquals("Hey Jude", dev.surco.net.cleanTrackTitle("Hey Jude"))
+        assertEquals("Song", dev.surco.net.cleanTrackTitle("Song feat. X"))
+    }
 }

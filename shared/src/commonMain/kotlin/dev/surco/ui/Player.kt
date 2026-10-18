@@ -285,10 +285,11 @@ fun NowPlayingScreen(onClose: () -> Unit) {
             .nestedScroll(dismiss)
             .background(SurcoColors.Background)
             .background(
+                // Como Spotify: todo el fondo es el color de la portada, oscureciéndose poco a poco.
                 Brush.verticalGradient(
                     0f to color,
-                    0.45f to lerp(color, Color.Black, 0.55f),
-                    1f to SurcoColors.Background,
+                    0.55f to lerp(color, Color.Black, 0.18f),
+                    1f to lerp(color, Color.Black, 0.5f),
                 )
             )
             // Bloquea los toques para que no lleguen a la pantalla de debajo.

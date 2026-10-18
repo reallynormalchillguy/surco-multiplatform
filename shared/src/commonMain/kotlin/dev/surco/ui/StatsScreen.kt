@@ -412,8 +412,9 @@ private fun RecentScrobbles() {
             val local = lib.tracks[StatsMath.key(r.artist, r.title)]
             Row(
                 Modifier.fillMaxWidth().clickable {
+                    // Lo que tienes, suena; lo que no, abre la página del artista dentro de Surco.
                     if (local != null) actions.play(listOf(local), 0, "estadísticas|${S.stats}")
-                    else actions.openOnlineTrackAlbum(r.artist, r.title)
+                    else actions.openArtistAnywhere(lib, r.artist)
                 }.padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

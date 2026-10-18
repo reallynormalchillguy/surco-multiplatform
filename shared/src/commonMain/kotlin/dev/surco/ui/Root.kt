@@ -153,7 +153,11 @@ class AppActions(
 
     /** El álbum (de internet) de una canción que no tienes. */
     fun openOnlineTrackAlbum(artist: String, title: String) =
-        resolveOnline({ container.deezer.findTrack(artist, title)?.first }, ::openDiscover)
+        scope.launch {
+            // Si no aparece la canción, al menos la página del artista (nunca un «no encontrado»).
+            val id = runCatching { container.deezer.findTrack(artist, title)?.first }.getOrNull()
+            if (id != null && id > 0) openDiscover(id) else openOnlineArtistNamed(artist)
+        }
     fun openPlayer() = onOpenPlayer()
 
     /** Cambia de pestaña igual que la barra inferior. */

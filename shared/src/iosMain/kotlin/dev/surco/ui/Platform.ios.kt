@@ -119,7 +119,7 @@ actual suspend fun extractArtColor(context: PlatformContext, path: String): Colo
         while (x < bmp.width) { pixels += bmp.getColor(x, y); x += step }
         y += step
     }
-    dominantColor(pixels)?.let { lerp(it, Color.Black, 0.25f) }
+    dominantColor(pixels)
 }.getOrNull()
 
 actual fun folderLabel(root: String): String = runCatching { IosLibrary.label(root) }.getOrDefault(root)
