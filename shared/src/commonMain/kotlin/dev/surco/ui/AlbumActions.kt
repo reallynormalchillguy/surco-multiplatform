@@ -24,7 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ImageSearch
@@ -81,6 +83,7 @@ fun AlbumMenuSheet(albumKey: String, onDismiss: () -> Unit) {
     val tracks by remember(albumKey) { dao.albumTracks(albumKey) }.collectAsState(initial = emptyList())
     var confirmDelete by remember { mutableStateOf(false) }
     val a = album
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
 
     if (confirmDelete && a != null) {
         DeleteAlbumDialogs(albumKey, a.album, a.artist, tracks, onDone = { confirmDelete = false; onDismiss() })
@@ -118,11 +121,45 @@ fun AlbumMenuSheet(albumKey: String, onDismiss: () -> Unit) {
             a?.let { al ->
                 SheetItem(Icons.Filled.Share, S.share, "album_share") { onDismiss(); actions.shareAlbum(al) }
                 SheetItem(Icons.Filled.Person, S.goToArtist) { onDismiss(); actions.openArtist(al.artist) }
+                // Fichas del disco en Discogs y Rate Your Music (se abren en el navegador).
+                SheetItem(Icons.Filled.Album, S.searchOnDiscogs, "album_discogs") {
+                    onDismiss(); runCatching { uri.openUri(discogsSearch(al.artist, al.album)) }
+                }
+                SheetItem(Icons.Filled.Star, S.searchOnRym, "album_rym") {
+                    onDismiss(); runCatching { uri.openUri(rymSearch(al.artist, al.album)) }
+                }
             }
             HorizontalDivider(color = SurcoColors.SurfaceHigh, modifier = Modifier.padding(vertical = 6.dp))
             SheetItem(Icons.Filled.DeleteForever, S.deleteAlbum, "album_delete", tint = SurcoColors.Error) {
                 if (tracks.isNotEmpty()) confirmDelete = true
             }
+        }
+    }
+}
+
+/** Búsqueda del disco en Discogs. */
+fun discogsSearch(artist: String, album: String) =
+    "https://www.discogs.com/search/?q=${urlEncode(searchText(artist, album))}&type=all"
+
+/** Búsqueda del disco en Rate Your Music (sólo lanzamientos). */
+fun rymSearch(artist: String, album: String) =
+    "https://rateyourmusic.com/search?searchterm=${urlEncode(searchText(artist, album))}&searchtype=l"
+
+/** «Artista Álbum» sin lo que confunde a los buscadores: «(Deluxe Edition)», «[Remastered]»… */
+private fun searchText(artist: String, album: String): String {
+    val clean = album.replace(Regex("""\s*[(\[][^)\]]*(edition|remaster|deluxe|expanded|bonus|anniversary|version|edición|remasterizado)[^)\]]*[)\]]""", RegexOption.IGNORE_CASE), "").trim()
+    val a = artist.takeUnless { it.isBlank() || it.startsWith("<") || it.equals("Unknown artist", true) || it.equals("Artista desconocido", true) }.orEmpty()
+    return "$a ${clean.ifBlank { album }}".trim()
+}
+
+/** Codifica un texto para la URL (UTF-8, igual en Android y en iPhone). */
+private fun urlEncode(s: String): String = buildString {
+    for (b in s.encodeToByteArray()) {
+        val c = b.toInt() and 0xFF
+        when {
+            c in 0x30..0x39 || c in 0x41..0x5A || c in 0x61..0x7A || c == 0x2D || c == 0x2E || c == 0x5F || c == 0x7E -> append(c.toChar())
+            c == 0x20 -> append('+')
+            else -> { append('%'); append("0123456789ABCDEF"[c shr 4]); append("0123456789ABCDEF"[c and 15]) }
         }
     }
 }

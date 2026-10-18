@@ -601,6 +601,8 @@ object S {
 
     // ------------------------------------------------------------------ Biografía editable
     val noConnection get() = t("No connection", "Sin conexión")
+    val searchOnDiscogs get() = t("Search on Discogs", "Buscar en Discogs")
+    val searchOnRym get() = t("Search on Rate Your Music", "Buscar en Rate Your Music")
     val notFoundOnline get() = t("Couldn't find it online", "No se ha encontrado en internet")
     val noBioFound get() = t("No biography was found online", "No se encontró ninguna biografía en internet")
     val bioOptions get() = t("Biography options", "Opciones de la biografía")
