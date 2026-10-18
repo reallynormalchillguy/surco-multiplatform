@@ -116,6 +116,7 @@ object IosDemo {
     fun playIfRequested(c: IosContainer) {
         val t = demoTrack ?: return
         c.player.play(listOf(t), 0, "album|${t.album}", false)
+        IosApp.openPlayerSignal++ // y abre el reproductor (ya con la canción sonando)
     }
 
     /**
