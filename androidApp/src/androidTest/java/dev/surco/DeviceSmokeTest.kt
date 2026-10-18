@@ -141,7 +141,11 @@ class DeviceSmokeTest {
 
     /** Guarda una captura real del dispositivo (la CI las descarga para poder revisarlas). */
     private fun shot(label: String) {
+        android.util.Log.i("SURCO_STEP", "paso ${step + 1}: $label")
         runCatching {
+            // Con un diálogo u hoja abiertos hay varias ventanas: copiar sus píxeles colgaba el emulador 37.
+            val roots = compose.onAllNodes(isRoot()).fetchSemanticsNodes()
+            if (roots.size > 1) { ++step; return }
             val bmp = compose.onAllNodes(isRoot())[0].captureToImage().asAndroidBitmap()
             val dir = java.io.File(app.getExternalFilesDir(null), "shots").apply { mkdirs() }
             java.io.File(dir, "%02d_%s.png".format(++step, label.replace(Regex("[^A-Za-z0-9]+"), "_").take(40)))

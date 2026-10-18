@@ -32,7 +32,7 @@ for b in re.findall(r'<remotePackage path="emulator">(.*?)</remotePackage>', xml
         best = (v, m.group(1))
 print("%s %s" % (".".join(map(str, best[0])), best[1]) if best else "")
 PY
-)
+2>>phases.log)
 if [ -n "$PIN" ]; then
   log "emulador fijado: $PIN"
   set -- $PIN
