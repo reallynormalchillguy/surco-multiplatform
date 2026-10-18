@@ -164,7 +164,7 @@ private fun SearchHome(onQuery: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         if (recents.isNotEmpty()) {
             item {
-                Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.Bottom) {
                     Box(Modifier.weight(1f)) { SectionTitle(S.recentSearches) }
                     androidx.compose.material3.TextButton(
                         onClick = { actions.scope.launch { actions.repo.dao.clearSearchRecents() } },

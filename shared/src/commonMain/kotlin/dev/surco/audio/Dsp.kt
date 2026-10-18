@@ -220,8 +220,9 @@ class Limiter(private val ceiling: Float = 0.977f) {
         for (n in 0 until frames) {
             var peak = 0f
             for (c in 0 until channels) peak = max(peak, abs(buf[i + c]))
+            // Se recupera poco a poco, pero nunca tanto como para pasar del techo.
+            g = 1f - (1f - g) * release
             if (peak * g > ceiling) g = ceiling / peak
-            else g = 1f - (1f - g) * release
             if (g < 0.99999f) for (c in 0 until channels) buf[i + c] *= g
             i += channels
         }
@@ -479,7 +480,7 @@ class SpectrogramAnalyzer(val rows: Int = 128, val n: Int = 2048, private val mi
                 m = mags[k0] * (1 - t) + mags[k0 + 1] * t
             }
             val db = 20 * log10(max(m, 1e-9f))
-            out[r] = ((db + 90f) / 80f).coerceIn(0f, 1f)
+            out[r] = ((db + 95f) / 85f).coerceIn(0f, 1f)
         }
         return true
     }

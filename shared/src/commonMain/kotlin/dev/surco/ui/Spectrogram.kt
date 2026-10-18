@@ -101,7 +101,7 @@ fun SpectrogramView(playing: Boolean, modifier: Modifier = Modifier) {
 /** Escala de color: casi negro → acento oscuro → acento → casi blanco. */
 private fun spectrogramColors(accent: Color): Array<Color> {
     val base = Color(0xFF070707)
-    val stops = listOf(0f to base, 0.32f to lerp(base, accent, 0.28f), 0.62f to accent, 0.86f to lerp(accent, Color.White, 0.55f), 1f to Color.White)
+    val stops = listOf(0f to base, 0.32f to lerp(base, accent, 0.28f), 0.62f to accent, 0.88f to lerp(accent, Color.White, 0.35f), 1f to lerp(accent, Color.White, 0.7f))
     return Array(256) { i ->
         val t = i / 255f
         val k = stops.indexOfLast { it.first <= t }.coerceIn(0, stops.size - 2)

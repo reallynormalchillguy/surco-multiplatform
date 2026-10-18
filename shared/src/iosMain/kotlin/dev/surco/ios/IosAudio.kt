@@ -109,7 +109,8 @@ private val tapInit = staticCFunction { _: MTAudioProcessingTapRef?, clientInfo:
 
 @OptIn(ExperimentalForeignApi::class)
 private val tapFinalize = staticCFunction { tap: MTAudioProcessingTapRef? ->
-    MTAudioProcessingTapGetStorage(tap)?.asStableRef<TapState>()?.dispose()
+    val storage = MTAudioProcessingTapGetStorage(tap)
+    if (storage != null) storage.asStableRef<TapState>().dispose()
 }
 
 @OptIn(ExperimentalForeignApi::class)

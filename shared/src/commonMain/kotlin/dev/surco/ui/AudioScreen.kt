@@ -279,7 +279,7 @@ private fun EqGraph(
     val sel by rememberUpdatedState(selected)
     val curve = remember(eq) {
         val n = 160
-        FloatArray(n) { i -> eq.responseDb(20f * 1000f.pow(i / (n - 1f))) }
+        FloatArray(n) { i -> eq.responseDb(20f * 1000f.pow(i / (n - 1f))) - eq.preamp } // la forma de las bandas (el preamplificador va aparte)
     }
     val labelStyle = TextStyle(color = grid, fontSize = 10.sp)
 

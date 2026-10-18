@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSProcessInfo
+import platform.Foundation.writeToFile
 import platform.UIKit.UIColor
 import platform.UIKit.UIGraphicsImageRenderer
 import platform.UIKit.UIImageJPEGRepresentation
