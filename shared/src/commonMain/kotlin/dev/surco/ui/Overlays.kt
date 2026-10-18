@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 
 /**
  * Capas que se abren por encima de la navegación (reproductor y letra a pantalla completa).
@@ -51,16 +52,58 @@ object Overlays {
 @Composable
 fun rememberTabListState(route: String): androidx.compose.foundation.lazy.LazyListState {
     val tap = Overlays.tabTaps[route] ?: 0
-    return rememberSaveable(tap, key = "tab_list_${route}_$tap", saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
+    val state = rememberSaveable(tap, key = "tab_list_${route}_$tap", saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
         androidx.compose.foundation.lazy.LazyListState()
     }
+    KeepAtTopWhileLoading(state.interactionSource, { state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0 }, { state.layoutInfo.totalItemsCount }) {
+        state.scrollToItem(0)
+    }
+    return state
 }
 
 @Composable
 fun rememberTabGridState(route: String): androidx.compose.foundation.lazy.grid.LazyGridState {
     val tap = Overlays.tabTaps[route] ?: 0
-    return rememberSaveable(tap, key = "tab_grid_${route}_$tap", saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) {
+    val state = rememberSaveable(tap, key = "tab_grid_${route}_$tap", saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) {
         androidx.compose.foundation.lazy.grid.LazyGridState()
+    }
+    KeepAtTopWhileLoading(state.interactionSource, { state.firstVisibleItemIndex == 0 && state.firstVisibleItemScrollOffset == 0 }, { state.layoutInfo.totalItemsCount }) {
+        state.scrollToItem(0)
+    }
+    return state
+}
+
+/**
+ * Una lista que empieza arriba del todo sigue arriba mientras se va llenando. Si no, al llegar las
+ * secciones de la base de datos (después de las recomendaciones, que ya estaban en memoria), la lista se
+ * quedaba «enganchada» a la primera que vio y aparecía a media página. En cuanto el usuario la toca, se
+ * le deja en paz.
+ */
+@Composable
+private fun KeepAtTopWhileLoading(
+    interactions: androidx.compose.foundation.interaction.InteractionSource,
+    atTop: () -> Boolean,
+    itemCount: () -> Int,
+    scrollTop: suspend () -> Unit,
+) {
+    LaunchedEffect(interactions) {
+        if (!atTop()) return@LaunchedEffect
+        var touched = false
+        // Sólo mientras se carga; después, la lista es del usuario.
+        kotlinx.coroutines.withTimeoutOrNull(10_000) {
+            launch {
+                interactions.interactions.collect { i ->
+                    if (i is androidx.compose.foundation.interaction.DragInteraction.Start) touched = true
+                }
+            }
+            var lastCount = itemCount()
+            var wasTop = true
+            androidx.compose.runtime.snapshotFlow { itemCount() to atTop() }.collect { (count, top) ->
+                // Sólo si se ha movido porque han llegado secciones nuevas (no por un desplazamiento).
+                if (count != lastCount && wasTop && !top && !touched) scrollTop() else wasTop = top
+                lastCount = count
+            }
+        }
     }
 }
 
