@@ -49,3 +49,6 @@ expect fun HideSystemBars()
 /** El gesto o botón «atrás» del sistema (en iOS no hay botón: no hace nada). */
 @androidx.compose.runtime.Composable
 expect fun PlatformBack(enabled: Boolean, onBack: () -> Unit)
+
+/** En iPhone se vuelve atrás deslizando desde el borde izquierdo (lo hace Surco, no el sistema). */
+expect val EDGE_SWIPE_BACK: Boolean

@@ -129,11 +129,10 @@ private fun DrawerContent(progress: Float) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(48.dp).clip(CircleShape).background(SurcoColors.Accent), contentAlignment = Alignment.Center) {
-                if (image != null) AsyncImage(image, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                else Text(
+                LastFmPicture(image, Modifier.fillMaxSize()) { Text(
                     (settings.lastfmUser.ifBlank { "Surco" }).take(1).uppercase(),
                     style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SurcoColors.OnAccent,
-                )
+                ) }
             }
             Spacer(Modifier.width(12.dp))
             Column {

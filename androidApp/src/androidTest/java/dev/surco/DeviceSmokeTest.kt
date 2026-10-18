@@ -210,10 +210,11 @@ class DeviceSmokeTest {
 
         tap(compose.first(S.downloads, substring = true), "descargas")
         tap(compose.onNodeWithTag("cancel_queued"), "cancelar_cola")
+        // Lo cancelado sale de la lista; queda la que baja y la fallida.
+        assertEquals(listOf(3L, 4L), c.soulseek.client.transfers.value.map { it.id })
         tap(compose.onNodeWithTag("cancel_downloading"), "cancelar_activas")
-        val states = c.soulseek.client.transfers.value.map { it.state }
-        assertEquals(listOf(T.CANCELLED, T.CANCELLED, T.CANCELLED, T.FAILED), states)
-        tap(compose.onNodeWithTag("clear_finished"), "limpiar")
+        // Sin nada en marcha, el historial se limpia solo.
+        assertEquals(emptyList<Long>(), c.soulseek.client.transfers.value.map { it.id })
     }
 
     @Test

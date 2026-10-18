@@ -205,10 +205,9 @@ private fun OtherUserDialog(onDismiss: () -> Unit, onView: (String) -> Unit) {
 @Composable
 private fun AppAvatarOrLastFm(connected: Boolean, image: String?, onClick: () -> Unit) {
     if (connected && image != null) {
-        AsyncImage(
-            image, null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(34.dp).clip(CircleShape).background(SurcoColors.SurfaceHigh).clickable(onClick = onClick),
-        )
+        LastFmPicture(image, Modifier.size(34.dp).clip(CircleShape).background(SurcoColors.SurfaceHigh).clickable(onClick = onClick)) {
+            dev.surco.ui.components.AppAvatar(onClick = onClick)
+        }
     } else {
         dev.surco.ui.components.AppAvatar(onClick = onClick)
     }
@@ -360,8 +359,9 @@ private fun ProfileHero(r: StatsReport) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(52.dp).clip(CircleShape).background(SurcoColors.SurfaceHigher), contentAlignment = Alignment.Center) {
-                if (p.imageUrl != null) AsyncImage(p.imageUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                else Text(p.name.take(1).uppercase(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                LastFmPicture(p.imageUrl, Modifier.fillMaxSize()) {
+                    Text(p.name.take(1).uppercase(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f).clickable(enabled = p.url.isNotBlank()) { runCatching { uri.openUri(p.url) } }) {
@@ -1097,3 +1097,23 @@ private fun bucketLabel(b: ActivityBucket, bucketDays: Int): String = when (buck
     else -> StatsMath.civil(b.startDay).let { (y, m, _) -> S.monthLong(m).replaceFirstChar { it.titlecase() } + " $y" }
 }
 
+/**
+ * Foto de perfil de Last.fm. Si no se puede abrir (hay fotos en GIF o WebP que el iPhone no siempre
+ * decodifica), se pide la misma en JPG a la CDN de Last.fm; y si tampoco, se enseña [fallback].
+ */
+@Composable
+internal fun LastFmPicture(url: String?, modifier: Modifier, fallback: @Composable () -> Unit) {
+    var attempt by remember(url) { androidx.compose.runtime.mutableIntStateOf(0) }
+    val jpg = url?.let { lastfmAsJpg(it) }
+    val model = when {
+        url == null -> null
+        attempt == 0 -> url
+        attempt == 1 && jpg != url -> jpg
+        else -> null
+    }
+    if (model == null) { fallback(); return }
+    AsyncImage(model, null, contentScale = ContentScale.Crop, modifier = modifier, onError = { attempt += 1 })
+}
+
+private fun lastfmAsJpg(url: String): String =
+    if ("last.fm" in url || "lastfm" in url) url.replace(Regex("""\.(gif|png|webp|avif)$""", RegexOption.IGNORE_CASE), ".jpg") else url

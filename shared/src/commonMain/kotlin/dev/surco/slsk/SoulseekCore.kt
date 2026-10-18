@@ -610,6 +610,7 @@ class SoulseekCore(
         _transfers.value.firstOrNull { it.id == id } ?: return
         update(id) { it.copy(state = TransferState.CANCELLED, speed = 0) }
         takeActive(id)?.close()
+        forgetCancelled()
         checkFinished()
     }
 
@@ -618,6 +619,7 @@ class SoulseekCore(
         if (ids.isEmpty()) return 0
         _transfers.update { list -> list.map { if (it.id in ids) it.copy(state = TransferState.CANCELLED, speed = 0) else it } }
         ids.forEach { id -> takeActive(id)?.close() }
+        forgetCancelled()
         checkFinished()
         return ids.size
     }
@@ -644,6 +646,18 @@ class SoulseekCore(
         var c: Conn? = null
         activeSockets.update { m -> c = m[id]; m - id }
         return c
+    }
+
+    /**
+     * Lo cancelado desaparece de la lista de descargas; y si ya no queda nada en marcha, el historial
+     * entero (terminadas y fallidas) se limpia solo. Si el otro usuario intenta enviarlo después, ya
+     * no está en la lista y se le contesta «Cancelled».
+     */
+    private fun forgetCancelled() {
+        _transfers.update { list ->
+            val rest = list.filter { it.state != TransferState.CANCELLED }
+            if (rest.none { it.state.active }) emptyList() else rest
+        }
     }
 
     private suspend fun request(user: String, list: List<Transfer>) {

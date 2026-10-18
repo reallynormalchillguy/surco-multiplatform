@@ -150,3 +150,5 @@ actual fun HideSystemBars() {}
 
 @androidx.compose.runtime.Composable
 actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) {}
+
+actual val EDGE_SWIPE_BACK: Boolean = true

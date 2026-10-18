@@ -340,6 +340,22 @@ private fun SearchPanel(initialQuery: String) {
     }
 
     val groups = remember(results, format) { group(results, format) }
+    // Lo que ya está en pantalla no se mueve aunque lleguen resultados mejores: los nuevos van detrás.
+    val pinned = remember { ArrayList<String>() }
+    if (groups.isEmpty()) pinned.clear()
+    val visible = remember(groups, shown) {
+        val byKey = groups.associateBy { it.key }
+        val kept = pinned.mapNotNull { byKey[it] }
+        val keptKeys = kept.map { it.key }.toHashSet()
+        (kept + groups.filter { it.key !in keptKeys }).take(shown)
+    }
+    androidx.compose.runtime.SideEffect { pinned.clear(); visible.mapTo(pinned) { it.key } }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    // 10 más sólo cuando TÚ llegas al final de la lista (no porque lleguen resultados nuevos).
+    LaunchedEffect(listState) {
+        androidx.compose.runtime.snapshotFlow { !listState.canScrollForward && listState.canScrollBackward }
+            .collect { atEnd -> if (atEnd && listState.isScrollInProgress) shown += PAGE }
+    }
     val queued = remember(transfers) {
         transfers.filter { it.state != TransferState.FAILED && it.state != TransferState.CANCELLED }.map { it.user + "|" + it.path }.toSet()
     }
@@ -395,6 +411,7 @@ private fun SearchPanel(initialQuery: String) {
                 !online -> ""
                 searching && groups.isEmpty() -> S.searchingNetwork
                 groups.isEmpty() && submitted -> S.noResultsYet
+                groups.size > visible.size -> S.showingOf(visible.size, groups.size)
                 groups.isNotEmpty() -> S.foldersAndUsers(groups.size, groups.map { it.user }.distinct().size)
                 else -> ""
             }
@@ -408,11 +425,12 @@ private fun SearchPanel(initialQuery: String) {
         }
 
         LazyColumn(
-            Modifier.fillMaxSize(),
+            Modifier.fillMaxSize().testTag("slsk_results"),
+            state = listState,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(groups.take(shown), key = { it.key }) { g ->
+            items(visible, key = { it.key }) { g ->
                 FolderCard(
                     g,
                     expanded = g.key in expanded,
@@ -424,12 +442,13 @@ private fun SearchPanel(initialQuery: String) {
                     },
                 )
             }
-            if (groups.size > shown) {
+            if (groups.size > visible.size) {
                 item(key = "more") {
-                    // Se ha llegado al final: 10 más.
-                    LaunchedEffect(shown, groups.size) { shown += PAGE }
-                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(Modifier.size(22.dp), color = SurcoColors.Accent, strokeWidth = 2.dp)
+                    // Al llegar aquí deslizando se cargan solos; el botón por si la lista no llena la pantalla.
+                    Box(Modifier.fillMaxWidth().padding(4.dp), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.TextButton(onClick = { shown += PAGE }, modifier = Modifier.testTag("slsk_more")) {
+                            Text(S.showMore, color = SurcoColors.Accent)
+                        }
                     }
                 }
             }

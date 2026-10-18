@@ -1,5 +1,9 @@
 package dev.surco.ui
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import dev.surco.i18n.S
@@ -393,6 +397,25 @@ private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initia
                         SpotifyLinkScreen(it.stringArg("u"))
                     }
                 }
+                // iPhone: deslizar desde el borde IZQUIERDO vuelve atrás. El gesto propio de iOS se
+                // activaba también desde el borde derecho y al pasar listas horizontales (discografía,
+                // artistas parecidos) te sacaba de la página; por eso está apagado y se hace aquí.
+                if (EDGE_SWIPE_BACK) {
+                    val here by nav.currentBackStackEntryAsState()
+                    val route = here?.destination?.route
+                    if (route != null && route !in TAB_ROUTES && nav.previousBackStackEntry != null) {
+                        Box(
+                            Modifier.padding(padding).fillMaxHeight().width(18.dp).testTag("edge_back")
+                                .pointerInput(route) {
+                                    var total = 0f
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { total = 0f },
+                                        onDragEnd = { if (total > 56.dp.toPx()) nav.popBackStack() },
+                                    ) { change, dx -> total += dx; change.consume() }
+                                },
+                        )
+                    }
+                }
             }
 
             }
@@ -546,3 +569,6 @@ private fun NavBackStackEntry.stringArg(key: String): String =
 
 /** Codifica un texto para usarlo dentro de una ruta de navegación. */
 fun encodeArg(s: String): String = s.encodeURLParameter()
+
+/** Las raíces de las pestañas: desde ellas no se vuelve atrás deslizando. */
+private val TAB_ROUTES = setOf("home", "search", "library", "stats")

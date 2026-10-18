@@ -172,3 +172,5 @@ private fun samplePixels(bmp: android.graphics.Bitmap): List<Int> {
 
 @Composable
 actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) = androidx.activity.compose.BackHandler(enabled, onBack)
+
+actual val EDGE_SWIPE_BACK: Boolean = false
