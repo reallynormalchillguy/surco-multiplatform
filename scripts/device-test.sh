@@ -29,7 +29,7 @@ echo "disk.dataPartition.size=2048M" >> "$CFG"
 
 log "arrancando emulador (kvm: $(ls -l /dev/kvm 2>&1))"
 "$SDK/emulator/emulator" -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
-  -no-snapshot -camera-back none -camera-front none -memory 3072 -partition-size 2048 > emulator.log 2>&1 &
+  -no-snapshot -camera-back none -camera-front none -memory 2048 -cores 2 -partition-size 2048 > emulator.log 2>&1 &
 ADB="$SDK/platform-tools/adb"
 timeout 600 "$ADB" wait-for-device || { log "el emulador no aparece"; tail -20 emulator.log | tee -a phases.log; echo none > device.exit; exit 0; }
 for i in $(seq 1 120); do
@@ -48,6 +48,7 @@ LOGCAT_PID=$!
 # Copia del log guardada en el propio emulador (sigue aunque se corte la conexión con adb).
 "$ADB" shell "logcat -v time -f /data/local/tmp/surco-log.txt -r 8192 -n 2 > /dev/null 2>&1 &" || true
 
+log "memoria del runner: $(free -m | awk '/Mem/{print $2" MB total, "$7" MB libres"}'), núcleos: $(nproc)"
 log "ejecutando pruebas"
 timeout 1200 ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace \
   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true > device.log 2>&1
@@ -67,5 +68,8 @@ grep -E "AndroidRuntime|FATAL|Process: dev.surco|Caused by|at dev\.surco|ANR in|
 mkdir -p device-shots
 timeout 120 "$ADB" pull /sdcard/Android/data/dev.surco/files/shots device-shots >/dev/null 2>&1 || true
 log "capturas: $(find device-shots -name '*.png' | wc -l)"
+# ¿Se quedó sin memoria el runner y mató al emulador?
+sudo dmesg 2>/dev/null | grep -iE "killed process|out of memory|oom" | tail -20 > host-oom.txt || true
+log "memoria al terminar: $(free -m | awk '/Mem/{print $7" MB libres"}'); OOM: $(wc -l < host-oom.txt) líneas"
 timeout 20 "$ADB" emu kill || true
 exit 0
