@@ -129,6 +129,12 @@ interface LibraryDao {
     @Query("DELETE FROM search_recents WHERE `key` = :key")
     suspend fun deleteSearchRecent(key: String)
 
+    @Query("DELETE FROM search_recents")
+    suspend fun clearSearchRecents()
+
+    @Query("SELECT * FROM search_recents WHERE type = 'query'")
+    suspend fun searchedQueries(): List<SearchRecent>
+
     @Query("SELECT * FROM search_recents ORDER BY at DESC LIMIT 25")
     fun searchRecents(): Flow<List<SearchRecent>>
 

@@ -50,6 +50,26 @@ data class Settings(
     val statsTopArtists: String = "MONTH",
     val statsTopAlbums: String = "MONTH",
     val statsTopTracks: String = "MONTH",
+    /** Tamaño de toda la interfaz (1 = normal; menos, todo más pequeño; más, todo más grande). */
+    val uiScale: Float = 1f,
+    // ---- Audio para audiófilos (todo apagado por defecto: así el sonido sale tal cual)
+    /** Normalizar el volumen (ReplayGain si lo trae el archivo; si no, lo que mide Surco al escucharla). */
+    val normalize: Boolean = false,
+    /** Normalizar por álbum (respeta las diferencias de volumen dentro de un disco) en vez de por canción. */
+    val normalizeAlbum: Boolean = false,
+    /** Volumen objetivo en LUFS (-14 como Spotify; -18 como ReplayGain; -11 más fuerte). */
+    val normalizeTarget: Int = -14,
+    /** Ecualizador paramétrico encendido. */
+    val eqEnabled: Boolean = false,
+    /** Bandas del ecualizador (ver [dev.surco.audio.EqSettings.encode]). */
+    val eq: String = "",
+    /** Fundido encadenado entre canciones. */
+    val crossfade: Boolean = false,
+    val crossfadeSec: Int = 6,
+    /** Fundir también entre canciones seguidas del mismo álbum (los discos sin pausas suenan mejor sin él). */
+    val crossfadeAlbums: Boolean = false,
+    /** La portada del reproductor convertida en espectrograma (5 toques en la portada). */
+    val spectrogram: Boolean = false,
 ) {
     val spotifyReady get() = spotifyId.isNotBlank() && spotifySecret.isNotBlank()
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
@@ -104,6 +124,16 @@ class Prefs(
         statsTopArtists = str("statsTopArtists", "MONTH"),
         statsTopAlbums = str("statsTopAlbums", "MONTH"),
         statsTopTracks = str("statsTopTracks", "MONTH"),
+        uiScale = str("uiScale", "1").toFloatOrNull()?.coerceIn(0.7f, 1.4f) ?: 1f,
+        normalize = store.bool("normalize", false),
+        normalizeAlbum = store.bool("normAlbum", false),
+        normalizeTarget = str("normTarget", "-14").toIntOrNull() ?: -14,
+        eqEnabled = store.bool("eqEnabled", false),
+        eq = str("eq", ""),
+        crossfade = store.bool("crossfade", false),
+        crossfadeSec = str("crossfadeSec", "6").toIntOrNull()?.coerceIn(1, 12) ?: 6,
+        crossfadeAlbums = store.bool("crossfadeAlbums", false),
+        spectrogram = store.bool("spectrogram", false),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -128,6 +158,10 @@ class Prefs(
                 "statsTopArtists" to s.statsTopArtists,
                 "statsTopAlbums" to s.statsTopAlbums,
                 "statsTopTracks" to s.statsTopTracks,
+                "uiScale" to s.uiScale.toString(),
+                "normTarget" to s.normalizeTarget.toString(),
+                "eq" to s.eq,
+                "crossfadeSec" to s.crossfadeSec.toString(),
             ),
             bools = mapOf(
                 "embedCovers" to s.embedCovers,
@@ -139,6 +173,12 @@ class Prefs(
                 "discover" to s.discover,
                 "autoScan" to s.autoScan,
                 "iconFollowsAccent" to s.iconFollowsAccent,
+                "normalize" to s.normalize,
+                "normAlbum" to s.normalizeAlbum,
+                "eqEnabled" to s.eqEnabled,
+                "crossfade" to s.crossfade,
+                "crossfadeAlbums" to s.crossfadeAlbums,
+                "spectrogram" to s.spectrogram,
             ),
         )
         applyLanguage(s)

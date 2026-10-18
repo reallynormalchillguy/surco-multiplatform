@@ -22,5 +22,9 @@ fun MainViewController(): UIViewController {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1_500_000_000L), dispatch_get_main_queue()) {
         IosCrashReporter.showPending(vc)
     }
+    // Demo de audio real (capturas): suena una señal de prueba con el ecualizador y el espectrograma.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1_000_000_000L), dispatch_get_main_queue()) {
+        IosDemo.playIfRequested(IosApp.container)
+    }
     return vc
 }

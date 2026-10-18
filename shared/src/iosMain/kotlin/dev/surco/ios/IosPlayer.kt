@@ -1,5 +1,8 @@
 package dev.surco.ios
 
+import dev.surco.audio.AudioFx
+import dev.surco.audio.EqSettings
+import dev.surco.audio.Normalization
 import dev.surco.data.Repository
 import dev.surco.data.Track
 import dev.surco.playback.PlayerController
@@ -9,6 +12,7 @@ import dev.surco.playback.ScrobbleTracker
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -27,6 +31,7 @@ import platform.AVFAudio.setActive
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.volume
 import platform.AVFoundation.AVPlayerItem
+import platform.AVFoundation.AVPlayerItemStatusReadyToPlay
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
 import platform.AVFoundation.AVPlayerItemFailedToPlayToEndTimeNotification
 import platform.AVFoundation.addPeriodicTimeObserverForInterval
@@ -67,7 +72,7 @@ import platform.UIKit.UIImage
  * controles en la pantalla de bloqueo / Centro de control y scrobbles con las mismas reglas que Android.
  */
 @OptIn(ExperimentalForeignApi::class)
-class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer: dev.surco.playback.SleepTimer) : PlayerController {
+class IosPlayer(private val scope: CoroutineScope, private val repo: Repository, private val sleepTimer: dev.surco.playback.SleepTimer) : PlayerController {
     private val player = AVPlayer()
     private val tracker = ScrobbleTracker(scope, repo)
     private val _state = MutableStateFlow(PlayerUiState(connected = true))
@@ -100,20 +105,151 @@ class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer:
         // Temporizador para dormir: en los últimos segundos baja el volumen poco a poco y pausa.
         scope.launch(kotlinx.coroutines.Dispatchers.Main) {
             sleepTimer.state.collectLatest { t ->
-                player.volume = 1f
+                sleepFactor = 1f; applyVolume()
                 if (t.endsAt <= 0) return@collectLatest
                 delay((t.endsAt - dev.surco.playback.SleepTimer.FADE_MS - dev.surco.util.nowMillis()).coerceAtLeast(0))
                 while (true) {
                     val left = t.endsAt - dev.surco.util.nowMillis()
                     if (left <= 0) break
-                    player.volume = (left.toFloat() / dev.surco.playback.SleepTimer.FADE_MS).coerceIn(0f, 1f)
+                    sleepFactor = (left.toFloat() / dev.surco.playback.SleepTimer.FADE_MS).coerceIn(0f, 1f); applyVolume()
                     delay(100)
                 }
                 if (playing) pause()
-                player.volume = 1f
+                sleepFactor = 1f; applyVolume()
                 sleepTimer.finished()
             }
         }
+        // Audio para audiófilos: ecualizador y normalización siguen a los ajustes.
+        AudioFx.tapLatencyMs = 40
+        scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            var last: Triple<Boolean, Int, Boolean>? = null
+            repo.prefs.settings.collect { s ->
+                AudioFx.setEq(s.eqEnabled, EqSettings.decode(s.eq))
+                val norm = Triple(s.normalize, s.normalizeTarget, s.normalizeAlbum)
+                if (norm != last) { last = norm; refreshGain() }
+            }
+        }
+        // Crossfade (y guardar las medidas de sonoridad).
+        scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            while (true) {
+                val near = checkCrossfade()
+                collectMeasure()
+                delay(if (near) 25 else 250)
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- Volumen, normalización y crossfade
+
+    private val levels = IosAudioLevels()
+    private var normGain = 1f
+    private var sleepFactor = 1f
+    private var fadeIn = 1f
+
+    private fun applyVolume() {
+        player.volume = (normGain * sleepFactor * fadeIn).coerceIn(0f, 1f)
+    }
+
+    private var gainJob: Job? = null
+
+    private fun refreshGain() {
+        gainJob?.cancel()
+        val s = repo.prefs.current
+        val t = current()
+        if (!s.normalize || t == null) {
+            AudioFx.measureKey = null
+            normGain = 1f; applyVolume()
+            return
+        }
+        gainJob = scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            val album = runCatching { repo.dao.albumTracksOnce(t.albumKey) }.getOrDefault(emptyList())
+            val (db, measure) = levels.gainFor(t, album, s)
+            if (current()?.uri != t.uri) return@launch
+            AudioFx.measureKey = if (measure) t.uri else null
+            normGain = db?.let { Normalization.linear(it) } ?: 1f
+            applyVolume()
+        }
+    }
+
+    private fun collectMeasure() {
+        val m = AudioFx.measured ?: return
+        AudioFx.measured = null
+        levels.saveMeasured(m.first, m.second)
+    }
+
+    private var fader: AVPlayer? = null
+    private var faderFor: String? = null
+    private var fadeJob: Job? = null
+
+    /** Prepara y lanza el crossfade cuando toca. Devuelve true si está a punto (para vigilar más a menudo). */
+    private fun checkCrossfade(): Boolean {
+        if (fadeJob?.isActive == true) return false
+        val s = repo.prefs.current
+        val cur = current()
+        val hasNext = pos + 1 < order.size || (repeat == Repeat.ALL && order.size > 1)
+        if (!s.crossfade || cur == null || !playing || repeat == Repeat.ONE || sleepTimer.state.value.endOfTrack || !hasNext) {
+            dropFader(); return false
+        }
+        val dur = durationMs()
+        val fadeMs = s.crossfadeSec * 1000L
+        if (dur <= 0 || dur < fadeMs * 2 + 10_000) return false
+        val next = queue.getOrNull(order[(pos + 1) % order.size]) ?: return false
+        if (!s.crossfadeAlbums && next.albumKey == cur.albumKey) { dropFader(); return false }
+        val start = dur - fadeMs
+        val p = positionMs()
+        if (p < start - 5_000) {
+            if (faderFor != cur.uri) dropFader()
+            return false
+        }
+        if (fader == null || faderFor != cur.uri) {
+            dropFader()
+            val f = AVPlayer()
+            val url = NSURL.URLWithString(cur.uri) ?: NSURL.fileURLWithPath(cur.uri)
+            f.replaceCurrentItemWithPlayerItem(audioItem(url, main = false))
+            f.volume = 0f
+            f.seekToTime(CMTimeMakeWithSeconds(start / 1000.0, 1000))
+            fader = f
+            faderFor = cur.uri
+        }
+        if (p >= start - 15) startFade(fadeMs)
+        return true
+    }
+
+    private fun startFade(fadeMs: Long) {
+        val f = fader ?: return
+        if (f.currentItem?.status != AVPlayerItemStatusReadyToPlay) return
+        val outGain = normGain * sleepFactor
+        f.volume = outGain
+        f.play()
+        fadeIn = 0f
+        if (pos + 1 < order.size) pos++ else pos = 0
+        load(autoPlay = true)
+        fadeJob = scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            val t0 = dev.surco.util.nowMillis()
+            try {
+                while (true) {
+                    val k = ((dev.surco.util.nowMillis() - t0).toFloat() / fadeMs).coerceIn(0f, 1f)
+                    // Potencia constante: el conjunto suena igual de fuerte durante el fundido.
+                    fadeIn = kotlin.math.sin(k * kotlin.math.PI / 2).toFloat(); applyVolume()
+                    f.volume = (kotlin.math.cos(k * kotlin.math.PI / 2).toFloat() * outGain * sleepFactor).coerceIn(0f, 1f)
+                    if (k >= 1f) break
+                    if (!playing) f.pause() else if (f.rate == 0f) f.play()
+                    delay(30)
+                }
+            } finally {
+                f.pause()
+                f.replaceCurrentItemWithPlayerItem(null)
+                if (fader === f) { fader = null; faderFor = null }
+                fadeIn = 1f; applyVolume()
+            }
+        }
+    }
+
+    private fun dropFader() {
+        if (fadeJob?.isActive == true) return
+        fader?.let { it.pause(); it.replaceCurrentItemWithPlayerItem(null) }
+        fader = null
+        faderFor = null
     }
 
     // ---------------------------------------------------------------- Órdenes de la interfaz
@@ -298,7 +434,7 @@ class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer:
         tracker.finish()
         val t = current() ?: return stop()
         val url = NSURL.URLWithString(t.uri) ?: NSURL.fileURLWithPath(t.uri)
-        player.replaceCurrentItemWithPlayerItem(AVPlayerItem(uRL = url))
+        player.replaceCurrentItemWithPlayerItem(audioItem(url, main = true))
         if (autoPlay) {
             ensureSession()
             player.play()
@@ -307,6 +443,8 @@ class IosPlayer(scope: CoroutineScope, repo: Repository, private val sleepTimer:
             playing = false
         }
         tracker.onTrackStarted(t, playing)
+        refreshGain()
+        applyVolume()
         publish()
         updateNowPlaying()
     }

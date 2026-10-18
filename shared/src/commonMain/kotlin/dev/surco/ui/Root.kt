@@ -204,8 +204,28 @@ private val tabs = listOf(
     Tab("stats", Icons.Outlined.BarChart, Icons.Filled.BarChart),
 )
 
+/**
+ * Zoom de toda la app: escala los dp y el texto a la vez (como el «tamaño de pantalla» del sistema,
+ * pero sólo para Surco).
+ */
+@Composable
+fun AppZoom(scale: Float, content: @Composable () -> Unit) {
+    if (scale == 1f) { content(); return }
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density * scale, d.fontScale),
+        content = content,
+    )
+}
+
 @Composable
 fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String? = null) {
+    val scale by remember { container.prefs.settings }.collectAsState()
+    AppZoom(scale.uiScale) { SurcoRootContent(container, openPlayerSignal, initialRoute) }
+}
+
+@Composable
+private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initialRoute: String? = null) {
     val settings by container.prefs.settings.collectAsState()
     if (settings.treeUri == null) {
         OnboardingScreen(container)
@@ -321,6 +341,7 @@ fun SurcoRoot(container: SurcoCore, openPlayerSignal: Int, initialRoute: String?
                         StatsTopScreen(it.stringArg("kind"))
                     }
                     composable("settings") { SettingsScreen() }
+                    composable("audio") { AudioScreen() }
                     composable("online_artist/{id}", listOf(navArgument("id") { type = NavType.LongType })) {
                         OnlineArtistScreen(it.longArg("id"))
                     }

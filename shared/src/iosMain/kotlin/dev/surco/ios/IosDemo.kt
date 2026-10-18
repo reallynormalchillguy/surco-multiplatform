@@ -26,6 +26,8 @@ object IosDemo {
     val enabled get() = "--surco-demo" in args
     val route: String? get() = args.firstOrNull { it.startsWith("--surco-route=") }?.substringAfter('=')
     val openPlayer get() = "--surco-player" in args
+    /** Reproduce de verdad una señal de prueba con el ecualizador y el espectrograma (comprueba el audio en el simulador). */
+    val spectro get() = "--surco-spectro" in args
 
     private val albums = listOf(
         Triple("Night Transit", "Velvet Arcade", 0x7B2D5B), Triple("Hojas de Cobre", "Los Faros", 0x1F4E5F),
@@ -84,11 +86,70 @@ object IosDemo {
                     dev.surco.data.RecentScrobble(t, albums[i % albums.size].second, albums[i % albums.size].first, null, if (i == 0) 0 else nowS - i * 1500L, i == 0, "")
                 })
             }
-            if (openPlayer) {
+            if (spectro) {
+                val path = demoWav()
+                val first = dao.allTracksOnce().first()
+                val t = first.copy(
+                    uri = platform.Foundation.NSURL.fileURLWithPath(path).absoluteString ?: "file://$path",
+                    title = "Señal de prueba", fileName = "senal.wav", mime = "audio/wav", durationMs = 40_000,
+                    sampleRate = 44_100, bitsPerSample = 16,
+                )
+                dao.upsertTracks(listOf(t))
+                c.prefs.update {
+                    it.copy(spectrogram = true, eqEnabled = true, eq = dev.surco.ui.eqPresets()[1].second.encode(), normalize = true)
+                }
+                demoTrack = t
+            }
+            if (openPlayer && !spectro) {
                 val first = dao.allTracksOnce().first()
                 c.player.debugSetState(PlayerUiState(connected = true, mediaId = first.uri, isPlaying = true, position = 72_000, duration = first.durationMs, source = "album|${first.album}", queue = listOf(first.uri), queueIndex = 0))
             }
         }
+    }
+
+    /** Canción de prueba que hay que poner a sonar (con «--surco-spectro»). */
+    var demoTrack: Track? = null
+        private set
+
+    /** Pone a sonar la señal de prueba (en el hilo principal, después de montar la app). */
+    fun playIfRequested(c: IosContainer) {
+        val t = demoTrack ?: return
+        c.player.play(listOf(t), 0, "album|${t.album}", false)
+    }
+
+    /**
+     * WAV de 40 s generado aquí mismo: un bajo con armónicos que cambia de nota, una «voz» que sube y
+     * baja, platos y bombo. Sirve para ver el espectrograma de verdad en el simulador.
+     */
+    private fun demoWav(): String {
+        val path = "${IosDirs.cache}/surco-demo.wav"
+        val rate = 44_100
+        val frames = rate * 40
+        val out = ByteArray(44 + frames * 4)
+        fun put32(at: Int, v: Int) { for (i in 0 until 4) out[at + i] = (v shr (8 * i)).toByte() }
+        fun put16(at: Int, v: Int) { out[at] = v.toByte(); out[at + 1] = (v shr 8).toByte() }
+        "RIFF".encodeToByteArray().copyInto(out, 0); put32(4, 36 + frames * 4)
+        "WAVEfmt ".encodeToByteArray().copyInto(out, 8); put32(16, 16); put16(20, 1); put16(22, 2)
+        put32(24, rate); put32(28, rate * 4); put16(32, 4); put16(34, 16)
+        "data".encodeToByteArray().copyInto(out, 36); put32(40, frames * 4)
+        val notes = doubleArrayOf(55.0, 65.4, 49.0, 73.4)
+        val rnd = kotlin.random.Random(7)
+        for (i in 0 until frames) {
+            val t = i.toDouble() / rate
+            val beat = (t * 2).toInt()
+            val f0 = notes[(beat / 4) % notes.size]
+            var v = 0.0
+            for (h in 1..10) v += kotlin.math.sin(2 * kotlin.math.PI * f0 * h * t) * 0.18 / h
+            val formant = 350.0 + 500.0 * (0.5 + 0.5 * kotlin.math.sin(t * 0.9))
+            v += 0.09 * kotlin.math.sin(2 * kotlin.math.PI * formant * t) + 0.05 * kotlin.math.sin(2 * kotlin.math.PI * formant * 2.02 * t)
+            val inBeat = t * 2 - beat
+            if (inBeat < 0.08) v += 0.35 * kotlin.math.sin(2 * kotlin.math.PI * 52 * t) * (1 - inBeat / 0.08)
+            if ((t * 4 - (t * 4).toInt()) < 0.04) v += (rnd.nextDouble() - 0.5) * 0.3
+            val s = (v.coerceIn(-1.0, 1.0) * 30_000).toInt()
+            put16(44 + i * 4, s); put16(46 + i * 4, s)
+        }
+        out.toNSData().writeToFile(path, true)
+        return path
     }
 
     /** Estadísticas de ejemplo para la captura de la pestaña «Estadísticas». */

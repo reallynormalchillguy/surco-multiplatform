@@ -114,6 +114,20 @@ class Repository(
         return SearchResults(dao.searchArtists(like), dao.searchAlbums(like), dao.searchTracks(like))
     }
 
+    /**
+     * Apunta un texto buscado en el historial. Mientras escribes se guarda la búsqueda más completa:
+     * «beat» se sustituye por «beatles» (y no al revés).
+     */
+    suspend fun rememberQuery(query: String) {
+        val q = query.trim().replace(Regex("\\s+"), " ")
+        if (q.length < 2) return
+        val low = q.lowercase()
+        val old = dao.searchedQueries()
+        if (old.any { it.ref.startsWith(low) && it.ref != low && it.at > nowMillis() - 60_000 }) return
+        old.filter { low.startsWith(it.ref) && it.ref != low && it.at > nowMillis() - 60_000 }.forEach { dao.deleteSearchRecent(it.key) }
+        dao.upsertSearchRecent(SearchRecent("query:$low", "query", low, q, "", null, nowMillis()))
+    }
+
     suspend fun rememberSearch(type: String, ref: String, title: String, subtitle: String, artPath: String?) {
         dao.upsertSearchRecent(SearchRecent("$type:$ref", type, ref, title, subtitle, artPath, nowMillis()))
     }

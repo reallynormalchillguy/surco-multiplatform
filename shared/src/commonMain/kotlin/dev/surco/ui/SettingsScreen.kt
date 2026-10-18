@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Folder
@@ -162,6 +163,7 @@ fun SettingsScreen() {
                 SwitchRow(S.iconFollowsAccent, S.iconFollowsAccentDesc, settings.iconFollowsAccent) { v ->
                     repo.prefs.update { it.copy(iconFollowsAccent = v) }
                 }
+                ZoomRow(settings.uiScale) { v -> repo.prefs.update { it.copy(uiScale = v) } }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccentButton(S.shufflePalette) {
@@ -169,6 +171,31 @@ fun SettingsScreen() {
                         repo.prefs.update { it.copy(palette = p.encode()) }
                     }
                     OutlinedButton(onClick = { actions.openPalette() }) { Text(S.customize) }
+                }
+            }
+
+            // ================= Sonido
+            Header(S.sound)
+            Card {
+                Row(
+                    Modifier.fillMaxWidth().clickable { actions.go("audio") }.testTag("open_audio"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(S.audiophile, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            listOfNotNull(
+                                S.eqShort.takeIf { settings.eqEnabled },
+                                S.normalizeShort.takeIf { settings.normalize },
+                                S.crossfadeShort(settings.crossfadeSec).takeIf { settings.crossfade },
+                            ).joinToString(" · ").ifEmpty { S.audiophileOff },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (settings.eqEnabled || settings.normalize || settings.crossfade) SurcoColors.Accent else SurcoColors.TextSecondary,
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = SurcoColors.TextSecondary)
                 }
             }
 
@@ -360,12 +387,12 @@ private fun folderName(tree: String?): String {
 }
 
 @Composable
-private fun Header(text: String) {
+internal fun Header(text: String) {
     Text(text, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 24.dp, bottom = 10.dp))
 }
 
 @Composable
-private fun Card(content: @Composable () -> Unit) {
+internal fun Card(content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -401,7 +428,7 @@ private fun JobRow(job: JobProgress) {
 }
 
 @Composable
-private fun AccentButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun AccentButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -421,7 +448,7 @@ private fun ModeOption(title: String, description: String, selected: Boolean, on
 }
 
 @Composable
-private fun SwitchRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SwitchRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
@@ -549,5 +576,41 @@ fun OnboardingScreen(container: SurcoCore) {
             color = SurcoColors.TextTertiary,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/** Zoom de la interfaz: todo más pequeño o más grande (se aplica al soltar). */
+@Composable
+private fun ZoomRow(scale: Float, onChange: (Float) -> Unit) {
+    var v by remember(scale) { androidx.compose.runtime.mutableFloatStateOf(scale) }
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).testTag("ui_zoom")) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(S.uiZoom, style = MaterialTheme.typography.titleSmall)
+                Text(S.uiZoomDesc, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+            }
+            Spacer(Modifier.width(12.dp))
+            Text("${kotlin.math.round(v * 100).toInt()} %", style = MaterialTheme.typography.titleSmall, color = SurcoColors.Accent)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("A", style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
+            androidx.compose.material3.Slider(
+                value = v,
+                onValueChange = { v = kotlin.math.round(it * 20) / 20f },
+                onValueChangeFinished = { if (v != scale) onChange(v) },
+                valueRange = 0.7f..1.4f,
+                steps = 13,
+                colors = androidx.compose.material3.SliderDefaults.colors(
+                    thumbColor = SurcoColors.Accent, activeTrackColor = SurcoColors.Accent,
+                    inactiveTrackColor = SurcoColors.SurfaceHigher, activeTickColor = SurcoColors.OnAccent.copy(alpha = 0.4f),
+                    inactiveTickColor = SurcoColors.TextTertiary.copy(alpha = 0.4f),
+                ),
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+            )
+            Text("A", style = MaterialTheme.typography.titleLarge, color = SurcoColors.TextSecondary)
+        }
+        if (scale != 1f) {
+            androidx.compose.material3.TextButton(onClick = { onChange(1f) }) { Text(S.resetZoom, color = SurcoColors.Accent) }
+        }
     }
 }

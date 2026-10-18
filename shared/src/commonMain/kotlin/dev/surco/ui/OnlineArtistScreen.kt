@@ -86,6 +86,36 @@ fun formatFans(n: Int): String {
     return S.fans(v)
 }
 
+/** Carga (y recuerda) el perfil de internet de un artista de Deezer. */
+suspend fun loadOnlineArtist(deezer: Deezer, id: Long): OnlineArtist? {
+    onlineArtistCache[id]?.let { return it }
+    return runCatching {
+        coroutineScope {
+            val info = async { deezer.artistInfo(id) }
+            val top = async { deezer.top(id, 10) }
+            val related = async { deezer.related(id) }
+            val artist = info.await() ?: return@coroutineScope null
+            val albums = deezer.albums(id, artist.name)
+                .filter { it.type == "album" || it.type == "ep" }
+                .distinctBy { it.title.lowercase().replace(Regex("""\s*[(\[][^)\]]*[)\]]"""), "") }
+                .sortedByDescending { it.year }
+            OnlineArtist(artist, top.await(), albums, related.await().take(12))
+        }
+    }.getOrNull()?.also { onlineArtistCache[id] = it }
+}
+
+/** Id de Deezer de un artista de tu biblioteca (sólo si el nombre casa de verdad), recordado. */
+val onlineIdByName = HashMap<String, Long>()
+
+suspend fun onlineArtistByName(deezer: Deezer, name: String): OnlineArtist? {
+    val key = name.lowercase()
+    val id = onlineIdByName[key] ?: runCatching { deezer.searchArtists(name, 5) }.getOrNull()
+        ?.firstOrNull { dev.surco.data.AlbumMatcher.similarity(it.name, name) >= 0.85f }?.id
+        ?.also { onlineIdByName[key] = it }
+        ?: return null
+    return loadOnlineArtist(deezer, id)
+}
+
 // ======================================================================= En el buscador
 
 /** Artistas de internet para una búsqueda (con un pequeño retardo para no consultar en cada letra). */
@@ -141,20 +171,7 @@ fun OnlineArtistScreen(id: Long) {
 
     LaunchedEffect(id) {
         if (data == null) {
-            val deezer = actions.container.deezer
-            val loaded = runCatching {
-                coroutineScope {
-                    val info = async { deezer.artistInfo(id) }
-                    val top = async { deezer.top(id, 10) }
-                    val related = async { deezer.related(id) }
-                    val artist = info.await() ?: return@coroutineScope null
-                    val albums = deezer.albums(id, artist.name)
-                        .filter { it.type == "album" || it.type == "ep" }
-                        .distinctBy { it.title.lowercase().replace(Regex("""\s*[(\[][^)\]]*[)\]]"""), "") }
-                        .sortedByDescending { it.year }
-                    OnlineArtist(artist, top.await(), albums, related.await().take(12))
-                }
-            }.getOrNull()
+            val loaded = loadOnlineArtist(actions.container.deezer, id)
             if (loaded == null) failed = true else { onlineArtistCache[id] = loaded; data = loaded }
         }
         data?.let { d ->

@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.MusicNote
@@ -84,6 +85,9 @@ fun SearchScreen() {
         } else {
             delay(180)
             results = actions.repo.search(query)
+            // Si dejas de escribir un momento, la búsqueda queda en el historial.
+            delay(1400)
+            actions.repo.rememberQuery(query)
         }
     }
 
@@ -127,7 +131,10 @@ fun SearchScreen() {
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF121212)),
                     cursorBrush = SolidColor(Color(0xFF121212)),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        keyboard?.hide()
+                        actions.scope.launch { actions.repo.rememberQuery(query) }
+                    }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
             }
@@ -144,20 +151,28 @@ fun SearchScreen() {
                 actions.openLink(link)
             }
         }
-        if (query.isBlank() || link != null) SearchHome() else SearchResultsList(query, results)
+        if (query.isBlank() || link != null) SearchHome(onQuery = { query = it }) else SearchResultsList(query, results)
     }
 }
 
 @Composable
-private fun SearchHome() {
+private fun SearchHome(onQuery: (String) -> Unit) {
     val actions = LocalActions.current
     val recents by remember { actions.repo.dao.searchRecents() }.collectAsState(initial = emptyList())
     val genres by remember { actions.repo.dao.genres() }.collectAsState(initial = emptyList())
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         if (recents.isNotEmpty()) {
-            item { SectionTitle(S.recents) }
-            items(recents, key = { it.key }) { r -> RecentRow(r) }
+            item {
+                Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { SectionTitle(S.recentSearches) }
+                    androidx.compose.material3.TextButton(
+                        onClick = { actions.scope.launch { actions.repo.dao.clearSearchRecents() } },
+                        modifier = Modifier.testTag("clear_search_history"),
+                    ) { Text(S.clearAll, color = SurcoColors.TextSecondary) }
+                }
+            }
+            items(recents, key = { it.key }) { r -> RecentRow(r, onQuery) }
         }
         if (genres.isNotEmpty()) {
             item { SectionTitle(S.browseGenres) }
@@ -178,8 +193,30 @@ private fun SearchHome() {
 }
 
 @Composable
-private fun RecentRow(r: SearchRecent) {
+private fun RecentRow(r: SearchRecent, onQuery: (String) -> Unit) {
     val actions = LocalActions.current
+    if (r.type == "query") {
+        // Un texto que buscaste: al tocarlo se vuelve a buscar.
+        LibraryRow(
+            title = r.title,
+            subtitle = S.searchedText,
+            onClick = {
+                actions.scope.launch { actions.repo.dao.upsertSearchRecent(r.copy(at = dev.surco.util.nowMillis())) }
+                onQuery(r.title)
+            },
+            modifier = Modifier.testTag("search_history_item"),
+            trailing = {
+                IconButton(onClick = { actions.scope.launch { actions.repo.dao.deleteSearchRecent(r.key) } }) {
+                    Icon(Icons.Filled.Close, S.remove, tint = SurcoColors.TextSecondary)
+                }
+            },
+        ) { m ->
+            Box(m.clip(RoundedCornerShape(4.dp)).background(SurcoColors.SurfaceHigh), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.History, null, tint = SurcoColors.TextSecondary, modifier = Modifier.size(24.dp))
+            }
+        }
+        return
+    }
     val subtitle = when (r.type) {
         "artist" -> S.artist
         "album" -> S.albumBy(r.subtitle)

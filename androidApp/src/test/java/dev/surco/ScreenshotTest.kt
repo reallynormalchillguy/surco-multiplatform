@@ -34,6 +34,7 @@ import dev.surco.ui.OnlineArtist
 import dev.surco.ui.discoverDetailCache
 import dev.surco.ui.onlineArtistCache
 import dev.surco.ui.onlineSearchCache
+import dev.surco.ui.onlineIdByName
 import dev.surco.data.LyricsEntry
 import dev.surco.data.PlayEvent
 import dev.surco.data.Playlist
@@ -163,6 +164,21 @@ class ScreenshotTest {
             DiscoverAlbum(1000L + i, listOf("Glass Hours", "Small Weather", "Northbound", "Luz de Agosto", "Fieldnotes")[i], artist, fakeArt("rec$i", i + 3), 2018 + i)
         }
         c.discovery.debugSet(listOf(DiscoverSection("Velvet Arcade", fakeArt("seed", 2), recs)))
+        // Lo que «sabe internet» de dos artistas de la biblioteca (populares, discografía y parecidos), sin red.
+        listOf("Carmen Duna" to 7300L, "Velvet Arcade" to 7400L).forEachIndexed { k, (name, id) ->
+            val mine = albums.filter { it.second == name }.map { it.first }
+            onlineIdByName[name.lowercase()] = id
+            onlineArtistCache[id] = OnlineArtist(
+                Deezer.Artist(id, name, fakeArt("artist$k", k + 4), fans = 384_000 + k * 91_000, albums = 6),
+                top = listOf(songNames[(3 + k) % songNames.size], "Luces de Domingo", songNames[(4 + k) % songNames.size], "Otra Orilla", "Madrugada")
+                    .mapIndexed { i, n -> Deezer.TopTrack(n, name, listOf(mine[0], "Edición Especial", mine.last())[i % 3], 2000L + i, fakeArt("rec${i % 3}", 3 + i), 200 + i * 11, preview = "https://cdn.example.com/p$k$i.mp3") },
+                albums = mine.mapIndexed { i, a -> Deezer.Album(2100L + k * 10 + i, a, name, null, 2015 + i * 3, "album", 500) } + listOf(
+                    Deezer.Album(2190L + k, "Edición Especial", name, fakeArt("rec2", 5), 2024, "album", 300),
+                    Deezer.Album(2195L + k, "Directo en Cádiz", name, fakeArt("rec4", 7), 2022, "ep", 100),
+                ),
+                related = listOf("Paper Moons", "Los Faros", "Nadia Ferro", "Mint Avenue").mapIndexed { i, n -> Deezer.Artist(7500L + k * 10 + i, n, fakeArt("rel$i", i + 1)) },
+            )
+        }
         discoverDetailCache[1000L] = Deezer.AlbumDetail(
             album = Deezer.Album(1000L, "Glass Hours", "Aurora Static", fakeArt("rec0", 3), 2018, "album", 1000),
             genres = listOf("Synthpop", "Electronic"), label = "Satellite Records", durationSec = 2580,
@@ -370,6 +386,111 @@ class ScreenshotTest {
         settle()
         compose.onNodeWithTag("artist_photo").performClick()
         snapScreen("13_foto_artista")
+    }
+
+    /** Audio para audiófilos, historial de búsquedas, artista completo, zoom y espectrograma. */
+    @Test
+    fun audioAndExtras() {
+        val c = seed()
+        compose.setContent { SurcoTheme { SurcoRoot(container = c, openPlayerSignal = 0) } }
+        settle()
+
+        // Ajustes de sonido: todo apagado de entrada.
+        compose.onAllNodesWithContentDescription(S.settings)[0].performClick()
+        compose.onNodeWithTag("drawer_settings").performClick()
+        settle()
+        compose.onNodeWithTag("open_audio").performScrollTo().performClick()
+        snap("16_audio")
+        compose.onNodeWithTag("tab_home").performClick()
+        settle()
+        // Con un preajuste, normalización y crossfade activados.
+        c.prefs.update {
+            it.copy(
+                eqEnabled = true, eq = dev.surco.ui.eqPresets()[4].second.encode(),
+                normalize = true, crossfade = true, crossfadeSec = 6,
+            )
+        }
+        compose.onAllNodesWithContentDescription(S.settings)[0].performClick()
+        compose.onNodeWithTag("drawer_settings").performClick()
+        settle()
+        compose.onNodeWithTag("open_audio").performScrollTo().performClick()
+        snap("16b_ecualizador")
+        compose.onNodeWithTag("crossfade_slider").performScrollTo()
+        snap("16c_normalizacion_crossfade")
+        compose.onNodeWithTag("tab_home").performClick()
+        settle()
+
+        // Historial de búsquedas.
+        runBlocking {
+            c.repository.rememberQuery("velvet arcade")
+            Thread.sleep(5)
+            c.repository.rememberQuery("flamenco")
+            Thread.sleep(5)
+            c.repository.rememberSearch("album", "x", "Raíz", "Carmen Duna", fakeArt("album9", 9))
+        }
+        compose.onNodeWithTag("tab_search").performClick()
+        snap("17_historial_busqueda")
+
+        // Artista de la biblioteca con lo que sabe internet: populares, discografía y parecidos.
+        compose.onNodeWithTag("tab_library").performClick()
+        settle()
+        compose.onAllNodesWithText("Velvet Arcade")[0].performClick()
+        snap("18_artista_completo")
+        runCatching { compose.onAllNodes(androidx.compose.ui.test.hasScrollAction())[0].performScrollToNode(hasTestTag("artist_discography")) }
+        snap("18b_artista_discografia")
+        runCatching { compose.onAllNodes(androidx.compose.ui.test.hasScrollAction())[0].performScrollToNode(hasTestTag("artist_related")) }
+        snap("18c_artista_parecidos")
+
+        // Zoom de la interfaz.
+        compose.onNodeWithTag("tab_home").performClick()
+        c.prefs.update { it.copy(uiScale = 0.85f) }
+        snap("19_zoom_85")
+        c.prefs.update { it.copy(uiScale = 1.2f) }
+        snap("19b_zoom_120")
+        c.prefs.update { it.copy(uiScale = 1f) }
+        settle()
+
+        // Espectrograma: la portada del reproductor con una señal de prueba (graves, voz y platos).
+        val first = runBlocking { c.db.dao().allTracksOnce().first { it.album == "Night Transit" } }
+        c.player.debugSetState(
+            PlayerUiState(
+                connected = true, mediaId = first.uri, isPlaying = true, position = 72_500, duration = first.durationMs,
+                source = "álbum|${first.album}", queue = listOf(first.uri), queueIndex = 0,
+            )
+        )
+        c.sleepTimer.endOfTrack()
+        settle()
+        compose.onNodeWithTag("mini_player").performClick()
+        settle()
+        compose.mainClock.autoAdvance = false
+        c.prefs.update { it.copy(spectrogram = true) }
+        repeat(5) { compose.mainClock.advanceTimeByFrame() }
+        val rate = 44_100
+        var n = 0L
+        val rnd = Random(7)
+        val notes = listOf(55.0, 65.4, 49.0, 73.4)
+        repeat(240) { col ->
+            val f0 = notes[(col / 40) % notes.size]
+            val formant = 350.0 + 500.0 * (0.5 + 0.5 * kotlin.math.sin(col / 18.0))
+            val buf = FloatArray(2048 * 2)
+            for (i in 0 until 2048) {
+                val t = (n + i).toDouble() / rate
+                var v = 0.0
+                for (h in 1..10) v += kotlin.math.sin(2 * Math.PI * f0 * h * t) * 0.25 / h
+                v += 0.12 * kotlin.math.sin(2 * Math.PI * formant * t) * (if ((col / 6) % 3 == 0) 0.2 else 1.0)
+                v += 0.08 * kotlin.math.sin(2 * Math.PI * formant * 2.02 * t)
+                if (col % 20 < 2) v += (rnd.nextDouble() - 0.5) * 0.5
+                if (col % 10 < 1) v += 0.4 * kotlin.math.sin(2 * Math.PI * 50 * t) * kotlin.math.exp(-i / 600.0)
+                buf[i * 2] = v.toFloat(); buf[i * 2 + 1] = v.toFloat()
+            }
+            n += 2048
+            dev.surco.audio.AudioFx.tap.write(buf, 2048, 2, rate)
+            compose.mainClock.advanceTimeByFrame()
+        }
+        compose.onRoot().captureRoboImage("build/screens/20_espectrograma.png")
+        c.prefs.update { it.copy(spectrogram = false) }
+        repeat(3) { compose.mainClock.advanceTimeByFrame() }
+        compose.mainClock.autoAdvance = true
     }
 
     private fun fakeRecent(): List<dev.surco.data.RecentScrobble> {

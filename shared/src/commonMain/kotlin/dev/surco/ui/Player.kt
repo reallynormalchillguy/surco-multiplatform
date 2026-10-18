@@ -342,8 +342,24 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                     // Al abrir el reproductor la portada aparece creciendo y encendiéndose, como en Spotify.
                     val coverIn = remember { androidx.compose.animation.core.Animatable(0f) }
                     LaunchedEffect(Unit) { coverIn.animateTo(1f, androidx.compose.animation.core.tween(520, delayMillis = 60, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+                    // Cinco toques seguidos en la portada la convierten en espectrograma (y otros cinco, al revés).
+                    val spectro by remember { actions.repo.prefs.settings }.collectAsState()
+                    var taps by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+                    var lastTap by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
                     BoxWithConstraints(
                         Modifier.fillMaxWidth().weight(1f).padding(top = 20.dp, bottom = 28.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = {
+                                    val now = dev.surco.util.nowMillis()
+                                    taps = if (now - lastTap < 650) taps + 1 else 1
+                                    lastTap = now
+                                    if (taps >= 5) {
+                                        taps = 0
+                                        actions.repo.prefs.update { s -> s.copy(spectrogram = !s.spectrogram) }
+                                    }
+                                })
+                            }
+                            .testTag("player_cover")
                             .graphicsLayer {
                                 val k = coverIn.value
                                 scaleX = 0.88f + 0.12f * k; scaleY = 0.88f + 0.12f * k
@@ -358,13 +374,23 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                             modifier = Modifier.size(side),
                             gap = 24.dp,
                         ) { t ->
-                            ArtImage(
-                                t?.artPath,
-                                Modifier
-                                    .size(side)
-                                    .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
-                                RoundedCornerShape(SurcoShapes.Cover),
-                            )
+                            if (spectro.spectrogram && t != null && t.uri == track?.uri) {
+                                SpectrogramView(
+                                    playing = state.isPlaying,
+                                    modifier = Modifier
+                                        .size(side)
+                                        .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover))
+                                        .clip(RoundedCornerShape(SurcoShapes.Cover)),
+                                )
+                            } else {
+                                ArtImage(
+                                    t?.artPath,
+                                    Modifier
+                                        .size(side)
+                                        .shadow(24.dp, RoundedCornerShape(SurcoShapes.Cover)),
+                                    RoundedCornerShape(SurcoShapes.Cover),
+                                )
+                            }
                         }
                     }
 

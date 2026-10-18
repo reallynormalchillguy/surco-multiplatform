@@ -100,6 +100,8 @@ fun CollectionScreen(
     title: String = "",
     /** Cabecera a pantalla completa con efecto parallax (página de artista); recibe cuánto se ha bajado. */
     hero: (@Composable (scrolled: () -> Float) -> Unit)? = null,
+    /** Filas propias en lugar de la lista de canciones (p. ej. populares que mezclan tuyas y de internet). */
+    rows: (LazyListScope.() -> Unit)? = null,
 ) {
     val actions = LocalActions.current
     val state = LocalPlayer.current
@@ -162,8 +164,9 @@ fun CollectionScreen(
             }
         }
 
+        if (rows != null) rows()
         var lastDisc = -1
-        tracks.forEachIndexed { i, t ->
+        if (rows == null) tracks.forEachIndexed { i, t ->
             if (multiDisc && t.discNumber != lastDisc) {
                 lastDisc = t.discNumber
                 item(key = "disc${t.discNumber}") {
@@ -343,26 +346,58 @@ fun AlbumScreen(albumKey: String) {
 
 // ================================================================ Artista
 
+/** Una canción popular del artista: la tuya si la tienes y, si no, la de internet (con avance). */
+private class PopularEntry(val local: Track?, val online: dev.surco.net.Deezer.TopTrack?)
+
+/** Un disco de la discografía: el tuyo, el de internet o los dos (si lo tienes). */
+private class DiscoEntry(val local: AlbumRow?, val online: dev.surco.net.Deezer.Album?, val year: Int)
+
 @Composable
 fun ArtistScreen(name: String) {
     val actions = LocalActions.current
     val dao = actions.repo.dao
+    PreviewLifecycle()
     val artist by remember(name) { dao.artist(name) }.collectAsState(initial = null)
     val tracks by remember(name) { dao.artistTracks(name) }.collectAsState(initial = emptyList())
     val albums by remember(name) { dao.albumsByArtist(name) }.collectAsState(initial = emptyList())
     val top by remember { dao.topTracks(2000) }.collectAsState(initial = emptyList())
+    val allArtists by remember { dao.artists() }.collectAsState(initial = emptyList())
     val image = artist?.imagePath ?: artist?.artPath ?: tracks.firstOrNull { it.artPath != null }?.artPath
     val color = rememberArtColor(image)
+    val state = LocalPlayer.current
+    val liked = LocalLiked.current
+
+    // Lo que sabe internet de este artista (populares, discografía completa y parecidos), como en Spotify.
+    val online by produceState(onlineIdByName[name.lowercase()]?.let { onlineArtistCache[it] }, name) {
+        if (value == null) value = onlineArtistByName(actions.container.deezer, name)
+    }
 
     val popular = remember(tracks, top) {
         val byUri = tracks.associateBy { it.uri }
         val fromStats = top.mapNotNull { byUri[it.key] }
         (fromStats + tracks).distinctBy { it.uri }.take(5)
     }
+    val entries = remember(popular, tracks, online) {
+        val o = online?.top.orEmpty()
+        if (o.isEmpty()) popular.map { PopularEntry(it, null) }
+        else o.take(5).map { ot ->
+            PopularEntry(tracks.firstOrNull { dev.surco.data.AlbumMatcher.similarity(it.title, ot.title) >= 0.9f }, ot)
+        }
+    }
+    val playable = remember(entries) { entries.mapNotNull { it.local }.distinctBy { it.uri } }
+    val disco = remember(albums, online) {
+        val used = HashSet<String>()
+        val fromOnline = online?.albums.orEmpty().map { oa ->
+            val l = albums.firstOrNull { it.albumKey !in used && dev.surco.data.AlbumMatcher.similarity(it.album, oa.title) >= 0.85f }
+            if (l != null) used += l.albumKey
+            DiscoEntry(l, oa, oa.year.takeIf { it > 0 } ?: l?.year ?: 0)
+        }
+        (fromOnline + albums.filter { it.albumKey !in used }.map { DiscoEntry(it, null, it.year) }).sortedByDescending { it.year }
+    }
     val source = "artista|$name"
 
     CollectionScreen(
-        tracks = popular,
+        tracks = playable.ifEmpty { popular },
         source = source,
         color = color,
         title = name,
@@ -394,7 +429,10 @@ fun ArtistScreen(name: String) {
                 ) {
                     Text(name, style = MaterialTheme.typography.displaySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(
-                        "${S.albumsCount(albums.size)} • ${S.songs(tracks.size)}",
+                        listOfNotNull(
+                            online?.artist?.fans?.takeIf { it > 0 }?.let { formatFans(it) },
+                            "${S.albumsCount(albums.size)} • ${S.songs(tracks.size)}",
+                        ).joinToString(" • "),
                         style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
                     )
                 }
@@ -417,14 +455,30 @@ fun ArtistScreen(name: String) {
                 Icon(Icons.Filled.CloudDownload, S.searchArtistOnSoulseek, tint = SurcoColors.TextSecondary)
             }
         },
+        rows = {
+            itemsIndexed(entries, key = { i, e -> "pop$i|${e.local?.uri ?: e.online?.title}" }) { i, e ->
+                val l = e.local
+                val o = e.online
+                if (l != null) {
+                    TrackRow(
+                        l,
+                        onClick = { actions.play(playable, playable.indexOf(l).coerceAtLeast(0), source) },
+                        onMore = { actions.menu(l) },
+                        isCurrent = l.uri == state.mediaId,
+                        number = i + 1,
+                        liked = l.uri in liked,
+                    )
+                } else if (o != null) {
+                    OnlinePopularRow(i + 1, o)
+                }
+            }
+        },
         footer = {
-            if (albums.isNotEmpty()) {
+            if (disco.isNotEmpty()) {
                 item { SectionTitle(S.discography) }
                 item {
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = HorizontalSpacing) {
-                        items(albums, key = { it.albumKey }) { a ->
-                            AlbumCard(a, onClick = { actions.openAlbum(a.albumKey) }, caption = if (a.year > 0) a.year.toString() else S.album)
-                        }
+                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = HorizontalSpacing, modifier = Modifier.testTag("artist_discography")) {
+                        items(disco, key = { d -> d.local?.albumKey ?: "dz${d.online?.id}" }) { d -> DiscoCard(d) }
                     }
                 }
             }
@@ -435,10 +489,77 @@ fun ArtistScreen(name: String) {
                     TrackRow(t, onClick = { actions.play(appearsOn, i, source) }, onMore = { actions.menu(t) })
                 }
             }
+            val related = online?.related.orEmpty()
+            if (related.isNotEmpty()) {
+                item { SectionTitle(S.fansAlsoLike) }
+                item {
+                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.testTag("artist_related")) {
+                        items(related, key = { it.id }) { r ->
+                            val mine = allArtists.firstOrNull { it.name.equals(r.name, ignoreCase = true) }
+                            Column(
+                                Modifier.width(120.dp).clickable { if (mine != null) actions.openArtist(mine.name) else actions.openOnlineArtist(r.id) },
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                ArtImage(mine?.imagePath ?: r.picture, Modifier.size(120.dp), CircleShape, Icons.Filled.Person)
+                                Spacer(Modifier.height(8.dp))
+                                Text(r.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                                if (mine != null) Text(S.inYourLibrary, style = MaterialTheme.typography.labelSmall, color = SurcoColors.Accent, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
             // La biografía, al final (después de la discografía), como en Spotify.
             item(key = "bio") { ArtistBioSection(name) }
         },
     )
+}
+
+/** Canción popular que no tienes: avance de 30 s y, al tocarla, la ficha de su álbum. */
+@Composable
+private fun OnlinePopularRow(number: Int, t: dev.surco.net.Deezer.TopTrack) {
+    val actions = LocalActions.current
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = t.albumId > 0) { actions.openDiscover(t.albumId) }
+            .padding(horizontal = 16.dp, vertical = 8.dp).testTag("online_popular"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(28.dp), contentAlignment = Alignment.CenterStart) {
+            Text("$number", style = MaterialTheme.typography.bodyMedium, color = SurcoColors.TextSecondary)
+        }
+        ArtImage(t.cover, Modifier.size(48.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(t.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, color = SurcoColors.TextPrimary.copy(alpha = 0.8f))
+            Text(t.album, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        PreviewButton(t.preview, Modifier.padding(start = 4.dp))
+    }
+}
+
+@Composable
+private fun DiscoCard(d: DiscoEntry) {
+    val actions = LocalActions.current
+    val l = d.local
+    val o = d.online
+    val title = l?.album ?: o?.title.orEmpty()
+    Column(
+        Modifier.width(150.dp).clickable {
+            if (l != null) actions.openAlbum(l.albumKey) else if (o != null) actions.openDiscover(o.id)
+        },
+    ) {
+        ArtImage(l?.artPath ?: o?.cover, Modifier.size(150.dp), RoundedCornerShape(6.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            color = if (l != null) SurcoColors.TextPrimary else SurcoColors.TextPrimary.copy(alpha = 0.8f))
+        val kind = if (o?.type == "ep") "EP" else S.album
+        Text(
+            listOfNotNull(d.year.takeIf { it > 0 }?.toString(), if (l != null) S.inYourLibrary else kind).joinToString(" • "),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (l != null) SurcoColors.Accent else SurcoColors.TextSecondary,
+            maxLines = 1,
+        )
+    }
 }
 
 // ================================================================ Listas
