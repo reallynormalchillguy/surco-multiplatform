@@ -43,8 +43,10 @@ log "arranque completado: $("$ADB" shell getprop sys.boot_completed | tr -d '\r'
 "$ADB" shell input keyevent 82 || true
 "$ADB" logcat -c || true
 # El log se va guardando mientras corren las pruebas (si el emulador o la app se caen, no se pierde).
-( while true; do "$ADB" wait-for-device; "$ADB" logcat -v time -T 1 >> logcat-live.txt 2>&1; sleep 1; done ) &
+"$ADB" logcat -v time > logcat-live.txt 2>&1 &
 LOGCAT_PID=$!
+# Copia del log guardada en el propio emulador (sigue aunque se corte la conexión con adb).
+"$ADB" shell "logcat -v time -f /data/local/tmp/surco-log.txt -r 8192 -n 2 > /dev/null 2>&1 &" || true
 
 log "ejecutando pruebas"
 timeout 1200 ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace \
@@ -52,13 +54,18 @@ timeout 1200 ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace \
 code=$?
 echo "$code" > device.exit
 log "pruebas terminadas con código $code"
-"$ADB" logcat -d > logcat.txt 2>/dev/null || true
-kill $LOGCAT_PID 2>/dev/null || true; pkill -f "logcat -v time" 2>/dev/null || true
+# Si el emulador se ha quedado colgado, adb no debe bloquear el resto (informe y capturas).
+timeout 20 "$ADB" kill-server >/dev/null 2>&1 || true
+timeout 20 "$ADB" start-server >/dev/null 2>&1 || true
+timeout 30 "$ADB" logcat -d > logcat.txt 2>/dev/null || true
+timeout 60 "$ADB" pull /data/local/tmp/surco-log.txt device-log.txt >/dev/null 2>&1 || true
+timeout 60 "$ADB" pull /data/local/tmp/surco-log.txt.1 device-log.1.txt >/dev/null 2>&1 || true
+kill $LOGCAT_PID 2>/dev/null || true; true
 # Por qué terminó cada proceso de la app (cierre, error, memoria, desinstalación…).
-"$ADB" shell dumpsys activity exit-info dev.surco > exit-info.txt 2>&1 || true
+timeout 30 "$ADB" shell dumpsys activity exit-info dev.surco > exit-info.txt 2>&1 || true
 grep -E "AndroidRuntime|FATAL|Process: dev.surco|Caused by|at dev\.surco|ANR in|Low memory|lowmemorykiller|SURCO" logcat-live.txt | tail -400 > logcat-errors.txt || true
 mkdir -p device-shots
-"$ADB" pull /sdcard/Android/data/dev.surco/files/shots device-shots >/dev/null 2>&1 || true
+timeout 120 "$ADB" pull /sdcard/Android/data/dev.surco/files/shots device-shots >/dev/null 2>&1 || true
 log "capturas: $(find device-shots -name '*.png' | wc -l)"
-"$ADB" emu kill || true
+timeout 20 "$ADB" emu kill || true
 exit 0

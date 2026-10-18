@@ -107,6 +107,7 @@ jobs:
           [ -f logcat.txt ] && grep -E "AndroidRuntime|FATAL|Surco|SURCO|TestRunner|Exception" -A30 logcat.txt | tail -c 300000 > $R/logcat.txt
           [ -f logcat-errors.txt ] && cp logcat-errors.txt $R/ || true
           [ -f exit-info.txt ] && cp exit-info.txt $R/ || true
+          for f in device-log.1.txt device-log.txt; do [ -f $f ] && grep -E "AndroidRuntime|FATAL|TestRunner|dev.surco|ActivityManager|lowmemory|watchdog|Watchdog" $f | tail -c 300000 > $R/$f; done; true
           [ -f logcat-live.txt ] && grep -E "AndroidRuntime|FATAL|TestRunner|dev.surco" -A40 logcat-live.txt | tail -c 400000 > $R/logcat-live.txt || true
           cp androidApp/build/outputs/androidTest-results/connected/debug/*.xml $R/ 2>/dev/null || true
           cp androidApp/build/outputs/androidTest-results/connected/*.xml $R/ 2>/dev/null || true

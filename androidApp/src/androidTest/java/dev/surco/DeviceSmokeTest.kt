@@ -68,6 +68,8 @@ class DeviceSmokeTest {
     @Before
     fun setUp() {
         val c = app.container
+        // Experimento: sin zoom (100 %), para ver si el zoom por defecto tiene que ver con el cuelgue del emulador.
+        c.prefs.update { it.copy(uiScale = 1f) }
         runBlocking {
             c.db.clearAllTables()
             val tracks = (0 until 4).flatMap { a ->
