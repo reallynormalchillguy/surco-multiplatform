@@ -43,7 +43,7 @@ log "arranque completado: $("$ADB" shell getprop sys.boot_completed | tr -d '\r'
 "$ADB" shell input keyevent 82 || true
 "$ADB" logcat -c || true
 # El log se va guardando mientras corren las pruebas (si el emulador o la app se caen, no se pierde).
-"$ADB" logcat -v time > logcat-live.txt 2>&1 &
+( while true; do "$ADB" wait-for-device; "$ADB" logcat -v time -T 1 >> logcat-live.txt 2>&1; sleep 1; done ) &
 LOGCAT_PID=$!
 
 log "ejecutando pruebas"
@@ -53,7 +53,9 @@ code=$?
 echo "$code" > device.exit
 log "pruebas terminadas con código $code"
 "$ADB" logcat -d > logcat.txt 2>/dev/null || true
-kill $LOGCAT_PID 2>/dev/null || true
+kill $LOGCAT_PID 2>/dev/null || true; pkill -f "logcat -v time" 2>/dev/null || true
+# Por qué terminó cada proceso de la app (cierre, error, memoria, desinstalación…).
+"$ADB" shell dumpsys activity exit-info dev.surco > exit-info.txt 2>&1 || true
 grep -E "AndroidRuntime|FATAL|Process: dev.surco|Caused by|at dev\.surco|ANR in|Low memory|lowmemorykiller|SURCO" logcat-live.txt | tail -400 > logcat-errors.txt || true
 mkdir -p device-shots
 "$ADB" pull /sdcard/Android/data/dev.surco/files/shots device-shots >/dev/null 2>&1 || true
