@@ -74,7 +74,9 @@ import kotlinx.coroutines.launch
 fun SearchScreen() {
     val actions = LocalActions.current
     val dao = actions.repo.dao
-    var query by rememberSaveable { mutableStateOf("") }
+    // Cada toque en la pestaña «Buscar» deja el campo vacío (vuelve a la página principal).
+    val tabTap = Overlays.tabTaps["search"] ?: 0
+    var query by rememberSaveable(tabTap) { mutableStateOf("") }
     var results by remember { mutableStateOf(SearchResults()) }
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current

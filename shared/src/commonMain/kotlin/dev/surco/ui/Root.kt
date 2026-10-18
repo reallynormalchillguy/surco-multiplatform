@@ -499,7 +499,9 @@ private fun BottomTabs(nav: NavHostController) {
                             nav.navigate(tab.route) {
                                 popUpTo(nav.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
-                                restoreState = true
+                                // «Buscar» siempre abre su página principal, vacía (sin la búsqueda ni las
+                                // páginas abiertas la última vez); las demás pestañas vuelven a donde estaban.
+                                restoreState = tab.route != "search"
                             }
                         }
                     }
