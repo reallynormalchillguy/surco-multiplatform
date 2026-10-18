@@ -61,6 +61,7 @@ private fun appVersion(): String = bundleString("CFBundleShortVersionString").if
 object IosApp {
     val versionName: String get() = appVersion()
     val container: IosContainer by lazy {
+        IosWipe.runIfPending()
         // Negro puro automático en pantallas OLED (antes de crear los ajustes, que aplican la paleta).
         dev.surco.data.Prefs.deviceOled = IosDevice.isOled()
         IosContainer()

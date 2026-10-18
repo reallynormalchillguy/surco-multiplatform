@@ -42,4 +42,46 @@ class IosCacheStore : CacheStore {
             .forEach { runCatching { fm.removeItemAtPath("$root/$it", null) } }
         Unit
     }
+
+    /**
+     * En iPhone no se pueden borrar los datos con la app abierta (la base de datos está en uso): se
+     * apunta, la app se cierra y al volver a abrirla se borra todo antes de arrancar (ver [IosWipe]).
+     */
+    override suspend fun wipeAll() {
+        runCatching { IosAppIcon.apply("Green") }
+        platform.Foundation.NSUserDefaults.standardUserDefaults.setBool(true, forKey = IosWipe.FLAG)
+        platform.Foundation.NSUserDefaults.standardUserDefaults.synchronize()
+        platform.posix.exit(0)
+    }
+}
+
+/** Borrado total pendiente (de «Borrar todos los datos»): se hace al arrancar, antes de abrir nada. */
+@OptIn(ExperimentalForeignApi::class)
+object IosWipe {
+    const val FLAG = "surco.wipeAll"
+
+    fun runIfPending() {
+        val d = platform.Foundation.NSUserDefaults.standardUserDefaults
+        if (!d.boolForKey(FLAG)) return
+        val fm = NSFileManager.defaultManager
+        // Base de datos (en Documentos, que no se toca entero: ahí puede estar tu música).
+        val docs = (platform.Foundation.NSSearchPathForDirectoriesInDomains(
+            platform.Foundation.NSDocumentDirectory, platform.Foundation.NSUserDomainMask, true,
+        ).firstOrNull() as? String).orEmpty()
+        if (docs.isNotEmpty()) {
+            fm.contentsOfDirectoryAtPath(docs, null)?.mapNotNull { it as? String }.orEmpty()
+                .filter { it.startsWith(dev.surco.data.SurcoDatabase.FILE_NAME) }
+                .forEach { runCatching { fm.removeItemAtPath("$docs/$it", null) } }
+        }
+        // Portadas, fotos, letras, ajustes propios y caché.
+        listOf(IosDirs.support, IosDirs.cache).forEach { runCatching { fm.removeItemAtPath(it, null) } }
+        NSURLCache.sharedURLCache.removeAllCachedResponses()
+        // Todos los ajustes (y las medidas de sonoridad).
+        platform.Foundation.NSBundle.mainBundle.bundleIdentifier?.let { d.removePersistentDomainForName(it) }
+        platform.Foundation.NSUserDefaults(suiteName = "dev.surco.loudness").let { l ->
+            l.dictionaryRepresentation().keys.forEach { k -> (k as? String)?.let { l.removeObjectForKey(it) } }
+        }
+        d.removeObjectForKey(FLAG)
+        d.synchronize()
+    }
 }

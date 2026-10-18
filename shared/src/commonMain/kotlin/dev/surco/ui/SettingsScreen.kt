@@ -652,44 +652,37 @@ internal fun LastFmWebConnect() {
     }
 }
 
-/** «Borrar la caché»: cuánto ocupa y un botón (con confirmación) para vaciarla. */
+/** «Borrar todos los datos»: deja la app como recién instalada (con confirmación). */
 @Composable
 private fun CacheRow() {
     val actions = LocalActions.current
-    var version by remember { mutableStateOf(0) }
     var asking by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    val size by androidx.compose.runtime.produceState<Long?>(null, version) { value = runCatching { actions.container.cache.size() }.getOrNull() }
     Column(Modifier.fillMaxWidth().testTag("cache_row")) {
-        Text(S.appCache, style = MaterialTheme.typography.titleSmall)
-        Text(
-            S.appCacheDesc(size?.let { formatBytes(it) } ?: "…"),
-            style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
-        )
+        Text(S.wipeAll, style = MaterialTheme.typography.titleSmall)
+        Text(S.wipeAllDesc, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
         Spacer(Modifier.height(10.dp))
         OutlinedButton(onClick = { asking = true }, enabled = !busy, modifier = Modifier.testTag("clear_cache")) {
-            Text(if (busy) S.clearingCache else S.clearCache)
+            Text(if (busy) S.wiping else S.wipeAllButton, color = SurcoColors.Error)
         }
     }
     if (asking) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { asking = false },
             containerColor = SurcoColors.Surface,
-            title = { Text(S.clearCacheQuestion) },
-            text = { Text(S.clearCacheExplain) },
+            title = { Text(S.wipeAllQuestion) },
+            text = { Text(S.wipeAllExplain) },
             confirmButton = {
                 TextButton(onClick = {
                     asking = false
                     busy = true
                     actions.scope.launch {
-                        val before = size ?: 0L
-                        runCatching { actions.container.cache.clear() }
+                        if (actions.player.state.value.isPlaying) actions.player.togglePlay()
                         clearMemoryCaches()
+                        runCatching { actions.container.cache.wipeAll() }
                         busy = false
-                        version++
-                        actions.toast(S.cacheCleared(formatBytes(before)))
                     }
-                }, modifier = Modifier.testTag("clear_cache_confirm")) { Text(S.clearCache, color = SurcoColors.Error) }
+                }, modifier = Modifier.testTag("clear_cache_confirm")) { Text(S.wipeAllConfirm, color = SurcoColors.Error) }
             },
             dismissButton = { TextButton(onClick = { asking = false }) { Text(S.cancel) } },
         )
