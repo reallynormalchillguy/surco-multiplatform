@@ -696,14 +696,6 @@ private fun CacheRow() {
     }
 }
 
-/** Tamaño legible: «12,3 MB». */
-internal fun formatBytes(b: Long): String = when {
-    b >= 1L shl 30 -> "${kotlin.math.round(b / 1073741824.0 * 10) / 10} GB"
-    b >= 1L shl 20 -> "${kotlin.math.round(b / 1048576.0 * 10) / 10} MB"
-    b >= 1L shl 10 -> "${b shr 10} KB"
-    else -> "$b B"
-}
-
 /** Lo que la app guarda en memoria de internet (perfiles, búsquedas, fichas de discos). */
 internal fun clearMemoryCaches() {
     onlineArtistCache.clear()
