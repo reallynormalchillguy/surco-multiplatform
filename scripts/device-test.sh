@@ -18,6 +18,30 @@ AVDM="$SDK/cmdline-tools/latest/bin/avdmanager"
 log "instalando imagen y emulador"
 yes | "$SDKM" --install "$IMG" "emulator" "platform-tools" > sdk.log 2>&1
 log "sdkmanager terminó con $?"
+# El emulador 37 (octubre de 2026) se cae a mitad de las pruebas: se usa la última versión estable anterior.
+PIN=$(python3 - <<'PY'
+import re, urllib.request
+xml = urllib.request.urlopen("https://dl.google.com/android/repository/repository2-3.xml", timeout=60).read().decode()
+best = None
+for b in re.findall(r'<remotePackage path="emulator">(.*?)</remotePackage>', xml, re.S):
+    if 'channel-0' not in b:
+        continue
+    v = tuple(int(re.search(r'<%s>(\d+)</%s>' % (k, k), b).group(1)) for k in ("major", "minor", "micro"))
+    m = re.search(r'<url>(emulator-linux_x64-\d+\.zip)</url>', b)
+    if v[0] < 37 and m and (best is None or v > best[0]):
+        best = (v, m.group(1))
+print("%s %s" % (".".join(map(str, best[0])), best[1]) if best else "")
+PY
+)
+if [ -n "$PIN" ]; then
+  log "emulador fijado: $PIN"
+  set -- $PIN
+  if curl -sSfL -o /tmp/emu.zip "https://dl.google.com/android/repository/$2"; then
+    rm -rf "$SDK/emulator" && unzip -q /tmp/emu.zip -d "$SDK" && log "emulador $1 instalado"
+  else
+    log "no se pudo descargar $2 (se queda la versión de sdkmanager)"
+  fi
+fi
 
 log "creando AVD en $ANDROID_AVD_HOME"
 echo no | "$AVDM" create avd -n smoke -k "$IMG" --device "pixel_6" --force >> sdk.log 2>&1
@@ -28,7 +52,7 @@ sed -i '/^disk.dataPartition.size/d' "$CFG" 2>/dev/null
 echo "disk.dataPartition.size=2048M" >> "$CFG"
 
 log "arrancando emulador (kvm: $(ls -l /dev/kvm 2>&1))"
-"$SDK/emulator/emulator" -avd smoke -no-window -gpu swiftshader_indirect -feature -Vulkan -noaudio -no-boot-anim \
+"$SDK/emulator/emulator" -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
   -no-snapshot -camera-back none -camera-front none -memory 2048 -cores 2 -partition-size 2048 > emulator.log 2>&1 &
 ADB="$SDK/platform-tools/adb"
 timeout 600 "$ADB" wait-for-device || { log "el emulador no aparece"; tail -20 emulator.log | tee -a phases.log; echo none > device.exit; exit 0; }
