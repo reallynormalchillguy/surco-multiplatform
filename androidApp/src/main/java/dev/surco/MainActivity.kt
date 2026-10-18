@@ -75,6 +75,13 @@ class MainActivity : ComponentActivity() {
             openPlayerSignal.intValue += 1
             intent.removeExtra(EXTRA_OPEN_PLAYER)
         }
+        // Vuelta de la web de Last.fm después de permitir el acceso.
+        val data = intent?.data
+        if (data?.scheme == "surco" && data.host == "lastfm-auth") {
+            dev.surco.ui.Overlays.lastfmCallback = data.getQueryParameter("token") ?: dev.surco.ui.Overlays.lastfmPending ?: ""
+            intent?.data = null
+            return
+        }
         // Enlace de Spotify compartido con Surco («Compartir → Surco») o abierto con «Abrir con…».
         val text = when (intent?.action) {
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)

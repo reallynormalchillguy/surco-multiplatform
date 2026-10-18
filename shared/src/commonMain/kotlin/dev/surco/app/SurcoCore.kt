@@ -105,6 +105,9 @@ abstract class SurcoCore(parts: PlatformParts) {
     }
 
     abstract val player: PlayerController
+
+    /** La caché de la app (para «Borrar la caché» en Ajustes). */
+    open val cache: dev.surco.data.CacheStore = dev.surco.data.CacheStore.None
     /** Escuchas previas de 30 s de canciones que no tienes (recomendaciones y artistas de internet). */
     abstract val preview: dev.surco.playback.PreviewPlayer
     abstract val soulseek: SoulseekService

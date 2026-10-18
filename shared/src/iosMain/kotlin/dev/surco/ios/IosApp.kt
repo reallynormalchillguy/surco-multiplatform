@@ -32,6 +32,7 @@ class IosContainer : SurcoCore(
     )
 ) {
     override val player = IosPlayer(appScope, repository, sleepTimer)
+    override val cache = IosCacheStore()
     override val preview: dev.surco.playback.PreviewPlayer = IosPreviewPlayer(player)
     override val soulseek: SoulseekService = IosSoulseek(prefs, repository, appScope)
 
@@ -69,6 +70,14 @@ object IosApp {
     private var started = false
 
     /** Al volver a primer plano: enviar scrobbles pendientes; la primera vez, además, reescanear. */
+    /** Enlaces «surco://…» (p. ej. la vuelta de Last.fm tras permitir el acceso). */
+    fun handleUrl(url: String) {
+        if (url.startsWith("surco://lastfm-auth")) {
+            val token = url.substringAfter("token=", "").substringBefore('&')
+            dev.surco.ui.Overlays.lastfmCallback = token.ifBlank { dev.surco.ui.Overlays.lastfmPending ?: "" }
+        }
+    }
+
     fun onForeground() {
         container.repository.flushScrobblesAsync()
         if (IosDemo.enabled) return

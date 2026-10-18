@@ -1,6 +1,10 @@
 package dev.surco.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +36,9 @@ import kotlin.math.log10
 import kotlin.math.roundToInt
 
 private const val COLS = 240
+
+/** Cuántos espectrogramas hay en pantalla (el de la portada y, en horizontal, el de pantalla completa). */
+private var spectrogramViewers = 0
 private const val ROWS = 128
 private const val MIN_HZ = 30f
 private const val MAX_HZ = 16_000f
@@ -41,24 +48,26 @@ private const val MAX_HZ = 16_000f
  * van de graves (abajo) a agudos (arriba) y el color dice la intensidad, en el tono de acento de la app.
  */
 @Composable
-fun SpectrogramView(playing: Boolean, modifier: Modifier = Modifier) {
+fun SpectrogramView(playing: Boolean, modifier: Modifier = Modifier, tint: Color = SurcoColors.Accent) {
     val tap = AudioFx.tap
     DisposableEffect(Unit) {
+        spectrogramViewers++
         tap.enabled = true
-        onDispose { tap.enabled = false }
+        onDispose { spectrogramViewers--; tap.enabled = spectrogramViewers > 0 }
     }
     val analyzer = remember { SpectrogramAnalyzer(rows = ROWS, minHz = MIN_HZ, maxHz = MAX_HZ) }
     val image = remember { ImageBitmap(COLS, ROWS) }
     val canvas = remember(image) { androidx.compose.ui.graphics.Canvas(image) }
     val paint = remember { Paint() }
-    val accent = SurcoColors.Accent
-    val lut = remember(accent) { spectrogramColors(accent) }
+    // Paleta según la portada (o el color de la app si no tiene); las columnas nuevas ya salen con ella.
+    val lut = remember(tint) { spectrogramColors(tint) }
+    val palette by rememberUpdatedState(lut)
     var head by remember { mutableIntStateOf(0) }
     var frame by remember { mutableIntStateOf(0) }
     val isPlaying by rememberUpdatedState(playing)
     val measurer = rememberTextMeasurer()
 
-    LaunchedEffect(lut) {
+    LaunchedEffect(Unit) {
         paint.color = lut[0]
         canvas.drawRect(0f, 0f, COLS.toFloat(), ROWS.toFloat(), paint)
         frame++
@@ -70,7 +79,7 @@ fun SpectrogramView(playing: Boolean, modifier: Modifier = Modifier) {
             if (!analyzer.column(tap, behind, col)) continue
             val x = head
             for (r in 0 until ROWS) {
-                paint.color = lut[(col[r] * 255).toInt().coerceIn(0, 255)]
+                paint.color = palette[(col[r] * 255).toInt().coerceIn(0, 255)]
                 canvas.drawRect(x.toFloat(), (ROWS - 1 - r).toFloat(), x + 1f, (ROWS - r).toFloat(), paint)
             }
             head = (x + 1) % COLS
@@ -108,5 +117,46 @@ private fun spectrogramColors(accent: Color): Array<Color> {
         val (t0, c0) = stops[k]
         val (t1, c1) = stops[k + 1]
         lerp(c0, c1, ((t - t0) / (t1 - t0)).coerceIn(0f, 1f))
+    }
+}
+
+/**
+ * Un color vivo a partir del de la portada (el que se extrae suele ser apagado, para fondos): mismo tono,
+ * bien saturado y luminoso. Si la portada es gris, se queda gris claro.
+ */
+fun vividTint(c: Color): Color {
+    val r = c.red; val g = c.green; val b = c.blue
+    val max = maxOf(r, g, b); val min = minOf(r, g, b)
+    val d = max - min
+    val s = if (max <= 0f) 0f else d / max
+    if (s < 0.08f) return Color(0xFFD8D8D8)
+    var h = when (max) {
+        r -> ((g - b) / d) % 6f
+        g -> (b - r) / d + 2f
+        else -> (r - g) / d + 4f
+    } * 60f
+    if (h < 0) h += 360f
+    return Color.hsv(h, s.coerceIn(0.55f, 0.85f), 0.95f)
+}
+
+/**
+ * El espectrograma a pantalla completa (con el móvil en horizontal): lo que suena ocupa toda la
+ * pantalla, con el título discreto en una esquina.
+ */
+@Composable
+fun FullscreenSpectrogram(title: String, artist: String, playing: Boolean, tint: Color) {
+    HideSystemBars()
+    androidx.compose.foundation.layout.Box(
+        Modifier.fillMaxSize().background(Color.Black)
+            .clickable(onClick = {}, indication = null, interactionSource = null)
+            .testTag("spectrogram_fullscreen"),
+    ) {
+        SpectrogramView(playing, Modifier.fillMaxSize(), tint)
+        androidx.compose.foundation.layout.Column(
+            Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(horizontal = 28.dp, vertical = 20.dp),
+        ) {
+            androidx.compose.material3.Text(title, style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 1)
+            androidx.compose.material3.Text(artist, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.55f), maxLines = 1)
+        }
     }
 }

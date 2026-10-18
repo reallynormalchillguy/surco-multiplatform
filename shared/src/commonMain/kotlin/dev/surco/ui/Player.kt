@@ -225,6 +225,10 @@ fun NowPlayingScreen(onClose: () -> Unit) {
     val actions = LocalActions.current
     val track = rememberCurrentTrack()
     val color = rememberArtColor(track?.artPath, Color(0xFF2E4A50))
+    // Paleta del espectrograma: la de la portada; sin portada, la de la app.
+    val hasArt = track?.artPath != null
+    val accentNow = SurcoColors.Accent
+    val spectroTint = remember(color, hasArt, accentNow) { if (hasArt) vividTint(color) else accentNow }
     var showQueue by remember { mutableStateOf(false) }
     var showTimer by remember { mutableStateOf(false) }
     var showLyrics by Overlays::lyrics
@@ -376,6 +380,7 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         ) { t ->
                             if (spectro.spectrogram && t != null && t.uri == track?.uri) {
                                 SpectrogramView(
+                                    tint = spectroTint,
                                     playing = state.isPlaying,
                                     modifier = Modifier
                                         .size(side)
@@ -539,6 +544,13 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                     onClose = { showLyrics = false },
                     onReload = { lyricsNonce++ },
                 )
+            }
+        }
+        // Con el espectrograma activado y el móvil en horizontal, ocupa toda la pantalla.
+        val fsSettings by remember { actions.repo.prefs.settings }.collectAsState()
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (fsSettings.spectrogram && track != null && maxWidth > maxHeight) {
+                FullscreenSpectrogram(track.title, track.artist, state.isPlaying, spectroTint)
             }
         }
     }

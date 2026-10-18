@@ -161,11 +161,8 @@ fun LibraryScreen() {
             }
         }
 
-        val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-        ScrollToTopOnTabTap("library") {
-            if (settings.libraryGrid) gridState.animateScrollToItem(0) else listState.animateScrollToItem(0)
-        }
+        val gridState = rememberTabGridState("library")
+        val listState = rememberTabListState("library")
         if (settings.libraryGrid) {
             LazyVerticalGrid(
                 state = gridState,

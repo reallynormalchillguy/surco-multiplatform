@@ -28,6 +28,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- Vuelta de Last.fm tras «Permitir acceso» -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="surco" android:host="lastfm-auth" />
+            </intent-filter>
             <!-- «Abrir con…» un enlace de Spotify -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

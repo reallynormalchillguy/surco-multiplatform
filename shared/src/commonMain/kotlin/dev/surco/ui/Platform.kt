@@ -41,3 +41,7 @@ interface Sharer {
 
 @Composable
 expect fun rememberSharer(): Sharer
+
+/** Esconde las barras del sistema mientras se muestra (pantalla completa de verdad). */
+@androidx.compose.runtime.Composable
+expect fun HideSystemBars()

@@ -11,6 +11,7 @@ struct SurcoApp: App {
                 .ignoresSafeArea(.all)
                 .preferredColorScheme(.dark)
                 .background(Color(red: 0.063, green: 0.063, blue: 0.063))
+                .onOpenURL { url in IosApp.shared.handleUrl(url: url.absoluteString) }
         }
         .onChange(of: phase) { newPhase in
             if newPhase == .active { IosApp.shared.onForeground() }

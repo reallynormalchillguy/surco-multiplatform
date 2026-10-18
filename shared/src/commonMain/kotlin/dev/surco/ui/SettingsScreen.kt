@@ -44,6 +44,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -316,37 +318,9 @@ fun SettingsScreen() {
                 }
             }
 
-            // ================= Spotify
-            Header("Spotify")
-            Card {
-                Text(S.spotifyKeyTitle, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(4.dp))
-                Text(S.spotifyKeyDesc, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
-                Spacer(Modifier.height(10.dp))
-                if (settings.spotifyReady) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(10.dp).clip(CircleShape).background(SurcoColors.Accent))
-                        Spacer(Modifier.width(10.dp))
-                        Text(S.spotifyKeySaved, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedButton(onClick = { repo.prefs.update { it.copy(spotifyId = "", spotifySecret = "") } }) { Text(S.changeKeys) }
-                } else {
-                    var id by remember { mutableStateOf("") }
-                    var secret by remember { mutableStateOf("") }
-                    OutlinedTextField(id, { id = it }, label = { Text(S.spotifyClientId) }, singleLine = true, colors = textFieldColors(), modifier = Modifier.fillMaxWidth().testTag("spotify_id"))
-                    OutlinedTextField(secret, { secret = it }, label = { Text(S.spotifyClientSecret) }, singleLine = true, colors = textFieldColors(), modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AccentButton(S.save, enabled = id.isNotBlank() && secret.isNotBlank()) {
-                            repo.prefs.update { it.copy(spotifyId = id.trim(), spotifySecret = secret.trim()) }
-                        }
-                        OutlinedButton(onClick = {
-                            runCatching { uriHandler.openUri("https://developer.spotify.com/dashboard") }
-                        }) { Text(S.openSpotifyDashboard) }
-                    }
-                }
-            }
+            // ================= Almacenamiento
+            Header(S.storage)
+            Card { CacheRow() }
 
             // ================= Recomendaciones
             Header(S.recommendations)
@@ -502,7 +476,13 @@ internal fun LastFmLoginForm() {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    Text(S.signInLastfm, style = MaterialTheme.typography.titleSmall)
+    var withPassword by remember { mutableStateOf(false) }
+    // Lo normal: un botón que abre Last.fm para pulsar «Permitir acceso» (sin claves ni contraseñas).
+    LastFmWebConnect()
+    TextButton(onClick = { withPassword = !withPassword }, modifier = Modifier.testTag("lastfm_with_password")) {
+        Text(if (withPassword) S.hidePasswordLogin else S.usePasswordLogin, color = SurcoColors.TextSecondary)
+    }
+    if (!withPassword) return
     Text(S.passwordNotStored, style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(user, { user = it }, label = { Text(S.user) }, singleLine = true, colors = textFieldColors(), modifier = Modifier.fillMaxWidth())
@@ -612,8 +592,122 @@ private fun ZoomRow(scale: Float, onChange: (Float) -> Unit) {
             )
             Text("A", style = MaterialTheme.typography.titleLarge, color = SurcoColors.TextSecondary)
         }
-        if (scale != 1f) {
-            androidx.compose.material3.TextButton(onClick = { onChange(1f) }) { Text(S.resetZoom, color = SurcoColors.Accent) }
+        if (scale != dev.surco.data.DEFAULT_UI_SCALE) {
+            androidx.compose.material3.TextButton(onClick = { onChange(dev.surco.data.DEFAULT_UI_SCALE) }) { Text(S.resetZoom, color = SurcoColors.Accent) }
         }
     }
+}
+
+/**
+ * «Conectar con Last.fm»: abre la web de Last.fm, donde se pulsa «Permitir acceso», y Surco recoge la
+ * sesión sola (al volver a la app por el enlace, o preguntando cada pocos segundos mientras tanto).
+ */
+@Composable
+internal fun LastFmWebConnect() {
+    val actions = LocalActions.current
+    val repo = actions.repo
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    var token by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    androidx.compose.material3.Button(
+        onClick = {
+            error = null
+            actions.scope.launch {
+                runCatching { repo.lastFm.webAuthStart() }
+                    .onSuccess { (t, url) ->
+                        token = t
+                        Overlays.lastfmPending = t
+                        runCatching { uriHandler.openUri(url) }
+                    }
+                    .onFailure { error = it.message ?: S.couldNotSignIn }
+            }
+        },
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD51007), contentColor = Color.White),
+        modifier = Modifier.fillMaxWidth().height(50.dp).testTag("lastfm_web_connect"),
+    ) {
+        Text(if (token != null) S.waitingForLastfm else S.connectWithLastfm, style = MaterialTheme.typography.titleSmall)
+    }
+    Text(
+        if (token != null) S.waitingForLastfmHelp else S.connectWithLastfmHelp,
+        style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary, modifier = Modifier.padding(top = 6.dp),
+    )
+    error?.let { Text(it, color = SurcoColors.Error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp)) }
+    // Mientras se espera, se pregunta a Last.fm cada pocos segundos (hasta 4 minutos).
+    LaunchedEffect(token) {
+        val t = token ?: return@LaunchedEffect
+        repeat(100) {
+            kotlinx.coroutines.delay(2_500)
+            if (Overlays.lastfmPending != t) { token = null; return@LaunchedEffect } // ya resuelto por el enlace
+            val done = runCatching { repo.lastFm.webAuthFinish(t) }
+                .getOrElse { e -> error = e.message ?: S.couldNotSignIn; token = null; Overlays.lastfmPending = null; return@LaunchedEffect }
+            if (done) {
+                token = null
+                Overlays.lastfmPending = null
+                actions.toast(S.connectedToLastfm)
+                runCatching { repo.flushScrobbles() }
+                return@LaunchedEffect
+            }
+        }
+        token = null
+    }
+}
+
+/** «Borrar la caché»: cuánto ocupa y un botón (con confirmación) para vaciarla. */
+@Composable
+private fun CacheRow() {
+    val actions = LocalActions.current
+    var version by remember { mutableStateOf(0) }
+    var asking by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val size by androidx.compose.runtime.produceState<Long?>(null, version) { value = runCatching { actions.container.cache.size() }.getOrNull() }
+    Column(Modifier.fillMaxWidth().testTag("cache_row")) {
+        Text(S.appCache, style = MaterialTheme.typography.titleSmall)
+        Text(
+            S.appCacheDesc(size?.let { formatBytes(it) } ?: "…"),
+            style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedButton(onClick = { asking = true }, enabled = !busy, modifier = Modifier.testTag("clear_cache")) {
+            Text(if (busy) S.clearingCache else S.clearCache)
+        }
+    }
+    if (asking) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { asking = false },
+            containerColor = SurcoColors.Surface,
+            title = { Text(S.clearCacheQuestion) },
+            text = { Text(S.clearCacheExplain) },
+            confirmButton = {
+                TextButton(onClick = {
+                    asking = false
+                    busy = true
+                    actions.scope.launch {
+                        val before = size ?: 0L
+                        runCatching { actions.container.cache.clear() }
+                        clearMemoryCaches()
+                        busy = false
+                        version++
+                        actions.toast(S.cacheCleared(formatBytes(before)))
+                    }
+                }, modifier = Modifier.testTag("clear_cache_confirm")) { Text(S.clearCache, color = SurcoColors.Error) }
+            },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text(S.cancel) } },
+        )
+    }
+}
+
+/** Tamaño legible: «12,3 MB». */
+internal fun formatBytes(b: Long): String = when {
+    b >= 1L shl 30 -> "${kotlin.math.round(b / 1073741824.0 * 10) / 10} GB"
+    b >= 1L shl 20 -> "${kotlin.math.round(b / 1048576.0 * 10) / 10} MB"
+    b >= 1L shl 10 -> "${b shr 10} KB"
+    else -> "$b B"
+}
+
+/** Lo que la app guarda en memoria de internet (perfiles, búsquedas, fichas de discos). */
+internal fun clearMemoryCaches() {
+    onlineArtistCache.clear()
+    onlineSearchCache.clear()
+    onlineIdByName.clear()
+    discoverDetailCache.clear()
 }

@@ -58,6 +58,30 @@ class LastFm(private val http: HttpClient, private val account: LastFmAccount) {
 
     fun logout() = account.saveSession("", "")
 
+    /**
+     * Conexión por la web de Last.fm (sin escribir la contraseña en Surco), paso 1: pide un token y
+     * devuelve (token, página donde el usuario pulsa «Permitir acceso»).
+     */
+    suspend fun webAuthStart(): Pair<String, String> {
+        if (!account.ready) throw LastFmException(-1, S.missingLastfmKeys)
+        val token = post(mapOf("method" to "auth.getToken", "api_key" to account.apiKey)).str("token")
+        if (token.isBlank()) throw LastFmException(-1, S.invalidLastfmReply(200))
+        return token to authPage(account.apiKey, token)
+    }
+
+    /** Paso 2: si ya se ha permitido el acceso, guarda la sesión y devuelve true; si aún no, false. */
+    suspend fun webAuthFinish(token: String): Boolean {
+        return try {
+            val session = post(mapOf("method" to "auth.getSession", "token" to token, "api_key" to account.apiKey)).obj("session")
+                ?: throw LastFmException(-1, S.invalidLastfmReply(200))
+            val key = session.str("key").ifBlank { throw LastFmException(-1, S.invalidLastfmReply(200)) }
+            account.saveSession(key, session.str("name"))
+            true
+        } catch (e: LastFmException) {
+            if (e.code == ERR_TOKEN_NOT_AUTHORIZED) false else throw e
+        }
+    }
+
     suspend fun nowPlaying(t: ScrobbleItem) {
         if (!account.loggedIn) return
         val p = mutableMapOf(
@@ -130,6 +154,12 @@ class LastFm(private val http: HttpClient, private val account: LastFmAccount) {
     companion object {
         const val ENDPOINT = "https://ws.audioscrobbler.com/2.0/"
         const val ERR_INVALID_SESSION = 9
+        const val ERR_TOKEN_NOT_AUTHORIZED = 14
+        /** Vuelta a la app después de permitir el acceso en la web. */
+        const val CALLBACK = "surco://lastfm-auth"
+
+        fun authPage(key: String, token: String) =
+            "https://www.last.fm/api/auth/?api_key=$key&token=$token&cb=" + enc(CALLBACK)
 
         /** api_sig: md5 de «clave+valor» ordenados por clave, más el secreto. */
         fun signature(params: Map<String, String>, secret: String): String =

@@ -268,8 +268,7 @@ private val DEMO_HOURS = listOf(9, 5, 3, 1, 1, 1, 2, 6, 10, 9, 8, 9, 12, 11, 10,
 @Composable
 private fun StatsContent(state: dev.surco.data.StatsUiState, onPeriod: (StatsPeriod) -> Unit, onRetry: () -> Unit) {
     val r = state.report
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    ScrollToTopOnTabTap("stats") { if (listState.firstVisibleItemIndex < 8) listState.animateScrollToItem(0) else listState.scrollToItem(0) }
+    val listState = rememberTabListState("stats")
     LazyColumn(Modifier.fillMaxSize().testTag("stats_list"), state = listState, contentPadding = PaddingValues(bottom = 120.dp)) {
         if (r != null) item(key = "hero") { ProfileHero(r) }
         item(key = "recent") { RecentScrobbles() }

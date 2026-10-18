@@ -31,7 +31,10 @@ targets:
         UIViewControllerBasedStatusBarAppearance: false
         UIStatusBarStyle: UIStatusBarStyleLightContent
         UIUserInterfaceStyle: Dark
-        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.surco.ios
+            CFBundleURLSchemes: [surco]
         ITSAppUsesNonExemptEncryption: false
         SurcoLastfmKey: $(SURCO_LASTFM_KEY)
         SurcoLastfmSecret: $(SURCO_LASTFM_SECRET)

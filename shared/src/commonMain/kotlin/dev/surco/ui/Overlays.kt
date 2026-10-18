@@ -24,6 +24,11 @@ object Overlays {
     /** Enlace (de Spotify) que llegó de otra app con «Compartir», pendiente de abrir. */
     var pendingLink by mutableStateOf<String?>(null)
 
+    /** Token de Last.fm a la espera de que el usuario permita el acceso en la web. */
+    var lastfmPending by mutableStateOf<String?>(null)
+    /** Token que llegó por el enlace «surco://lastfm-auth?token=…» al volver de la web de Last.fm. */
+    var lastfmCallback by mutableStateOf<String?>(null)
+
     /** Veces que se ha tocado cada pestaña de abajo (para volver arriba del todo). */
     val tabTaps = mutableStateMapOf<String, Int>()
 
@@ -39,18 +44,39 @@ object Overlays {
 }
 
 /**
- * Al tocar la pestaña [route] de abajo (desde otra pestaña, desde una página dentro de ella o estando
- * ya en ella) su pantalla vuelve arriba del todo. Al volver «atrás» desde un álbum, en cambio, se
- * queda donde estaba.
+ * Estado de la lista de una pestaña de abajo: cada vez que se toca la pestaña (desde otra, desde una
+ * página dentro de ella o estando ya en ella) la lista empieza de cero, arriba del todo, sin animación.
+ * Al volver «atrás» desde un álbum, en cambio, sigue donde estaba.
  */
 @Composable
-fun ScrollToTopOnTabTap(route: String, scrollToTop: suspend () -> Unit) {
+fun rememberTabListState(route: String): androidx.compose.foundation.lazy.LazyListState {
     val tap = Overlays.tabTaps[route] ?: 0
-    var handled by rememberSaveable(route) { mutableIntStateOf(tap) }
-    LaunchedEffect(tap) {
-        if (tap != handled) {
-            handled = tap
-            scrollToTop()
+    return rememberSaveable(tap, key = "tab_list_${route}_$tap", saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
+        androidx.compose.foundation.lazy.LazyListState()
+    }
+}
+
+@Composable
+fun rememberTabGridState(route: String): androidx.compose.foundation.lazy.grid.LazyGridState {
+    val tap = Overlays.tabTaps[route] ?: 0
+    return rememberSaveable(tap, key = "tab_grid_${route}_$tap", saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) {
+        androidx.compose.foundation.lazy.grid.LazyGridState()
+    }
+}
+
+/** Al volver de Last.fm por el enlace, termina la conexión (esté abierta la pantalla que esté). */
+@Composable
+fun LastFmCallbackHandler() {
+    val actions = LocalActions.current
+    val token = Overlays.lastfmCallback ?: return
+    LaunchedEffect(token) {
+        Overlays.lastfmCallback = null
+        val t = Overlays.lastfmPending ?: token
+        val ok = runCatching { actions.repo.lastFm.webAuthFinish(t) || (t != token && actions.repo.lastFm.webAuthFinish(token)) }.getOrDefault(false)
+        if (ok) {
+            Overlays.lastfmPending = null
+            actions.toast(dev.surco.i18n.S.connectedToLastfm)
+            runCatching { actions.repo.flushScrobbles() }
         }
     }
 }

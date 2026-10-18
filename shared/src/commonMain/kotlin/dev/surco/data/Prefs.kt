@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.updateAndGet
 
+/** Zoom de la interfaz por defecto (95 %). */
+const val DEFAULT_UI_SCALE = 0.95f
+
 enum class ScrobbleMode { BUILTIN, EXTERNAL, OFF }
 
 data class Settings(
@@ -51,7 +54,7 @@ data class Settings(
     val statsTopAlbums: String = "MONTH",
     val statsTopTracks: String = "MONTH",
     /** Tamaño de toda la interfaz (1 = normal; menos, todo más pequeño; más, todo más grande). */
-    val uiScale: Float = 1f,
+    val uiScale: Float = DEFAULT_UI_SCALE,
     /** Pestaña «Estadísticas» (Last.fm) en la barra de abajo; se puede esconder. */
     val showStats: Boolean = true,
     // ---- Audio para audiófilos (todo apagado por defecto: así el sonido sale tal cual)
@@ -126,7 +129,7 @@ class Prefs(
         statsTopArtists = str("statsTopArtists", "MONTH"),
         statsTopAlbums = str("statsTopAlbums", "MONTH"),
         statsTopTracks = str("statsTopTracks", "MONTH"),
-        uiScale = str("uiScale", "1").toFloatOrNull()?.coerceIn(0.7f, 1.4f) ?: 1f,
+        uiScale = store.string("uiScale2")?.toFloatOrNull()?.coerceIn(0.7f, 1.4f) ?: DEFAULT_UI_SCALE,
         normalize = store.bool("normalize", false),
         normalizeAlbum = store.bool("normAlbum", false),
         normalizeTarget = str("normTarget", "-14").toIntOrNull() ?: -14,
@@ -161,7 +164,7 @@ class Prefs(
                 "statsTopArtists" to s.statsTopArtists,
                 "statsTopAlbums" to s.statsTopAlbums,
                 "statsTopTracks" to s.statsTopTracks,
-                "uiScale" to s.uiScale.toString(),
+                "uiScale2" to s.uiScale.toString(),
                 "normTarget" to s.normalizeTarget.toString(),
                 "eq" to s.eq,
                 "crossfadeSec" to s.crossfadeSec.toString(),

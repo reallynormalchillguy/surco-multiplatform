@@ -133,3 +133,31 @@ actual fun rememberSharer(): Sharer {
         }
     }
 }
+
+@androidx.compose.runtime.Composable
+actual fun HideSystemBars() {
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(view) {
+        var ctx = view.context
+        while (ctx is android.content.ContextWrapper && ctx !is android.app.Activity) ctx = ctx.baseContext
+        val window = (ctx as? android.app.Activity)?.window
+        fun set(hidden: Boolean) {
+            if (window == null) return
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                val c = window.insetsController ?: return
+                if (hidden) {
+                    c.systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    c.hide(android.view.WindowInsets.Type.systemBars())
+                } else c.show(android.view.WindowInsets.Type.systemBars())
+            } else {
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = if (hidden) (
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                        android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    ) else android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            }
+        }
+        set(true)
+        onDispose { set(false) }
+    }
+}

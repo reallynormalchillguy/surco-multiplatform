@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -289,6 +290,7 @@ private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initia
         LocalLiked provides liked,
         LocalPlayer provides playerState,
     ) {
+            LastFmCallbackHandler()
         Box(Modifier.fillMaxSize().background(SurcoColors.Background)) {
             ProfileDrawerHost {
             Scaffold(
@@ -327,7 +329,9 @@ private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initia
                 NavHost(
                     nav,
                     startDestination = "home",
-                    modifier = Modifier.padding(padding),
+                    // La barra de abajo ya ocupa su sitio: con el teclado abierto, las pantallas sólo
+                    // dejan el hueco que falta (antes sumaban los dos y quedaba una franja negra).
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                     enterTransition = { fadeIn(tween(180)) },
                     exitTransition = { fadeOut(tween(120)) },
                     popEnterTransition = { fadeIn(tween(180)) },

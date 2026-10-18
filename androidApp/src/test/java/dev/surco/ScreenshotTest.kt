@@ -348,6 +348,9 @@ class ScreenshotTest {
         // Estadísticas: sin cuenta (invita a conectarla o crearla) y con datos de ejemplo.
         compose.onNodeWithTag("tab_stats").performClick()
         snap("15_estadisticas_conectar")
+        // Con la clave de la app: un solo botón que abre Last.fm para permitir el acceso.
+        c.prefs.update { it.copy(lastfmKey = "k", lastfmSecret = "s") }
+        snap("15a_estadisticas_conectar_web")
         c.stats.debugSet(fakeStats(c))
         c.prefs.update { it.copy(lastfmKey = "k", lastfmSecret = "s", lastfmSession = "x", lastfmUser = "surco_demo") }
         settle()
@@ -399,6 +402,12 @@ class ScreenshotTest {
         compose.onAllNodesWithContentDescription(S.settings)[0].performClick()
         compose.onNodeWithTag("drawer_settings").performClick()
         settle()
+        compose.onNodeWithTag("cache_row").performScrollTo()
+        snap("21_cache")
+        compose.onNodeWithTag("clear_cache").performClick()
+        snapScreen("21b_cache_confirmar")
+        compose.onNodeWithText(S.cancel).performClick()
+        settle()
         compose.onNodeWithTag("open_audio").performScrollTo().performClick()
         snap("16_audio")
         compose.onNodeWithTag("tab_home").performClick()
@@ -447,7 +456,7 @@ class ScreenshotTest {
         snap("19_zoom_85")
         c.prefs.update { it.copy(uiScale = 1.2f) }
         snap("19b_zoom_120")
-        c.prefs.update { it.copy(uiScale = 1f) }
+        c.prefs.update { it.copy(uiScale = dev.surco.data.DEFAULT_UI_SCALE) }
         settle()
 
         // Espectrograma: la portada del reproductor con una señal de prueba (graves, voz y platos).

@@ -143,3 +143,7 @@ private fun presentShareSheet(items: List<Any>) {
     vc.popoverPresentationController?.sourceView = top.view
     top.presentViewController(vc, animated = true, completion = null)
 }
+
+/** En el iPhone la barra de estado ya se esconde sola en horizontal. */
+@androidx.compose.runtime.Composable
+actual fun HideSystemBars() {}
