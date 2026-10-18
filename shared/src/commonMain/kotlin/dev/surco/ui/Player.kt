@@ -485,27 +485,13 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                         ) { actions.player.cycleRepeat() }
                     }
 
-                    // --- Fila de abajo: calidad a la izquierda; temporizador, compartir y cola a la derecha
+                    // --- Fila de abajo: temporizador a la izquierda; compartir y cola a la derecha
                     Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val quality = track?.qualityLabel().orEmpty()
-                        if (quality.isNotEmpty()) {
-                            Row(
-                                Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(Color.White.copy(alpha = 0.1f))
-                                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(quality, style = MaterialTheme.typography.labelMedium, color = SurcoColors.Accent, maxLines = 1)
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
                         val timer by actions.container.sleepTimer.state.collectAsState()
-                        Box(Modifier.testTag("sleep_timer")) {
+                        Box(Modifier.offset(x = (-12).dp).testTag("sleep_timer")) {
                             ToggleIcon(Icons.Outlined.Timer, timer.active(), S.sleepTimer, size = 24.dp) { showTimer = true }
                         }
+                        Spacer(Modifier.weight(1f))
                         IconButton(onClick = { track?.let { actions.share(it) } }) {
                             Icon(Icons.Outlined.Share, S.share, tint = Color.White, modifier = Modifier.size(24.dp))
                         }

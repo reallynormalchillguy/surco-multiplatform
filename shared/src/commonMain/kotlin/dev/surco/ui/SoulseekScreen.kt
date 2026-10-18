@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -124,6 +125,10 @@ private fun group(results: List<UserResult>, format: Format): List<FolderGroup> 
             FolderGroup(r.user, folder, files.sortedBy { it.name.lowercase() }, r.slotFree, r.avgSpeed, r.queueLength)
         }
     }
+        // Un mismo usuario puede responder dos veces con la misma carpeta: se juntan (dos tarjetas con la
+        // misma clave cerraban la app).
+        .groupBy { it.key }
+        .map { (_, same) -> if (same.size == 1) same[0] else same[0].copy(files = same.flatMap { it.files }.distinctBy { it.path }.sortedBy { it.name.lowercase() }) }
         .filter { it.audio.isNotEmpty() }
         .sortedWith(
             if (format == Format.MP3) {
@@ -321,6 +326,8 @@ private fun SearchPanel(initialQuery: String) {
     val settingsNow by actions.repo.prefs.settings.collectAsState()
     val format = Format.of(settingsNow.slskFormat)
     var expanded by remember { mutableStateOf(setOf<String>()) }
+    // Los resultados se enseñan de 10 en 10: al llegar al final de la lista se cargan 10 más.
+    var shown by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(PAGE) }
     val keyboard = LocalSoftwareKeyboardController.current
     val online = state is SlskState.Online
 
@@ -361,7 +368,7 @@ private fun SearchPanel(initialQuery: String) {
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = {
                         keyboard?.hide()
-                        if (query.isNotBlank()) { submitted = true; expanded = emptySet(); client.search(query) }
+                        if (query.isNotBlank()) { submitted = true; expanded = emptySet(); shown = PAGE; client.search(query) }
                     }),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -405,7 +412,7 @@ private fun SearchPanel(initialQuery: String) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(groups, key = { it.key }) { g ->
+            items(groups.take(shown), key = { it.key }) { g ->
                 FolderCard(
                     g,
                     expanded = g.key in expanded,
@@ -417,9 +424,21 @@ private fun SearchPanel(initialQuery: String) {
                     },
                 )
             }
+            if (groups.size > shown) {
+                item(key = "more") {
+                    // Se ha llegado al final: 10 más.
+                    LaunchedEffect(shown, groups.size) { shown += PAGE }
+                    Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(22.dp), color = SurcoColors.Accent, strokeWidth = 2.dp)
+                    }
+                }
+            }
         }
     }
 }
+
+/** Resultados de Soulseek que se enseñan cada vez. */
+private const val PAGE = 10
 
 @Composable
 private fun FolderCard(

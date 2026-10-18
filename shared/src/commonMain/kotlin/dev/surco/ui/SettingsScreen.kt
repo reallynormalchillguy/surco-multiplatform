@@ -318,10 +318,6 @@ fun SettingsScreen() {
                 }
             }
 
-            // ================= Almacenamiento
-            Header(S.storage)
-            Card { CacheRow() }
-
             // ================= Recomendaciones
             Header(S.recommendations)
             Card {
@@ -344,6 +340,10 @@ fun SettingsScreen() {
                     style = MaterialTheme.typography.bodySmall, color = SurcoColors.TextSecondary,
                 )
             }
+
+            // ================= Borrar todo (al final del todo)
+            Header(S.storage)
+            Card { CacheRow() }
             Spacer(Modifier.height(40.dp))
             Spacer(Modifier.navigationBarsPadding())
         }

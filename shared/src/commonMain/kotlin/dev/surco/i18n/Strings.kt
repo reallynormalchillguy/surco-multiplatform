@@ -864,7 +864,7 @@ object S {
     val showStatsTab get() = t("Stats tab", "Pestaña «Estadísticas»")
     val showStatsTabDesc get() = t("Your Last.fm listening stats in the bottom bar. Turn off to hide it.", "Tus estadísticas de Last.fm en la barra de abajo. Apágala para esconderla.")
     val uiZoomDesc get() = t("Make everything smaller or larger", "Todo más pequeño o más grande")
-    val resetZoom get() = t("Back to default (95 %)", "Volver al predeterminado (95 %)")
+    val resetZoom get() = t("Back to 100 %", "Volver al 100 %")
     val sound get() = t("Sound", "Sonido")
     val audiophile get() = t("Audio for audiophiles", "Audio para audiófilos")
     val audiophileOff get() = t("Equalizer, volume normalization and crossfade · all off", "Ecualizador, normalización del volumen y crossfade · todo apagado")
