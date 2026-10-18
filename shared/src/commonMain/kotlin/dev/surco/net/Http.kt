@@ -2,6 +2,7 @@ package dev.surco.net
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
@@ -25,6 +26,13 @@ fun surcoHttpClient(userAgent: String = USER_AGENT): HttpClient = createHttpClie
         connectTimeoutMillis = 15_000
         requestTimeoutMillis = 45_000
         socketTimeoutMillis = 30_000
+    }
+    // En iOS, NSURLSession da «The network connection was lost» (-1005) cuando reutiliza una conexión
+    // que el servidor o el propio sistema ya cerró (p. ej. al volver de segundo plano). Un reintento
+    // inmediato abre una conexión nueva y funciona; OkHttp en Android ya lo hace por su cuenta.
+    install(HttpRequestRetry) {
+        retryOnException(maxRetries = 2, retryOnTimeout = false)
+        delayMillis { retry -> 300L * retry }
     }
     defaultRequest { header("User-Agent", userAgent) }
 }

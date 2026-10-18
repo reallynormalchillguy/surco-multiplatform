@@ -619,7 +619,7 @@ internal fun LastFmWebConnect() {
                         Overlays.lastfmPending = t
                         runCatching { uriHandler.openUri(url) }
                     }
-                    .onFailure { error = it.message ?: S.couldNotSignIn }
+                    .onFailure { error = lastfmErrorText(it) }
             }
         },
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD51007), contentColor = Color.White),
@@ -638,8 +638,18 @@ internal fun LastFmWebConnect() {
         repeat(100) {
             kotlinx.coroutines.delay(2_500)
             if (Overlays.lastfmPending != t) { token = null; return@LaunchedEffect } // ya resuelto por el enlace
-            val done = runCatching { repo.lastFm.webAuthFinish(t) }
-                .getOrElse { e -> error = e.message ?: S.couldNotSignIn; token = null; Overlays.lastfmPending = null; return@LaunchedEffect }
+            // Un corte de red (en iOS pasa al volver del navegador: el sistema cierra las conexiones de
+            // la app en segundo plano) no estropea nada: se vuelve a preguntar en la siguiente vuelta.
+            // Sólo un error de verdad de Last.fm detiene la espera.
+            val done = try {
+                repo.lastFm.webAuthFinish(t)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: dev.surco.net.LastFmException) {
+                error = lastfmErrorText(e); token = null; Overlays.lastfmPending = null; return@LaunchedEffect
+            } catch (_: Exception) {
+                false
+            }
             if (done) {
                 token = null
                 Overlays.lastfmPending = null
@@ -696,3 +706,7 @@ internal fun clearMemoryCaches() {
     onlineIdByName.clear()
     discoverDetailCache.clear()
 }
+
+/** Mensaje para el usuario: el de Last.fm si lo hay; un corte de red, en palabras normales (no el error del sistema). */
+private fun lastfmErrorText(e: Throwable): String =
+    if (e is dev.surco.net.LastFmException) e.message?.takeIf { it.isNotBlank() } ?: S.couldNotSignIn else S.lastfmUnreachable

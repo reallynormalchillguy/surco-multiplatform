@@ -312,6 +312,7 @@ object S {
     val signIn get() = t("Sign in", "Iniciar sesión")
     val connectedToLastfm get() = t("Connected to Last.fm", "Conectado a Last.fm")
     val couldNotSignIn get() = t("Couldn't sign in", "No se pudo iniciar sesión")
+    val lastfmUnreachable get() = t("Couldn't reach Last.fm. Check your connection and try again.", "No se pudo conectar con Last.fm. Revisa la conexión y vuelve a probar.")
     val changeKeys get() = t("Change keys", "Cambiar claves")
     val onboardingText get() = t(
         "Your music, your files, your tags.\nPick the folder where you keep your collection and I'll scan all of it.",

@@ -75,7 +75,14 @@ fun LastFmCallbackHandler() {
     LaunchedEffect(token) {
         Overlays.lastfmCallback = null
         val t = Overlays.lastfmPending ?: token
-        val ok = runCatching { actions.repo.lastFm.webAuthFinish(t) || (t != token && actions.repo.lastFm.webAuthFinish(token)) }.getOrDefault(false)
+        // Al volver del navegador la red puede tardar un momento en estar lista (sobre todo en iOS): se reintenta.
+        var ok = false
+        for (attempt in 0 until 4) {
+            val r = runCatching { actions.repo.lastFm.webAuthFinish(t) || (t != token && actions.repo.lastFm.webAuthFinish(token)) }
+            if (r.isSuccess) { ok = r.getOrDefault(false); break }
+            if (r.exceptionOrNull() is dev.surco.net.LastFmException) break
+            kotlinx.coroutines.delay(800L * (attempt + 1))
+        }
         if (ok) {
             Overlays.lastfmPending = null
             actions.toast(dev.surco.i18n.S.connectedToLastfm)
