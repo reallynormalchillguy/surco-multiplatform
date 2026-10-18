@@ -27,8 +27,8 @@ class IosContainer : SurcoCore(
         scanner = { dao, art -> IosScanner(dao, art) },
         userAgent = "Surco/${appVersion()} iOS (https://github.com/reallynormalchillguy/surco)",
         appVersion = appVersion(),
-        lastfmKey = bundleString("SurcoLastfmKey"),
-        lastfmSecret = bundleString("SurcoLastfmSecret"),
+        lastfmKey = bundleString("SurcoLastfmKey").ifBlank { "12b95a466324ae9a311ee7535653284e" },
+        lastfmSecret = bundleString("SurcoLastfmSecret").ifBlank { "19bbfd9be20c0c3bcdb538c27eb8fbe1" },
     )
 ) {
     override val player = IosPlayer(appScope, repository, sleepTimer)

@@ -14,8 +14,13 @@ val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-val lastfmKey: String = localProps.getProperty("lastfm.apiKey") ?: System.getenv("LASTFM_API_KEY") ?: ""
-val lastfmSecret: String = localProps.getProperty("lastfm.secret") ?: System.getenv("LASTFM_SECRET") ?: ""
+// Clave de Last.fm de la app Surco (la misma para todos: sólo identifica a la app, no a una cuenta).
+// Igual que hacen Web Scrobbler o Pano Scrobbler, va dentro de la app; se puede cambiar con
+// local.properties o los secretos LASTFM_API_KEY / LASTFM_SECRET de GitHub.
+val lastfmKey: String = localProps.getProperty("lastfm.apiKey")?.takeIf { it.isNotBlank() }
+    ?: System.getenv("LASTFM_API_KEY")?.takeIf { it.isNotBlank() } ?: "12b95a466324ae9a311ee7535653284e"
+val lastfmSecret: String = localProps.getProperty("lastfm.secret")?.takeIf { it.isNotBlank() }
+    ?: System.getenv("LASTFM_SECRET")?.takeIf { it.isNotBlank() } ?: "19bbfd9be20c0c3bcdb538c27eb8fbe1"
 
 android {
     // El detector NullSafeMutableLiveData de lifecycle 2.9 hace fallar el lint de AGP 8.7.
