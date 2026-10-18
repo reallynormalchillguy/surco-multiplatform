@@ -28,7 +28,7 @@ sed -i '/^disk.dataPartition.size/d' "$CFG" 2>/dev/null
 echo "disk.dataPartition.size=2048M" >> "$CFG"
 
 log "arrancando emulador (kvm: $(ls -l /dev/kvm 2>&1))"
-"$SDK/emulator/emulator" -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
+"$SDK/emulator/emulator" -avd smoke -no-window -gpu swiftshader_indirect -feature -Vulkan -noaudio -no-boot-anim \
   -no-snapshot -camera-back none -camera-front none -memory 2048 -cores 2 -partition-size 2048 > emulator.log 2>&1 &
 ADB="$SDK/platform-tools/adb"
 timeout 600 "$ADB" wait-for-device || { log "el emulador no aparece"; tail -20 emulator.log | tee -a phases.log; echo none > device.exit; exit 0; }
