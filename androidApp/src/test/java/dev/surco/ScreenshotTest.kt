@@ -158,7 +158,9 @@ class ScreenshotTest {
             dao.insertEntry(PlaylistEntry(playlistId = pl, trackUri = t.uri, position = i, addedAt = now))
         }
         dao.insertPlaylist(Playlist(name = "Domingo lento", createdAt = now, updatedAt = now - 1000))
-        c.prefs.update { it.copy(treeUri = "content://fake/tree", language = "en") }
+        // Sin la clave de Last.fm que lleva la app: las capturas no deben tocar la red (descargaba
+        // imágenes y datos de verdad y Robolectric acababa cayéndose al decodificarlos).
+        c.prefs.update { it.copy(treeUri = "content://fake/tree", language = "en", lastfmKey = "", lastfmSecret = "") }
         // Recomendaciones de ejemplo (sin red): álbumes ficticios «que no tienes».
         val recs = listOf("Aurora Static", "Paper Moons", "Kestrel", "Nadia Ferro", "The Lowlands").mapIndexed { i, artist ->
             DiscoverAlbum(1000L + i, listOf("Glass Hours", "Small Weather", "Northbound", "Luz de Agosto", "Fieldnotes")[i], artist, fakeArt("rec$i", i + 3), 2018 + i)
