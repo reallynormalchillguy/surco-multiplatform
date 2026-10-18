@@ -52,6 +52,8 @@ data class Settings(
     val statsTopTracks: String = "MONTH",
     /** Tamaño de toda la interfaz (1 = normal; menos, todo más pequeño; más, todo más grande). */
     val uiScale: Float = 1f,
+    /** Pestaña «Estadísticas» (Last.fm) en la barra de abajo; se puede esconder. */
+    val showStats: Boolean = true,
     // ---- Audio para audiófilos (todo apagado por defecto: así el sonido sale tal cual)
     /** Normalizar el volumen (ReplayGain si lo trae el archivo; si no, lo que mide Surco al escucharla). */
     val normalize: Boolean = false,
@@ -134,6 +136,7 @@ class Prefs(
         crossfadeSec = str("crossfadeSec", "6").toIntOrNull()?.coerceIn(1, 12) ?: 6,
         crossfadeAlbums = store.bool("crossfadeAlbums", false),
         spectrogram = store.bool("spectrogram", false),
+        showStats = store.bool("showStats", true),
     )
 
     fun update(block: (Settings) -> Settings) {
@@ -179,6 +182,7 @@ class Prefs(
                 "crossfade" to s.crossfade,
                 "crossfadeAlbums" to s.crossfadeAlbums,
                 "spectrogram" to s.spectrogram,
+                "showStats" to s.showStats,
             ),
         )
         applyLanguage(s)

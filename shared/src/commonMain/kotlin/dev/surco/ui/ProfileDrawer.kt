@@ -125,7 +125,7 @@ private fun DrawerContent(progress: Float) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().testTag("profile_drawer")) {
         // Cabecera: tu perfil (de Last.fm si está conectado).
         Row(
-            Modifier.fillMaxWidth().clickable { go { actions.openTab("stats") } }.padding(horizontal = 16.dp, vertical = 16.dp),
+            Modifier.fillMaxWidth().clickable { go { if (settings.showStats) actions.openTab("stats") else actions.openSettings() } }.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.size(48.dp).clip(CircleShape).background(SurcoColors.Accent), contentAlignment = Alignment.Center) {
@@ -143,8 +143,8 @@ private fun DrawerContent(progress: Float) {
         }
         HorizontalDivider(color = SurcoColors.SurfaceHigh)
         Spacer(Modifier.height(8.dp))
-        val items = listOf(
-            DrawerEntry(Icons.Filled.BarChart, S.listeningStats, "drawer_stats") { go { actions.openTab("stats") } },
+        val items = listOfNotNull(
+            if (!settings.showStats) null else DrawerEntry(Icons.Filled.BarChart, S.listeningStats, "drawer_stats") { go { actions.openTab("stats") } },
             DrawerEntry(Icons.Filled.History, S.recents, "drawer_recents") { go { actions.go("recent") } },
             DrawerEntry(Icons.Filled.Favorite, S.likedSongs, "drawer_liked") { go { actions.openLiked() } },
             DrawerEntry(Icons.Filled.CloudDownload, "Soulseek", "drawer_soulseek") { go { actions.openSoulseek() } },

@@ -840,6 +840,8 @@ object S {
     val spectrogramCover get() = t("Spectrogram instead of the cover", "Espectrograma en lugar de la portada")
     val spectrogramCoverDesc get() = t("In the player. Tip: tap the cover 5 times to switch.", "En el reproductor. Truco: toca 5 veces la portada para cambiar.")
     val uiZoom get() = t("Interface size", "Tamaño de la interfaz")
+    val showStatsTab get() = t("Stats tab", "Pestaña «Estadísticas»")
+    val showStatsTabDesc get() = t("Your Last.fm listening stats in the bottom bar. Turn off to hide it.", "Tus estadísticas de Last.fm en la barra de abajo. Apágala para esconderla.")
     val uiZoomDesc get() = t("Make everything smaller or larger", "Todo más pequeño o más grande")
     val resetZoom get() = t("Back to 100 %", "Volver al 100 %")
     val sound get() = t("Sound", "Sonido")

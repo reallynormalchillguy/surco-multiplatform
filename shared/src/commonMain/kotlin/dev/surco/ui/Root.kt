@@ -453,7 +453,16 @@ private fun BottomTabs(nav: NavHostController) {
             .padding(top = 4.dp, bottom = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        tabs.forEach { tab ->
+        val settings by LocalActions.current.repo.prefs.settings.collectAsState()
+        // La pestaña de estadísticas se puede esconder (para quien no usa Last.fm).
+        val visible = remember(settings.showStats) { if (settings.showStats) tabs else tabs.filter { it.route != "stats" } }
+        LaunchedEffect(settings.showStats) {
+            if (!settings.showStats && currentTab == "stats") nav.navigate("home") {
+                popUpTo(nav.graph.findStartDestination().id)
+                launchSingleTop = true
+            }
+        }
+        visible.forEach { tab ->
             val selected = currentTab == tab.route
             Column(
                 Modifier

@@ -163,6 +163,9 @@ fun SettingsScreen() {
                 SwitchRow(S.iconFollowsAccent, S.iconFollowsAccentDesc, settings.iconFollowsAccent) { v ->
                     repo.prefs.update { it.copy(iconFollowsAccent = v) }
                 }
+                SwitchRow(S.showStatsTab, S.showStatsTabDesc, settings.showStats) { v ->
+                    repo.prefs.update { it.copy(showStats = v) }
+                }
                 ZoomRow(settings.uiScale) { v -> repo.prefs.update { it.copy(uiScale = v) } }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
