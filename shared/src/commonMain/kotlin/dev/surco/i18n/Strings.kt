@@ -356,7 +356,7 @@ object S {
     val noResultsYet get() = t("No results yet", "Sin resultados todavía")
     fun foldersAndUsers(folders: Int, users: Int) = t("$folders folders · $users users", "$folders carpetas · $users usuarios")
     fun showingOf(shown: Int, total: Int) = t("Showing $shown of $total folders", "Mostrando $shown de $total carpetas")
-    val showMore get() = t("Show 10 more", "Mostrar 10 más")
+    val showTenMore get() = t("Show 10 more", "Mostrar 10 más")
     fun addedToDownloads(count: Int) = t("$count file(s) added to downloads", "$count archivo(s) añadidos a descargas")
     val free get() = t("Free", "Libre")
     fun queued(count: Long) = t("Queue: $count", "Cola: $count")

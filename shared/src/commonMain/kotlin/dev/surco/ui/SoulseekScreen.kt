@@ -447,7 +447,7 @@ private fun SearchPanel(initialQuery: String) {
                     // Al llegar aquí deslizando se cargan solos; el botón por si la lista no llena la pantalla.
                     Box(Modifier.fillMaxWidth().padding(4.dp), contentAlignment = Alignment.Center) {
                         androidx.compose.material3.TextButton(onClick = { shown += PAGE }, modifier = Modifier.testTag("slsk_more")) {
-                            Text(S.showMore, color = SurcoColors.Accent)
+                            Text(S.showTenMore, color = SurcoColors.Accent)
                         }
                     }
                 }
