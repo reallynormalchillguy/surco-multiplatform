@@ -74,6 +74,18 @@ class ScreenshotTest {
     val compose = createComposeRule()
 
     /**
+     * Los gráficos nativos de Robolectric preparan sus clases de Java (JniConstants) la primera vez
+     * que una imagen no se puede decodificar. Si eso ocurre en un hilo de fondo (Coil, el color de
+     * la portada…), no encuentran java.nio y el proceso de pruebas aborta (código 134), según quién
+     * llegue antes. Forzándolo aquí, en el hilo principal, queda preparado para todos.
+     */
+    @org.junit.Before
+    fun warmUpNativeGraphics() {
+        runCatching { android.graphics.BitmapFactory.decodeByteArray(ByteArray(32) { 0x42 }, 0, 32) }
+        runCatching { android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888).copyPixelsToBuffer(java.nio.IntBuffer.allocate(16)) }
+    }
+
+    /**
      * Carga los gráficos nativos de Robolectric en el hilo principal antes que nada: si el primero en
      * usarlos es un hilo de fondo (Coil decodificando una portada), el JVM aborta con
      * «Class not found: java/nio/DoubleBuffer».
