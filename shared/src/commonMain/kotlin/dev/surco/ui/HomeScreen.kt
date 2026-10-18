@@ -263,7 +263,9 @@ private fun HomeFeed() {
         // Música nueva para ti (no está en tu biblioteca): «Porque escuchas X».
         if (settings.discover) {
             discover.forEachIndexed { i, section ->
-                item(key = "discover$i") { DiscoverSectionView(section) }
+                // Sin clave: si no, la lista se «engancha» a las recomendaciones (que llegan antes que el resto)
+                // y Inicio aparecía a media página.
+                item(contentType = "discover") { DiscoverSectionView(section) }
             }
         }
 
