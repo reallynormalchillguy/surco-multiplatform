@@ -42,6 +42,9 @@ log "arranque completado: $("$ADB" shell getprop sys.boot_completed | tr -d '\r'
 "$ADB" shell settings put global animator_duration_scale 0
 "$ADB" shell input keyevent 82 || true
 "$ADB" logcat -c || true
+# El log se va guardando mientras corren las pruebas (si el emulador o la app se caen, no se pierde).
+"$ADB" logcat -v time > logcat-live.txt 2>&1 &
+LOGCAT_PID=$!
 
 log "ejecutando pruebas"
 timeout 1200 ./gradlew :androidApp:connectedDebugAndroidTest --stacktrace \
@@ -50,6 +53,8 @@ code=$?
 echo "$code" > device.exit
 log "pruebas terminadas con código $code"
 "$ADB" logcat -d > logcat.txt 2>/dev/null || true
+kill $LOGCAT_PID 2>/dev/null || true
+grep -E "AndroidRuntime|FATAL|Process: dev.surco|Caused by|at dev\.surco|ANR in|Low memory|lowmemorykiller|SURCO" logcat-live.txt | tail -400 > logcat-errors.txt || true
 mkdir -p device-shots
 "$ADB" pull /sdcard/Android/data/dev.surco/files/shots device-shots >/dev/null 2>&1 || true
 log "capturas: $(find device-shots -name '*.png' | wc -l)"
