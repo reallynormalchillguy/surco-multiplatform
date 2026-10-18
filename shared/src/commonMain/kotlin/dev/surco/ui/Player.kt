@@ -93,6 +93,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -532,6 +534,13 @@ fun NowPlayingScreen(onClose: () -> Unit) {
                 )
             }
         }
+        // Franja más oscura detrás de la barra de estado (como en Spotify): separa el reproductor del borde.
+        Box(
+            Modifier.fillMaxWidth()
+                .windowInsetsTopHeight(androidx.compose.foundation.layout.WindowInsets.statusBars)
+                .background(Color.Black.copy(alpha = 0.28f))
+                .testTag("player_status_band"),
+        )
         // Con el espectrograma activado y el móvil en horizontal, ocupa toda la pantalla.
         val fsSettings by remember { actions.repo.prefs.settings }.collectAsState()
         BoxWithConstraints(Modifier.fillMaxSize()) {
