@@ -296,6 +296,10 @@ object S {
         "Sugiere en Inicio álbumes que aún no tienes, según lo que escuchas (vía Deezer).",
     )
     val about get() = t("About", "Acerca de")
+    val easterEggCredits get() = t(
+        "Designed and coded by Claude, conceptualized by Clem. With <3",
+        "Diseñado y codeado por Claude, conceptualizado por Clem. Con <3",
+    )
     val aboutText get() = t(
         "A local player for your collection. Plays FLAC, MP3, AAC/M4A, OGG, Opus, WAV and more; edits tags with jaudiotagger and plays with Media3/ExoPlayer.",
         "Reproductor local para tu colección. Lee FLAC, MP3, AAC/M4A, OGG, Opus, WAV y más; edita etiquetas con jaudiotagger y reproduce con Media3/ExoPlayer.",

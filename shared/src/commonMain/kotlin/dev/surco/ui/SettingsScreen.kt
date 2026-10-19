@@ -67,6 +67,8 @@ import dev.surco.data.ScanState
 import dev.surco.data.ScrobbleMode
 import dev.surco.ui.theme.SurcoColors
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlin.time.TimeSource
 
 @Composable
 fun SettingsScreen() {
@@ -329,7 +331,17 @@ fun SettingsScreen() {
 
             // ================= Acerca de
             Header(S.about)
-            Card {
+            // Easter egg: 10 toques rápidos en la tarjeta de versión.
+            var showEaster by remember { mutableStateOf(false) }
+            val tapCounter = remember { RapidTapCounter() }
+            val tapClock = remember { TimeSource.Monotonic.markNow() }
+            if (showEaster) EasterEggDialog { showEaster = false }
+            Card(
+                Modifier.testTag("versionCard").clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { if (tapCounter.tap(tapClock.elapsedNow().inWholeMilliseconds)) showEaster = true },
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent)
                     Spacer(Modifier.width(10.dp))
@@ -369,11 +381,12 @@ internal fun Header(text: String) {
 }
 
 @Composable
-internal fun Card(content: @Composable () -> Unit) {
+internal fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .then(modifier)
             .background(SurcoColors.Surface)
             .padding(16.dp)
     ) { content() }

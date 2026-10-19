@@ -8,6 +8,7 @@ import dev.surco.data.RemoteTrack
 import dev.surco.data.Track
 import dev.surco.data.UNKNOWN_ALBUM
 import dev.surco.data.UNKNOWN_ARTIST
+import dev.surco.ui.RapidTapCounter
 import dev.surco.ui.theme.Palette
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,6 +17,19 @@ import kotlin.test.assertTrue
 import kotlin.random.Random
 
 class NewFeaturesTest {
+
+    @Test
+    fun easterEggNeedsTenRapidTaps() {
+        val c = RapidTapCounter()
+        // Nueve toques rápidos no bastan; el décimo sí.
+        repeat(9) { assertTrue(!c.tap(it * 200L)) }
+        assertTrue(c.tap(9 * 200L))
+        // Una pausa larga a mitad reinicia la cuenta.
+        val d = RapidTapCounter()
+        repeat(5) { assertTrue(!d.tap(it * 200L)) }
+        repeat(9) { assertTrue(!d.tap(5_000L + it * 200L)) }
+        assertTrue(d.tap(5_000L + 9 * 200L))
+    }
 
     private fun track(i: Int, file: String, title: String = file.substringBeforeLast('.'), number: Int = 0, ms: Long = 0, artist: String = UNKNOWN_ARTIST, album: String = UNKNOWN_ALBUM) = Track(
         uri = "u$i", folderId = "f", fileName = file, mime = "audio/flac", title = title, artist = artist, album = album,
