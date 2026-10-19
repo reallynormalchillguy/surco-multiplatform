@@ -447,7 +447,7 @@ class Fft(val n: Int) {
  * Convierte las últimas muestras en una columna del espectrograma: [rows] filas en escala logarítmica
  * de [minHz] a [maxHz], con la intensidad de 0 a 1.
  */
-class SpectrogramAnalyzer(val rows: Int = 128, val n: Int = 2048, private val minHz: Float = 30f, private val maxHz: Float = 16_000f) {
+class SpectrogramAnalyzer(val rows: Int = 128, val n: Int = 2048, private val minHz: Float = 30f, private val maxHz: Float = 20_000f) {
     private val fft = Fft(n)
     private val window = FloatArray(n) { (0.5 - 0.5 * cos(2 * PI * it / (n - 1))).toFloat() }
     private val re = FloatArray(n)

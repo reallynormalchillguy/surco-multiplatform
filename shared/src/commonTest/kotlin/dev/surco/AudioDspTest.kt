@@ -117,6 +117,21 @@ class AudioDspTest {
     }
 
     @Test
+    fun spectrogramReachesTwentyKilohertz() {
+        val tap = SpectrumTap()
+        tap.enabled = true
+        val rate = 44_100
+        val buf = FloatArray(4096 * 2) { i -> (0.5 * kotlin.math.sin(2 * kotlin.math.PI * 18_000 * (i / 2) / rate)).toFloat() }
+        tap.write(buf, 4096, 2, rate)
+        val a = SpectrogramAnalyzer(rows = 128)
+        near(20_000.0, a.rowHz(127).toDouble(), 20_000.0 * 0.05, "techo del espectrograma")
+        val col = FloatArray(128)
+        assertTrue(a.column(tap, 0, col))
+        val best = col.indices.maxByOrNull { col[it] }!!
+        near(18_000.0, a.rowHz(best).toDouble(), 18_000.0 * 0.1, "fila del tono agudo")
+    }
+
+    @Test
     fun fxChainPassesAudioUntouchedWhenOff() {
         AudioFx.setEq(false, EqSettings())
         AudioFx.tap.enabled = false

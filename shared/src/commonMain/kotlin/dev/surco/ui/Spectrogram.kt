@@ -41,7 +41,7 @@ private const val COLS = 240
 private var spectrogramViewers = 0
 private const val ROWS = 128
 private const val MIN_HZ = 30f
-private const val MAX_HZ = 16_000f
+private const val MAX_HZ = 20_000f
 
 /**
  * Espectrograma en directo de lo que suena: el tiempo corre de derecha a izquierda, las frecuencias
@@ -104,6 +104,8 @@ fun SpectrogramView(playing: Boolean, modifier: Modifier = Modifier, tint: Color
             drawLine(Color.White.copy(alpha = 0.10f), Offset(0f, y), Offset(w, y), strokeWidth = 1f)
             drawText(measurer, t, Offset(8.dp.toPx(), y - 15.dp.toPx()), label)
         }
+        // El techo (20 kHz) está en el borde de arriba: la etiqueta va justo por debajo.
+        drawText(measurer, "20 kHz", Offset(8.dp.toPx(), 4.dp.toPx()), label)
     }
 }
 
