@@ -62,7 +62,6 @@ import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
@@ -112,7 +111,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.surco.data.Track
 import dev.surco.data.formatDuration
-import dev.surco.data.qualityLabel
 import dev.surco.ui.components.ArtImage
 import dev.surco.ui.components.rememberArtColor
 import dev.surco.ui.theme.SurcoColors
@@ -195,32 +193,32 @@ fun MiniPlayer(onOpen: () -> Unit) {
     }
 }
 
-/** Portada pequeña + título · artista + calidad (lo que se desliza en el mini reproductor). */
+/** Portada pequeña con el título arriba y el artista debajo (lo que se desliza en el mini reproductor). */
 @Composable
 private fun MiniTrackInfo(track: Track) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ArtImage(track.artPath, Modifier.size(42.dp))
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    buildString { append(track.title); append(" • "); append(track.artist) },
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.GraphicEq, null, tint = SurcoColors.Accent, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        track.qualityLabel().ifBlank { track.album },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = SurcoColors.Accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        ArtImage(track.artPath, Modifier.size(44.dp), RoundedCornerShape(6.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                track.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("mini_title"),
+            )
+            Text(
+                track.artist,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("mini_artist"),
+            )
         }
+    }
 }
 
 // ======================================================================= Pantalla completa
@@ -539,6 +537,8 @@ fun NowPlayingScreen(onClose: () -> Unit) {
         )
         // Con el espectrograma activado y el móvil en horizontal, ocupa toda la pantalla.
         val fsSettings by remember { actions.repo.prefs.settings }.collectAsState()
+        // El reproductor sólo se pone en horizontal con el espectrograma activado.
+        LockPortrait(portrait = !fsSettings.spectrogram)
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (fsSettings.spectrogram && track != null && maxWidth > maxHeight) {
                 FullscreenSpectrogram(track.title, track.artist, state.isPlaying, spectroTint)

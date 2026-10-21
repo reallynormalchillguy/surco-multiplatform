@@ -52,3 +52,10 @@ expect fun PlatformBack(enabled: Boolean, onBack: () -> Unit)
 
 /** En iPhone se vuelve atrás deslizando desde el borde izquierdo (lo hace Surco, no el sistema). */
 expect val EDGE_SWIPE_BACK: Boolean
+
+/**
+ * Mientras está en pantalla y [portrait] es true, el móvil no gira a horizontal (el reproductor).
+ * Al salir, o con [portrait] en false, vuelve a girar con normalidad.
+ */
+@Composable
+expect fun LockPortrait(portrait: Boolean)

@@ -164,6 +164,9 @@ fun SettingsScreen() {
                     }
                 }
                 OledRow(settings) { on -> repo.prefs.update { it.copy(oled = if (on) "on" else "off") } }
+                SwitchRow(S.accentFromCover, S.accentFromCoverDesc, settings.accentFromCover) { v ->
+                    repo.prefs.update { it.copy(accentFromCover = v) }
+                }
                 SwitchRow(S.iconFollowsAccent, S.iconFollowsAccentDesc, settings.iconFollowsAccent) { v ->
                     repo.prefs.update { it.copy(iconFollowsAccent = v) }
                 }

@@ -75,6 +75,8 @@ data class Settings(
     val crossfadeAlbums: Boolean = false,
     /** La portada del reproductor convertida en espectrograma (5 toques en la portada). */
     val spectrogram: Boolean = false,
+    /** El color de acento se adapta a la portada de la canción que suena. */
+    val accentFromCover: Boolean = false,
 ) {
     val spotifyReady get() = spotifyId.isNotBlank() && spotifySecret.isNotBlank()
     val lastfmReady get() = lastfmKey.isNotBlank() && lastfmSecret.isNotBlank()
@@ -95,6 +97,9 @@ class Prefs(
     private val defaultLastfmKey: String = "",
     private val defaultLastfmSecret: String = "",
 ) {
+    /** Color de la portada que suena (sólo se usa con [Settings.accentFromCover]). */
+    private var coverArt: androidx.compose.ui.graphics.Color? = null
+
     private val _settings = MutableStateFlow(read())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
     val current: Settings get() = _settings.value
@@ -139,6 +144,7 @@ class Prefs(
         crossfadeSec = str("crossfadeSec", "6").toIntOrNull()?.coerceIn(1, 12) ?: 6,
         crossfadeAlbums = store.bool("crossfadeAlbums", false),
         spectrogram = store.bool("spectrogram", false),
+        accentFromCover = store.bool("accentCover", false),
         showStats = store.bool("showStats", true),
     )
 
@@ -185,6 +191,7 @@ class Prefs(
                 "crossfade" to s.crossfade,
                 "crossfadeAlbums" to s.crossfadeAlbums,
                 "spectrogram" to s.spectrogram,
+                "accentCover" to s.accentFromCover,
                 "showStats" to s.showStats,
             ),
         )
@@ -193,8 +200,17 @@ class Prefs(
 
     private fun applyLanguage(s: Settings) {
         I18n.lang = if (s.language == "es") Lang.ES else Lang.EN
-        val p = effectivePalette(Palette.decode(s.palette), s)
+        val base = effectivePalette(Palette.decode(s.palette), s)
+        val art = coverArt
+        val p = if (s.accentFromCover && art != null) base.withAccent(Palette.accentFromArt(art, base.background)) else base
         if (SurcoColors.palette != p) SurcoColors.palette = p
+    }
+
+    /** La portada que suena ha cambiado (null: no hay canción o no tiene portada). */
+    fun setCoverArt(color: androidx.compose.ui.graphics.Color?) {
+        if (coverArt == color) return
+        coverArt = color
+        applyLanguage(current)
     }
 
     companion object {

@@ -35,6 +35,12 @@ data class Palette(
         Role.TEXT -> of(accent, background, surface, c)
     }
 
+    /** La misma paleta con otro acento (el resto de tonos, exactamente igual). */
+    fun withAccent(c: Color): Palette = copy(
+        accent = c,
+        onAccent = if (contrast(Color.Black, c) >= contrast(Color.White, c)) Color.Black else Color.White,
+    )
+
     fun get(role: Role): Color = when (role) {
         Role.ACCENT -> accent
         Role.BACKGROUND -> background
@@ -139,6 +145,20 @@ data class Palette(
             val la = a.luminance() + 0.05f
             val lb = b.luminance() + 0.05f
             return if (la > lb) la / lb else lb / la
+        }
+
+        /**
+         * Acento sacado del color de una portada: el mismo matiz, vivo, y con contraste suficiente
+         * (≥ 4,5:1) sobre el fondo para que se siga leyendo. Una portada gris da un acento casi neutro.
+         */
+        fun accentFromArt(art: Color, background: Color): Color {
+            val light = background.luminance() > 0.45f
+            val (h, s, _) = toHsv(art)
+            var c = if (s < 0.12f) (if (light) Color(0xFF3A3A3A) else Color(0xFFE6E6E6)) else hsv(h, s.coerceIn(0.55f, 0.85f), if (light) 0.6f else 0.95f)
+            val towards = if (light) Color.Black else Color.White
+            var i = 0
+            while (contrast(c, background) < 4.5f && i < 20) { c = lerp(c, towards, 0.1f); i++ }
+            return c.opaque()
         }
 
         fun hsv(h: Float, s: Float, v: Float): Color = Color.hsv(h.mod(360f), s.coerceIn(0f, 1f), v.coerceIn(0f, 1f))

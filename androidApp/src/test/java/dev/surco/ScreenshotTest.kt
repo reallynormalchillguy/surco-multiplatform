@@ -463,6 +463,8 @@ class ScreenshotTest {
             c.repository.rememberQuery("flamenco")
             Thread.sleep(5)
             c.repository.rememberSearch("album", "x", "Raíz", "Carmen Duna", fakeArt("album9", 9))
+            Thread.sleep(5)
+            c.repository.rememberSearch("artist", "Velvet Arcade", "Velvet Arcade", "", null)
         }
         compose.onNodeWithTag("tab_search").performClick()
         snap("17_historial_busqueda")

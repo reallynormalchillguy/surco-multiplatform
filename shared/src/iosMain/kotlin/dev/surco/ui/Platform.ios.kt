@@ -152,3 +152,11 @@ actual fun HideSystemBars() {}
 actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) {}
 
 actual val EDGE_SWIPE_BACK: Boolean = true
+
+@Composable
+actual fun LockPortrait(portrait: Boolean) {
+    androidx.compose.runtime.DisposableEffect(portrait) {
+        if (portrait) dev.surco.ios.IosOrientation.setPortraitOnly(true)
+        onDispose { if (portrait) dev.surco.ios.IosOrientation.setPortraitOnly(false) }
+    }
+}

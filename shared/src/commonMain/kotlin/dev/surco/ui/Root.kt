@@ -301,6 +301,7 @@ private fun SurcoRootContent(container: SurcoCore, openPlayerSignal: Int, initia
         LocalPlayer provides playerState,
     ) {
             LastFmCallbackHandler()
+            CoverAccentSync(settings.accentFromCover)
         Box(Modifier.fillMaxSize().background(SurcoColors.Background)) {
             ProfileDrawerHost {
             Scaffold(
@@ -572,3 +573,15 @@ fun encodeArg(s: String): String = s.encodeURLParameter()
 
 /** Las raíces de las pestañas: desde ellas no se vuelve atrás deslizando. */
 private val TAB_ROUTES = setOf("home", "search", "library", "stats")
+
+/** Con «Acento a juego con la portada», pasa a la paleta el color de la portada que suena. */
+@Composable
+private fun CoverAccentSync(enabled: Boolean) {
+    val prefs = LocalActions.current.repo.prefs
+    val context = coil3.compose.LocalPlatformContext.current
+    val path = rememberCurrentTrack()?.artPath
+    LaunchedEffect(enabled, path) {
+        val art = if (enabled && path != null) dev.surco.ui.components.artColorOf(context, path) else null
+        prefs.setCoverArt(art)
+    }
+}

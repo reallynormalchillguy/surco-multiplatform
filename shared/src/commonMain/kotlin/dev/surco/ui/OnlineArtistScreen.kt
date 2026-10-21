@@ -135,12 +135,12 @@ fun rememberOnlineArtists(query: String): List<Deezer.Artist> {
 }
 
 @Composable
-fun OnlineArtistRow(a: Deezer.Artist, local: ArtistRow?) {
+fun OnlineArtistRow(a: Deezer.Artist, local: ArtistRow?, onOpen: () -> Unit = {}) {
     val actions = LocalActions.current
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable { actions.openOnlineArtist(a.id) }
+            .clickable { onOpen(); actions.openOnlineArtist(a.id) }
             .testTag("online_artist_${a.id}")
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,

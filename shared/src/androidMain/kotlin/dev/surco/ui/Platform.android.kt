@@ -174,3 +174,21 @@ private fun samplePixels(bmp: android.graphics.Bitmap): List<Int> {
 actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) = androidx.activity.compose.BackHandler(enabled, onBack)
 
 actual val EDGE_SWIPE_BACK: Boolean = false
+
+@Composable
+actual fun LockPortrait(portrait: Boolean) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(view, portrait) {
+        var ctx = view.context
+        while (ctx is android.content.ContextWrapper && ctx !is android.app.Activity) ctx = ctx.baseContext
+        val activity = ctx as? android.app.Activity
+        if (portrait && activity != null) {
+            activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+        onDispose {
+            if (portrait && activity != null) {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+    }
+}

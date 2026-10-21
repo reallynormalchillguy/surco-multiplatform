@@ -4,6 +4,7 @@ import Shared
 @main
 struct SurcoApp: App {
     @Environment(\.scenePhase) private var phase
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
         // Cambio de icono sin el aviso del sistema.
@@ -22,6 +23,13 @@ struct SurcoApp: App {
             if newPhase == .active { IosApp.shared.onForeground() }
             if newPhase == .background { IosApp.shared.onBackground() }
         }
+    }
+}
+
+/** El reproductor no gira a horizontal (salvo con el espectrograma): lo decide `IosOrientation`. */
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        IosOrientation.shared.portraitOnly ? .portrait : .allButUpsideDown
     }
 }
 

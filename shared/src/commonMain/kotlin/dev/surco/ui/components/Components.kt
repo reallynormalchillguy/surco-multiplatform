@@ -126,6 +126,10 @@ fun LikedArt(modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(4.
 
 private val colorCache = HashMap<String, Color>()
 
+/** Color dominante de una portada, sin animar (usa la misma caché que [rememberArtColor]). */
+suspend fun artColorOf(context: coil3.PlatformContext, path: String): Color? =
+    colorCache[path] ?: dev.surco.ui.extractArtColor(context, path)?.also { colorCache[path] = it }
+
 /** Color dominante (oscuro) de una portada (archivo local o URL), para fondos y el mini reproductor. */
 @Composable
 fun rememberArtColor(path: String?, fallback: Color = Color(0xFF3A3A3A)): Color {

@@ -135,7 +135,8 @@ interface LibraryDao {
     @Query("SELECT * FROM search_recents WHERE type = 'query'")
     suspend fun searchedQueries(): List<SearchRecent>
 
-    @Query("SELECT * FROM search_recents ORDER BY at DESC LIMIT 25")
+    /** Historial de búsqueda: sólo los artistas en cuya página has entrado. */
+    @Query("SELECT * FROM search_recents WHERE type IN ('artist', 'online_artist') ORDER BY at DESC LIMIT 25")
     fun searchRecents(): Flow<List<SearchRecent>>
 
     // ---------- Historial ----------

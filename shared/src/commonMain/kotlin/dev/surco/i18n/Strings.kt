@@ -881,6 +881,11 @@ object S {
     val eqShort get() = t("Equalizer", "Ecualizador")
     val normalizeShort get() = t("Normalization", "Normalización")
     fun crossfadeShort(sec: Int) = t("Crossfade $sec s", "Crossfade $sec s")
+    val accentFromCover get() = t("Accent matches the cover", "Acento a juego con la portada")
+    val accentFromCoverDesc get() = t(
+        "The accent color takes the color of the cover of the song that's playing.",
+        "El color de acento toma el color de la portada de la canción que suena.",
+    )
     val iconFollowsAccentDesc get() = t(
         "The app icon takes the shade closest to your accent color.",
         "El icono de la app toma el tono más parecido a tu color de acento.",

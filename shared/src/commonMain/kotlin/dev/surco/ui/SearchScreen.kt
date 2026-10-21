@@ -87,9 +87,6 @@ fun SearchScreen() {
         } else {
             delay(180)
             results = actions.repo.search(query)
-            // Si dejas de escribir un momento, la búsqueda queda en el historial.
-            delay(1400)
-            actions.repo.rememberQuery(query)
         }
     }
 
@@ -133,10 +130,8 @@ fun SearchScreen() {
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF121212)),
                     cursorBrush = SolidColor(Color(0xFF121212)),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = {
-                        keyboard?.hide()
-                        actions.scope.launch { actions.repo.rememberQuery(query) }
-                    }),
+                    // El historial sólo guarda los artistas en cuya página entras, no el texto buscado.
+                    keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
             }
@@ -220,14 +215,14 @@ private fun RecentRow(r: SearchRecent, onQuery: (String) -> Unit) {
         return
     }
     val subtitle = when (r.type) {
-        "artist" -> S.artist
+        "artist", "online_artist" -> S.artist
         "album" -> S.albumBy(r.subtitle)
         else -> S.songBy(r.subtitle)
     }
     LibraryRow(
         title = r.title,
         subtitle = subtitle,
-        circle = r.type == "artist",
+        circle = r.type == "artist" || r.type == "online_artist",
         onClick = { openRecent(actions, r) },
         trailing = {
             IconButton(onClick = { actions.scope.launch { actions.repo.dao.deleteSearchRecent(r.key) } }) {
@@ -237,8 +232,8 @@ private fun RecentRow(r: SearchRecent, onQuery: (String) -> Unit) {
     ) { m ->
         ArtImage(
             r.artPath, m,
-            if (r.type == "artist") CircleShape else RoundedCornerShape(4.dp),
-            if (r.type == "artist") Icons.Filled.Person else Icons.Filled.MusicNote,
+            if (r.type == "artist" || r.type == "online_artist") CircleShape else RoundedCornerShape(4.dp),
+            if (r.type == "artist" || r.type == "online_artist") Icons.Filled.Person else Icons.Filled.MusicNote,
         )
     }
 }
@@ -247,6 +242,7 @@ private fun openRecent(actions: AppActions, r: SearchRecent) {
     actions.scope.launch { actions.repo.dao.upsertSearchRecent(r.copy(at = dev.surco.util.nowMillis())) }
     when (r.type) {
         "artist" -> actions.openArtist(r.ref)
+        "online_artist" -> r.ref.toLongOrNull()?.let { actions.openOnlineArtist(it) }
         "album" -> actions.openAlbum(r.ref)
         else -> actions.scope.launch {
             actions.repo.dao.track(r.ref)?.let { playTrackInAlbum(actions, it) }
@@ -297,7 +293,9 @@ private fun SearchResultsList(query: String, results: SearchResults) {
         if (online.isNotEmpty()) {
             item(key = "online_title") { SectionTitle(S.artistsToExplore) }
             items(online, key = { "on:" + it.id }) { a ->
-                OnlineArtistRow(a, localArtists[a.name.lowercase()])
+                OnlineArtistRow(a, localArtists[a.name.lowercase()]) {
+                    actions.scope.launch { actions.repo.rememberSearch("online_artist", a.id.toString(), a.name, "", a.picture) }
+                }
             }
         }
         item(key = "slsk") {
@@ -317,7 +315,6 @@ private fun SearchResultsList(query: String, results: SearchResults) {
                 title = a.album,
                 subtitle = S.albumBy(a.artist),
                 onClick = {
-                    actions.scope.launch { actions.repo.rememberSearch("album", a.albumKey, a.album, a.artist, a.artPath) }
                     actions.openAlbum(a.albumKey)
                 },
             ) { m -> ArtImage(a.artPath, m) }
@@ -329,10 +326,7 @@ private fun SearchResultsList(query: String, results: SearchResults) {
                 subtitle = S.songBy(t.artist),
                 artSize = 52.dp,
                 onClick = {
-                    actions.scope.launch {
-                        actions.repo.rememberSearch("track", t.uri, t.title, t.artist, t.artPath)
-                        playTrackInAlbum(actions, t)
-                    }
+                    actions.scope.launch { playTrackInAlbum(actions, t) }
                 },
                 trailing = {
                     IconButton(onClick = { actions.toggleLike(t.uri, isLiked) }) {
