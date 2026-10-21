@@ -9,6 +9,13 @@ struct SurcoApp: App {
     init() {
         // Cambio de icono sin el aviso del sistema.
         IosAppIcon.shared.silentSetter = SilentIcon()
+        // El reproductor bloquea o libera el giro: UIKit vuelve a preguntar las orientaciones permitidas.
+        IosOrientation.shared.onChange = {
+            for scene in UIApplication.shared.connectedScenes {
+                guard let ws = scene as? UIWindowScene else { continue }
+                for w in ws.windows { w.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations() }
+            }
+        }
     }
 
     var body: some Scene {

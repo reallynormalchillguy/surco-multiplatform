@@ -14,14 +14,17 @@ object IosOrientation {
     var portraitOnly: Boolean = false
         private set
 
+    /** Swift avisa aquí a UIKit de que han cambiado las orientaciones permitidas. */
+    var onChange: (() -> Unit)? = null
+
     fun setPortraitOnly(value: Boolean) {
         if (portraitOnly == value) return
         portraitOnly = value
-        val scene = UIApplication.sharedApplication.connectedScenes.firstOrNull { it is UIWindowScene } as? UIWindowScene
-        scene?.windows?.forEach { w ->
-            (w as? platform.UIKit.UIWindow)?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
-        }
+        onChange?.invoke()
         // Si el móvil ya está en horizontal, se le pide que vuelva a vertical.
-        if (value) scene?.requestGeometryUpdateWithPreferences(UIWindowSceneGeometryPreferencesIOS(UIInterfaceOrientationMaskPortrait), errorHandler = null)
+        if (value) {
+            val scene = UIApplication.sharedApplication.connectedScenes.firstOrNull { it is UIWindowScene } as? UIWindowScene
+            scene?.requestGeometryUpdateWithPreferences(UIWindowSceneGeometryPreferencesIOS(UIInterfaceOrientationMaskPortrait), errorHandler = null)
+        }
     }
 }
