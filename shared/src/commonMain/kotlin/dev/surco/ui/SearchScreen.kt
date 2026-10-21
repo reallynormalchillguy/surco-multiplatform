@@ -130,7 +130,7 @@ fun SearchScreen() {
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF121212)),
                     cursorBrush = SolidColor(Color(0xFF121212)),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    // El historial sólo guarda los artistas en cuya página entras, no el texto buscado.
+                    // El historial guarda lo que abres (artistas, álbumes, canciones), no el texto buscado.
                     keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
@@ -315,6 +315,7 @@ private fun SearchResultsList(query: String, results: SearchResults) {
                 title = a.album,
                 subtitle = S.albumBy(a.artist),
                 onClick = {
+                    actions.scope.launch { actions.repo.rememberSearch("album", a.albumKey, a.album, a.artist, a.artPath) }
                     actions.openAlbum(a.albumKey)
                 },
             ) { m -> ArtImage(a.artPath, m) }
@@ -326,7 +327,10 @@ private fun SearchResultsList(query: String, results: SearchResults) {
                 subtitle = S.songBy(t.artist),
                 artSize = 52.dp,
                 onClick = {
-                    actions.scope.launch { playTrackInAlbum(actions, t) }
+                    actions.scope.launch {
+                        actions.repo.rememberSearch("track", t.uri, t.title, t.artist, t.artPath)
+                        playTrackInAlbum(actions, t)
+                    }
                 },
                 trailing = {
                     IconButton(onClick = { actions.toggleLike(t.uri, isLiked) }) {
