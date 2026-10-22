@@ -176,18 +176,19 @@ actual fun PlatformBack(enabled: Boolean, onBack: () -> Unit) = androidx.activit
 actual val EDGE_SWIPE_BACK: Boolean = false
 
 @Composable
-actual fun LockPortrait(portrait: Boolean) {
+actual fun AllowLandscape(allowed: Boolean) {
     val view = androidx.compose.ui.platform.LocalView.current
-    androidx.compose.runtime.DisposableEffect(view, portrait) {
+    androidx.compose.runtime.DisposableEffect(view, allowed) {
         var ctx = view.context
         while (ctx is android.content.ContextWrapper && ctx !is android.app.Activity) ctx = ctx.baseContext
         val activity = ctx as? android.app.Activity
-        if (portrait && activity != null) {
-            activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        // En el manifiesto la actividad es sólo vertical; aquí se libera el giro mientras dure.
+        if (allowed && activity != null) {
+            activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         }
         onDispose {
-            if (portrait && activity != null) {
-                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            if (allowed && activity != null) {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
             }
         }
     }

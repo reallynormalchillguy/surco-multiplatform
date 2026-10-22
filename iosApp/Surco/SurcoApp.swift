@@ -9,7 +9,7 @@ struct SurcoApp: App {
     init() {
         // Cambio de icono sin el aviso del sistema.
         IosAppIcon.shared.silentSetter = SilentIcon()
-        // El reproductor bloquea o libera el giro: UIKit vuelve a preguntar las orientaciones permitidas.
+        // El reproductor libera o bloquea el giro: UIKit vuelve a preguntar las orientaciones permitidas.
         IosOrientation.shared.onChange = {
             for scene in UIApplication.shared.connectedScenes {
                 guard let ws = scene as? UIWindowScene else { continue }
@@ -33,10 +33,10 @@ struct SurcoApp: App {
     }
 }
 
-/** El reproductor no gira a horizontal (salvo con el espectrograma): lo decide `IosOrientation`. */
+/** La app sólo está en vertical, salvo el reproductor con el espectrograma: lo decide `IosOrientation`. */
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        IosOrientation.shared.portraitOnly ? .portrait : .allButUpsideDown
+        IosOrientation.shared.landscapeAllowed ? .allButUpsideDown : .portrait
     }
 }
 

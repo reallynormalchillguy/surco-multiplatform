@@ -537,8 +537,8 @@ fun NowPlayingScreen(onClose: () -> Unit) {
         )
         // Con el espectrograma activado y el móvil en horizontal, ocupa toda la pantalla.
         val fsSettings by remember { actions.repo.prefs.settings }.collectAsState()
-        // El reproductor sólo se pone en horizontal con el espectrograma activado.
-        LockPortrait(portrait = !fsSettings.spectrogram)
+        // La app sólo se pone en horizontal en el reproductor y con el espectrograma activado.
+        AllowLandscape(allowed = fsSettings.spectrogram)
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (fsSettings.spectrogram && track != null && maxWidth > maxHeight) {
                 FullscreenSpectrogram(track.title, track.artist, state.isPlaying, spectroTint)

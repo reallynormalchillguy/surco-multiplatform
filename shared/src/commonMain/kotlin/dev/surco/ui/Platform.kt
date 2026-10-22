@@ -54,8 +54,9 @@ expect fun PlatformBack(enabled: Boolean, onBack: () -> Unit)
 expect val EDGE_SWIPE_BACK: Boolean
 
 /**
- * Mientras está en pantalla y [portrait] es true, el móvil no gira a horizontal (el reproductor).
- * Al salir, o con [portrait] en false, vuelve a girar con normalidad.
+ * Toda la app está siempre en vertical. Mientras esto está en pantalla y [allowed] es true
+ * (el reproductor con el espectrograma activado), el móvil puede girar a horizontal.
+ * Al salir, o con [allowed] en false, vuelve a quedarse en vertical.
  */
 @Composable
-expect fun LockPortrait(portrait: Boolean)
+expect fun AllowLandscape(allowed: Boolean)
