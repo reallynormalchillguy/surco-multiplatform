@@ -73,6 +73,16 @@ class SafTagSaveTest {
         }.getOrDefault("?")
     }
 
+    /** Cierra el aviso de «… isn't responding» del sistema si está en pantalla (pulsa «Wait»). */
+    private fun dismissAnr() {
+        repeat(3) {
+            if (device.findObject(By.textContains("isn't responding")) == null) return
+            (device.findObject(By.text(Pattern.compile("(?i)wait"))) ?: device.findObject(By.res("android:id/aerr_wait")))?.click()
+            device.waitForIdle()
+            Thread.sleep(500)
+        }
+    }
+
     private fun findButton(text: String, res: String, ms: Long) =
         device.wait(Until.findObject(By.text(Pattern.compile("(?i)$text"))), ms)
             ?: device.findObject(By.res(Pattern.compile(res)))
@@ -95,11 +105,18 @@ class SafTagSaveTest {
             )
         }
         device.waitForIdle()
-        val use = findButton("use this folder", ".*:id/action_menu_select|.*:id/button1", 20_000)
-            ?: return "sin «Use this folder»: " + snapshot("1_selector")
+        var use: androidx.test.uiautomator.UiObject2? = null
+        // El emulador a veces enseña «Pixel Launcher isn't responding» encima: se cierra y se vuelve a mirar.
+        for (attempt in 1..4) {
+            dismissAnr()
+            use = findButton("use this folder", ".*:id/action_menu_select", 15_000)
+            if (use != null) break
+        }
+        if (use == null) return "sin «Use this folder»: " + snapshot("1_selector")
         snapshot("1_selector")
         use.click()
         device.waitForIdle()
+        dismissAnr()
         val allow = findButton("allow", "android:id/button1", 10_000)
             ?: return "sin «Allow»: " + snapshot("2_permiso")
         snapshot("2_permiso")
