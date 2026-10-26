@@ -37,7 +37,10 @@ class SafTagSaveTest {
     private val tree: Uri = DocumentsContract.buildTreeDocumentUri("com.android.externalstorage.documents", "primary:Music/$folder")
     private var scenario: ActivityScenario<MainActivity>? = null
 
-    /** Ejecuta un comando como el usuario «shell» (los archivos quedan como los de cualquier otra app). */
+    /**
+     * Ejecuta un comando como el usuario «shell» (los archivos quedan como los de cualquier otra app).
+     * No pasa por un intérprete: nada de comillas ni redirecciones.
+     */
     private fun shell(cmd: String, input: ByteArray? = null): ByteArray {
         val (out, inp) = inst.uiAutomation.executeShellCommandRw(cmd)
         ParcelFileDescriptor.AutoCloseOutputStream(inp).use { if (input != null) it.write(input) }
@@ -96,10 +99,11 @@ class SafTagSaveTest {
         val names = listOf("v23.mp3", "v24.mp3", "a.flac")
         shell("rm -rf /sdcard/Music/$folder")
         shell("mkdir -p /sdcard/Music/$folder")
-        for (n in names) shell("sh -c 'cat > /sdcard/Music/$folder/$n'", assets.open("tags/$n").use { it.readBytes() })
+        for (n in names) shell("tee /sdcard/Music/$folder/$n", assets.open("tags/$n").use { it.readBytes() })
 
         val report = ArrayList<String>()
         val granted = grantFolder()
+        report += "archivos=" + String(shell("ls -l /sdcard/Music/$folder")).trim().replace("\n", "; ")
         report += "permiso=$granted"
         assertTrue(report.joinToString(" | "), granted)
 
