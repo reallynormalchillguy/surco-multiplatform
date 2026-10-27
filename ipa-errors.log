@@ -1,0 +1,25 @@
+    export ALLOW_BUILD_REQUEST_OVERRIDES\=NO
+    export BUILD_ACTIVE_RESOURCES_ONLY\=NO
+    export BUILD_COMPONENTS\=headers\ build
+    export BUILD_DIR\=/Users/runner/work/surco-multiplatform/surco-multiplatform/iosApp/build/Build/Products
+    export BUILD_LIBRARY_FOR_DISTRIBUTION\=NO
+    export BUILD_ROOT\=/Users/runner/work/surco-multiplatform/surco-multiplatform/iosApp/build/Build/Products
+    export BUILD_STYLE\=
+    export BUILD_VARIANTS\=normal
+    export CLANG_MODULES_BUILD_SESSION_FILE\=/Users/runner/work/surco-multiplatform/surco-multiplatform/iosApp/build/ModuleCache.noindex/Session.modulevalidation
+    export CONFIGURATION_BUILD_DIR\=/Users/runner/work/surco-multiplatform/surco-multiplatform/iosApp/build/Build/Products/Release-iphoneos
+    export FUSE_BUILD_PHASES\=YES
+    export FUSE_BUILD_SCRIPT_PHASES\=NO
+    export INFOPLIST_EXPAND_BUILD_SETTINGS\=YES
+    export IS_UNOPTIMIZED_BUILD\=NO
+    export MAC_OS_X_PRODUCT_BUILD_VERSION\=24G830
+    export PLATFORM_PRODUCT_BUILD_VERSION\=22F76
+    export SDK_PRODUCT_BUILD_VERSION\=22F76
+    export TARGET_BUILD_DIR\=/Users/runner/work/surco-multiplatform/surco-multiplatform/iosApp/build/Build/Products/Release-iphoneos
+    export VERSION_INFO_BUILDER\=runner
+    export XCODE_PRODUCT_BUILD_VERSION\=16F6
+/Users/runner/work/surco-multiplatform/surco-multiplatform/shared/build/generated/ksp/iosArm64/iosArm64Main/kotlin/dev/surco/data/SurcoDatabaseConstructor.kt:5:8: warning: 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+/Users/runner/work/surco-multiplatform/surco-multiplatform/shared/src/commonMain/kotlin/dev/surco/data/SurcoDatabase.kt:29:1: warning: 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+BUILD SUCCESSFUL in 19m 26s
+2026-10-27 03:42:37.611 appintentsmetadataprocessor[39358:106320] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+** BUILD SUCCEEDED **
