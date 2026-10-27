@@ -8,6 +8,7 @@ import dev.surco.platform.AndroidArtStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jaudiotagger.audio.AudioFileIO
+import org.jaudiotagger.audio.mp3.MP3File
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.TagOptionSingleton
@@ -25,6 +26,9 @@ class TagWriter(private val context: Context) : TagEditor {
 
     init {
         TagOptionSingleton.getInstance().setAndroid(true)
+        // Android no lee etiquetas ID3v2 de más de 3 MB (se salta la etiqueta y usa la ID3v1 del final, con
+        // los datos viejos). Al guardar, el relleno sobrante se recorta para que la etiqueta no pase de ahí.
+        TagOptionSingleton.getInstance().setId3v2PaddingWillShorten(true)
         Logger.getLogger("org.jaudiotagger").level = Level.OFF
     }
 
@@ -55,6 +59,16 @@ class TagWriter(private val context: Context) : TagEditor {
             tag.put(FieldKey.DISC_NO, edits.discNumber)
             tag.put(FieldKey.GENRE, edits.genre)
             tag.put(FieldKey.LYRICS, edits.lyrics)
+            // La ID3v1 del final (si la hay) también se pone al día: es la que lee Android cuando no puede
+            // leer la ID3v2, y si se queda con los datos viejos el escaneo los vuelve a traer.
+            (audioFile as? MP3File)?.takeIf { it.hasID3v1Tag() }?.getID3v1Tag()?.let { v1 ->
+                v1.put(FieldKey.TITLE, edits.title)
+                v1.put(FieldKey.ARTIST, edits.artist)
+                v1.put(FieldKey.ALBUM, edits.album)
+                v1.put(FieldKey.YEAR, edits.year)
+                v1.put(FieldKey.TRACK, edits.trackNumber)
+                v1.put(FieldKey.GENRE, edits.genre)
+            }
             edits.cover?.let { jpeg ->
                 runCatching { tag.deleteArtworkField() }
                 if (jpeg.isNotEmpty()) {
