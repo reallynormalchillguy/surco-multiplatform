@@ -1,0 +1,15 @@
+[03:23:08] SDK en /usr/local/lib/android/sdk
+[03:23:08] liberando disco: /dev/root       145G   61G   84G  43% /
+[03:23:46] tras liberar: /dev/root       145G   47G   98G  33% /
+[03:23:46] instalando imagen y emulador
+[03:24:34] sdkmanager terminó con 0
+[03:24:34] creando AVD en /home/runner/.android/avd
+[03:24:35] avdmanager terminó con 0 (smoke.avd
+smoke.ini)
+[03:24:35] arrancando emulador (kvm: crw-rw-rw- 1 root kvm 10, 232 Oct 27 03:21 /dev/kvm)
+[03:25:13] arranque completado: 1 tras 30 s
+[03:25:20] memoria del runner: 15988 MB total, 6923 MB libres, núcleos: 4
+[03:25:20] ejecutando pruebas
+[03:28:21] pruebas terminadas con código 1
+[03:28:21] capturas: 47
+[03:28:21] memoria al terminar: 6370 MB libres; OOM: 0 líneas

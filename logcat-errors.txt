@@ -1,0 +1,374 @@
+10-27 03:25:26.637 E/GmsCoreLogger( 1432): Caused by: java.util.concurrent.TimeoutException
+10-27 03:25:28.468 W/SnapshotHandler( 1817): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:30.299 W/A       ( 1817): Caused by: DiscoverPrecheckException(precheckFailureReason=com.google.android.apps.search.googleapp.discover.w.a.c@b329518)
+10-27 03:25:32.573 W/AiAiTextClassifier( 1639): Caused by: koy: HTTP_ERROR 404, url: https://gstatic.com/webref-ondevice/aiai/19071200_pir/2/en-us/superpacks_manifest.zip
+10-27 03:25:32.573 W/AiAiTextClassifier( 1639): Caused by: koy: HTTP_ERROR 404, url: https://gstatic.com/webref-ondevice/aiai/19071200_pir/2/en-us/superpacks_manifest.zip
+10-27 03:25:34.556 I/VoiceDataManager( 3535): Caused by: java.util.concurrent.CancellationException: Task was cancelled.
+10-27 03:25:38.600 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.o: errorCode: 65586, engine: 2
+10-27 03:25:38.600 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.k: errorCode: 401, engine: 2
+10-27 03:25:39.355 E/BackupHelper(  826): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:39.919 W/SnapshotHandler( 1817): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:39.941 W/SnapshotHandler( 1817): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:41.381 D/AndroidRuntime( 4274): >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-27 03:25:41.401 I/AndroidRuntime( 4274): Using default boot image
+10-27 03:25:41.401 I/AndroidRuntime( 4274): Leaving lock profiling enabled
+10-27 03:25:41.790 D/AndroidRuntime( 4274): Calling main entry com.android.commands.am.Am
+10-27 03:25:46.760 I/SemanticLocation( 1432): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:46.976 I/SemanticLocation( 1432): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:48.108 I/SemanticLocation( 1432): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:52.681 W/PeoplePU( 1491): Caused by: android.os.RemoteException: Remote stack trace:
+10-27 03:25:54.247 I/SemanticLocation( 1432): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:54.606 I/SemanticLocation( 1432): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:55.590 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.o: errorCode: 65586, engine: 2
+10-27 03:25:55.590 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.k: errorCode: 401, engine: 2
+10-27 03:25:55.948 I/SURCO_STEP( 4321): paso 1: tap
+10-27 03:25:55.985 W/SliceDataConverter( 1037): Caused by: java.lang.reflect.InvocationTargetException
+10-27 03:25:55.985 W/SliceDataConverter( 1037): Caused by: java.lang.RuntimeException: Can't create handler inside thread Thread[binder:1037_5,5,main] that has not called Looper.prepare()
+10-27 03:25:56.079 W/SliceDataConverter( 1037): Caused by: java.lang.NoSuchMethodException: com.android.settings.network.telephony.CallsDefaultSubscriptionController.<init> [class android.content.Context, class java.lang.String]
+10-27 03:25:56.082 W/SliceDataConverter( 1037): Caused by: java.lang.NoSuchMethodException: com.android.settings.network.telephony.CallsDefaultSubscriptionController.<init> [class android.content.Context, class java.lang.String]
+10-27 03:25:56.088 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.applications.appinfo.ManageAppLocalePreferenceController
+10-27 03:25:56.088 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.applications.appinfo.ManageAppLocalePreferenceController
+10-27 03:25:56.104 W/SliceDataConverter( 1037): Caused by: java.lang.NoSuchMethodException: com.android.settings.network.NetworkProviderSimsCategoryController.<init> [class android.content.Context, class java.lang.String]
+10-27 03:25:56.119 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.development.DevelopmentMemtagFooterPreferenceController
+10-27 03:25:56.119 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.development.DevelopmentMemtagFooterPreferenceController
+10-27 03:25:56.144 W/SliceDataConverter( 1037): Caused by: java.lang.reflect.InvocationTargetException
+10-27 03:25:56.144 W/SliceDataConverter( 1037): Caused by: java.lang.RuntimeException: Can't create handler inside thread Thread[binder:1037_5,5,main] that has not called Looper.prepare()
+10-27 03:25:56.151 W/SliceDataConverter( 1037): Caused by: java.lang.NoSuchMethodException: com.android.settings.fuelgauge.batteryusage.BatteryChartPreferenceController.<init> [class android.content.Context, class java.lang.String]
+10-27 03:25:56.299 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.applications.appinfo.ManageAppLocalePreferenceController
+10-27 03:25:56.299 W/SliceDataConverter( 1037): Caused by: java.lang.ClassNotFoundException: com.android.settings.applications.appinfo.ManageAppLocalePreferenceController
+10-27 03:25:56.340 E/RecoverySnapshotStorage(  523): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:56.964 E/RecoverySnapshotStorage(  523): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:25:56.969 E/keystore2(  158): Caused by:
+10-27 03:25:56.971 W/RecoverableKeyStoreGms( 1491): Caused by: android.os.ServiceSpecificException: Failed to import secret key. (code 22)
+10-27 03:25:58.059 I/SURCO_STEP( 4321): paso 2: tap
+10-27 03:25:59.948 I/SURCO_STEP( 4321): paso 3: tap
+10-27 03:26:01.007 E/RecoverySnapshotStorage(  523): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:01.028 E/keystore2(  158): Caused by:
+10-27 03:26:01.029 W/RecoverableKeyStoreGms( 1491): Caused by: android.os.ServiceSpecificException: Failed to import secret key. (code 22)
+10-27 03:26:02.014 I/SURCO_STEP( 4321): paso 4: tap
+10-27 03:26:03.783 I/SURCO_STEP( 4321): paso 5: tap
+10-27 03:26:06.465 I/SURCO_STEP( 4321): paso 6: tap
+10-27 03:26:08.299 I/SURCO_STEP( 4321): paso 7: tap
+10-27 03:26:08.775 W/YouTubeMusic( 1774): Caused by: zvm: Precondition check failed.
+10-27 03:26:08.775 W/YouTubeMusic( 1774): Caused by: efc
+10-27 03:26:09.949 W/YouTubeMusic( 1774): Caused by: zvm: Precondition check failed.
+10-27 03:26:09.949 W/YouTubeMusic( 1774): Caused by: efc
+10-27 03:26:12.093 W/YouTubeMusic( 1774): Caused by: zvm: Precondition check failed.
+10-27 03:26:12.093 W/YouTubeMusic( 1774): Caused by: efc
+10-27 03:26:12.631 I/SURCO_STEP( 4321): paso 8: tap
+10-27 03:26:14.214 I/SURCO_STEP( 4321): paso 9: tap
+10-27 03:26:15.881 I/SURCO_STEP( 4321): paso 10: tap
+10-27 03:26:18.082 W/YouTubeMusic( 1774): Caused by: zvm: Precondition check failed.
+10-27 03:26:18.082 W/YouTubeMusic( 1774): Caused by: efc
+10-27 03:26:19.191 E/AmbientMusicServiceMana( 1639): Caused by: java.lang.reflect.InvocationTargetException
+10-27 03:26:19.191 E/AmbientMusicServiceMana( 1639): Caused by: java.lang.IllegalStateException: No underlying SoundTriggerModule available
+10-27 03:26:19.697 I/SURCO_STEP( 4321): paso 11: tap
+10-27 03:26:24.198 I/SURCO_STEP( 4321): paso 12: perfil_online
+10-27 03:26:25.778 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.o: errorCode: 65586, engine: 2
+10-27 03:26:25.778 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.k: errorCode: 401, engine: 2
+10-27 03:26:26.081 I/SURCO_STEP( 4321): paso 13: album_online
+10-27 03:26:30.176 I/lowmemorykiller(  133): lmkd data connection established
+10-27 03:26:30.195 I/lowmemorykiller(  133): Using psi monitors for memory pressure detection
+10-27 03:26:30.195 I/lowmemorykiller(  133): Properties reinitilized
+10-27 03:26:30.195 I/lowmemorykiller( 5446): lmkd updated properties successfully
+10-27 03:26:30.195 I/lowmemorykiller(  133): lmkd data connection dropped
+10-27 03:26:30.195 I/lowmemorykiller(  133): closing lmkd data connection
+10-27 03:26:30.551 I/SURCO_STEP( 4321): paso 14: tap
+10-27 03:26:32.131 I/SURCO_STEP( 4321): paso 15: tap
+10-27 03:26:32.133 W/YouTubeMusic( 1774): Caused by: zvm: Precondition check failed.
+10-27 03:26:32.133 W/YouTubeMusic( 1774): Caused by: efc
+10-27 03:26:33.145 W/PeoplePU( 1491): Caused by: android.os.RemoteException: Remote stack trace:
+10-27 03:26:33.814 I/SURCO_STEP( 4321): paso 16: tap
+10-27 03:26:35.634 E/ExoPlayerImplInternal( 4321):   Caused by: androidx.media3.datasource.ContentDataSource$ContentDataSourceException: java.io.FileNotFoundException: No content provider: content://fake/0/1
+10-27 03:26:35.634 E/ExoPlayerImplInternal( 4321):   Caused by: java.io.FileNotFoundException: No content provider: content://fake/0/1
+10-27 03:26:36.214 I/SURCO_STEP( 4321): paso 17: tap
+10-27 03:26:37.980 I/SURCO_STEP( 4321): paso 18: tap
+10-27 03:26:39.110 W/PeoplePU( 1491): Caused by: android.os.RemoteException: Remote stack trace:
+10-27 03:26:39.749 I/SURCO_STEP( 4321): paso 19: tap
+10-27 03:26:41.749 I/SURCO_STEP( 4321): paso 20: tap
+10-27 03:26:44.707 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:45.296 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:45.964 I/SURCO_STEP( 4321): paso 21: tap
+10-27 03:26:47.204 W/GLSUser ( 5614): Caused by: avvw: Parse Proto Exception.
+10-27 03:26:47.204 W/GLSUser ( 5614): Caused by: dzfz: Protocol message contained an invalid tag (zero).
+10-27 03:26:47.564 I/SURCO_STEP( 4321): paso 22: tap
+10-27 03:26:49.081 I/SURCO_STEP( 4321): paso 23: tap
+10-27 03:26:49.514 E/RecoverySnapshotStorage(  523): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:49.520 E/keystore2(  158): Caused by:
+10-27 03:26:49.522 W/RecoverableKeyStoreGms( 5676): Caused by: android.os.ServiceSpecificException: Failed to import secret key. (code 22)
+10-27 03:26:50.549 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:50.618 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:26:53.097 I/SURCO_STEP( 4321): paso 24: tap
+10-27 03:26:54.547 I/SURCO_STEP( 4321): paso 25: tap
+10-27 03:26:56.132 I/SURCO_STEP( 4321): paso 26: crear_lista
+10-27 03:26:57.931 I/SURCO_STEP( 4321): paso 27: nombre_lista
+10-27 03:26:59.431 I/SURCO_STEP( 4321): paso 28: guardar_lista
+10-27 03:27:00.964 I/SURCO_STEP( 4321): paso 29: tap
+10-27 03:27:02.264 I/SURCO_STEP( 4321): paso 30: tap
+10-27 03:27:03.766 I/SURCO_STEP( 4321): paso 31: tap
+10-27 03:27:06.101 I/SURCO_STEP( 4321): paso 32: tap
+10-27 03:27:07.631 I/SURCO_STEP( 4321): paso 33: espanol
+10-27 03:27:09.197 I/SURCO_STEP( 4321): paso 34: tap
+10-27 03:27:11.490 W/A       ( 1817): Caused by: DiscoverPrecheckException(precheckFailureReason=com.google.android.apps.search.googleapp.discover.w.a.c@b329518)
+10-27 03:27:14.347 I/SURCO_STEP( 4321): paso 1: tap
+10-27 03:27:15.764 I/SURCO_STEP( 4321): paso 2: soulseek
+10-27 03:27:17.097 I/SURCO_STEP( 4321): paso 3: filtro_mp3
+10-27 03:27:18.464 I/SURCO_STEP( 4321): paso 4: filtro_flac
+10-27 03:27:19.880 I/SURCO_STEP( 4321): paso 5: tap
+10-27 03:27:21.231 I/SURCO_STEP( 4321): paso 6: descargas
+10-27 03:27:22.581 I/SURCO_STEP( 4321): paso 7: cancelar_cola
+10-27 03:27:22.795 D/SURCO_TREE( 4321): printToLog:
+10-27 03:27:22.795 D/SURCO_TREE( 4321): Printing with useUnmergedTree = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321): Node #3241 at (l=0.0, t=0.0, r=1080.0, b=2400.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):  |-Node #3247 at (l=0.0, t=0.0, r=1080.0, b=2400.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):    IsContainer = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3455 at (l=22.0, t=160.0, r=127.0, b=265.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3456 at (l=43.0, t=181.0, r=106.0, b=244.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    ContentDescription = '[Back]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3458 at (l=137.0, t=152.0, r=408.0, b=234.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Text = '[Soulseek]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3462 at (l=174.0, t=234.0, r=544.0, b=272.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Text = '[Connected as surco_demo]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3464 at (l=954.0, t=160.0, r=1059.0, b=265.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3465 at (l=975.0, t=181.0, r=1038.0, b=244.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    ContentDescription = '[Options]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3467 at (l=42.0, t=296.0, r=240.0, b=382.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3468 at (l=84.0, t=317.0, r=198.0, b=361.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Text = '[Search]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3469 at (l=261.0, t=296.0, r=568.0, b=382.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3470 at (l=303.0, t=317.0, r=526.0, b=361.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Text = '[Downloads · 1]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3607 at (l=0.0, t=403.0, r=1080.0, b=1759.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | CollectionInfo = 'androidx.compose.ui.semantics.CollectionInfo@70d16f1'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | IsTraversalGroup = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | VerticalScrollAxisRange = 'ScrollAxisRange(value=0.0, maxValue=0.0, reverseScrolling=false)'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3611 at (l=84.0, t=466.0, r=843.0, b=517.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[0 of 4 files]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3612 at (l=843.0, t=470.0, r=996.0, b=514.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[488 KB/s]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3614 at (l=84.0, t=512.0, r=996.0, b=575.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | ProgressBarRangeInfo = 'ProgressBarRangeInfo(current=0.33333334, range=0.0..1.0, steps=0)'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3616 at (l=84.0, t=565.0, r=437.0, b=603.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[1 downloading · 0 queued]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3621 at (l=84.0, t=629.0, r=542.0, b=715.0)px, Tag: 'cancel_downloading'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Cancel downloading (1)]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3622 at (l=563.0, t=629.0, r=883.0, b=715.0)px, Tag: 'retry_failed'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Retry failed (3)]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3623 at (l=84.0, t=736.0, r=384.0, b=822.0)px, Tag: 'clear_finished'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Clear finished]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, OnClick, RequestFocus, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3627 at (l=42.0, t=911.0, r=186.0, b=962.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[02.mp3]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3628 at (l=42.0, t=962.0, r=255.0, b=1003.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Album B · bob]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3630 at (l=42.0, t=1019.0, r=58.0, b=1057.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[x]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3631 at (l=923.0, t=932.0, r=1028.0, b=1037.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3632 at (l=944.0, t=953.0, r=1007.0, b=1016.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    ContentDescription = '[Retry]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3636 at (l=42.0, t=1109.0, r=179.0, b=1160.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[01.mp3]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3637 at (l=42.0, t=1160.0, r=255.0, b=1201.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Album B · bob]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3639 at (l=42.0, t=1191.0, r=912.0, b=1251.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | ProgressBarRangeInfo = 'ProgressBarRangeInfo(current=0.33333334, range=0.0..1.0, steps=0)'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3641 at (l=42.0, t=1236.0, r=465.0, b=1274.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[33 % · 3 MB of 9 MB · 488 KB/s]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3642 at (l=923.0, t=1140.0, r=1028.0, b=1245.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3643 at (l=944.0, t=1161.0, r=1007.0, b=1224.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    ContentDescription = '[Cancel]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3647 at (l=42.0, t=1326.0, r=173.0, b=1377.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[02.flac]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3648 at (l=42.0, t=1377.0, r=252.0, b=1418.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Album A · ana]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3650 at (l=42.0, t=1434.0, r=180.0, b=1472.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Cancelled]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3667 at (l=923.0, t=1347.0, r=1028.0, b=1452.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3668 at (l=944.0, t=1368.0, r=1007.0, b=1431.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    ContentDescription = '[Retry]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3656 at (l=42.0, t=1524.0, r=166.0, b=1575.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[01.flac]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3657 at (l=42.0, t=1575.0, r=252.0, b=1616.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Album A · ana]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3659 at (l=42.0, t=1632.0, r=180.0, b=1670.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Text = '[Cancelled]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3669 at (l=923.0, t=1545.0, r=1028.0, b=1650.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |     |-Node #3670 at (l=944.0, t=1566.0, r=1007.0, b=1629.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       ContentDescription = '[Retry]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3662 at (l=0.0, t=1810.0, r=1080.0, b=2000.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | LiveRegion = 'Polite'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [Dismiss]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3663 at (l=32.0, t=1842.0, r=1048.0, b=1968.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    IsContainer = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |     |-Node #3666 at (l=74.0, t=1883.0, r=471.0, b=1927.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       Text = '[2 download(s) cancelled]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3255 at (l=21.0, t=2000.0, r=1059.0, b=2173.0)px, Tag: 'mini_player'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3257 at (l=42.0, t=2026.0, r=807.0, b=2142.0)px, Tag: 'track_swipe'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3264 at (l=190.0, t=2040.0, r=337.0, b=2084.0)px, Tag: 'mini_title'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  | Text = '[Song 0-1]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  | Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3265 at (l=190.0, t=2084.0, r=412.0, b=2128.0)px, Tag: 'mini_artist'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Text = '[Carmen Duna]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3266 at (l=818.0, t=2032.0, r=923.0, b=2137.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |  |-Node #3267 at (l=839.0, t=2053.0, r=902.0, b=2116.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    ContentDescription = '[Add to favourites]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |    Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3268 at (l=944.0, t=2032.0, r=1049.0, b=2137.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Role = 'Button'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |     |-Node #3269 at (l=957.0, t=2045.0, r=1036.0, b=2124.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       ContentDescription = '[Play]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |       Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3273 at (l=0.0, t=2184.0, r=270.0, b=2326.0)px, Tag: 'tab_home'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3274 at (l=101.0, t=2200.0, r=169.0, b=2268.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | ContentDescription = '[Home]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3276 at (l=95.0, t=2276.0, r=175.0, b=2310.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Text = '[Home]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3277 at (l=270.0, t=2184.0, r=540.0, b=2326.0)px, Tag: 'tab_search'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3278 at (l=371.0, t=2200.0, r=439.0, b=2268.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | ContentDescription = '[Search]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3280 at (l=359.0, t=2276.0, r=452.0, b=2310.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Text = '[Search]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3281 at (l=540.0, t=2184.0, r=810.0, b=2326.0)px, Tag: 'tab_library'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     | MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3282 at (l=641.0, t=2200.0, r=709.0, b=2268.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | ContentDescription = '[Your Library]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  | Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |  |-Node #3284 at (l=594.0, t=2276.0, r=756.0, b=2310.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Text = '[Your Library]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |    Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):     |-Node #3285 at (l=810.0, t=2184.0, r=1080.0, b=2326.0)px, Tag: 'tab_stats'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):       Focused = 'false'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):       Actions = [OnClick, RequestFocus]
+10-27 03:27:22.795 D/SURCO_TREE( 4321):       MergeDescendants = 'true'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):        |-Node #3286 at (l=911.0, t=2200.0, r=979.0, b=2268.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):        | ContentDescription = '[Stats]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):        | Role = 'Image'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):        |-Node #3288 at (l=910.0, t=2276.0, r=981.0, b=2310.0)px
+10-27 03:27:22.795 D/SURCO_TREE( 4321):          Text = '[Stats]'
+10-27 03:27:22.795 D/SURCO_TREE( 4321):          Actions = [ClearTextSubstitution, GetTextLayoutResult, SetTextSubstitution, ShowTextSubstitution]
+10-27 03:27:23.356 E/TestRunner( 4321): 	at dev.surco.DeviceSmokeTest.soulseekFiltersAndBulkActions$lambda$16(DeviceSmokeTest.kt:214)
+10-27 03:27:23.356 E/TestRunner( 4321): 	at dev.surco.DeviceSmokeTest.$r8$lambda$a1eGAZTxnpBTxEAfXRRPaOwDvWc(Unknown Source:0)
+10-27 03:27:23.356 E/TestRunner( 4321): 	at dev.surco.DeviceSmokeTest$$ExternalSyntheticLambda19.invoke(D8$$SyntheticClass:0)
+10-27 03:27:23.356 E/TestRunner( 4321): 	at dev.surco.DeviceSmokeTest.dumpingOnFailure(DeviceSmokeTest.kt:175)
+10-27 03:27:23.356 E/TestRunner( 4321): 	at dev.surco.DeviceSmokeTest.soulseekFiltersAndBulkActions(DeviceSmokeTest.kt:183)
+10-27 03:27:26.700 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.o: errorCode: 65586, engine: 2
+10-27 03:27:26.700 E/A       ( 1817): Caused by: com.google.android.apps.gsa.shared.speech.a.k: errorCode: 401, engine: 2
+10-27 03:27:29.731 I/SURCO_STEP( 4321): paso 1: tap
+10-27 03:27:31.114 I/SURCO_STEP( 4321): paso 2: tap
+10-27 03:27:32.631 I/SURCO_STEP( 4321): paso 3: menu_album
+10-27 03:27:33.897 I/SURCO_STEP( 4321): paso 4: album_en_cola
+10-27 03:27:35.432 I/SURCO_STEP( 4321): paso 5: tap
+10-27 03:27:36.697 I/SURCO_STEP( 4321): paso 6: aviso_1
+10-27 03:27:38.049 I/SURCO_STEP( 4321): paso 7: aviso_2
+10-27 03:27:39.725 W/DocumentsContract( 4321): 	at dev.surco.data.Scanner$deleteTracks$2$1.invokeSuspend(Scanner.kt:229)
+10-27 03:27:40.831 I/SURCO_STEP( 4321): paso 8: borrado
+10-27 03:27:41.033 I/SURCO_STEP( 4321): paso 9: tras_borrar
+10-27 03:27:43.631 I/SURCO_STEP( 4321): paso 10: tap
+10-27 03:27:44.681 W/PeoplePU( 5676): Caused by: android.os.RemoteException: Remote stack trace:
+10-27 03:27:44.998 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:27:45.087 I/SemanticLocation( 5614): Caused by: android.system.ErrnoException: open failed: ENOENT (No such file or directory)
+10-27 03:27:45.198 I/SURCO_STEP( 4321): paso 11: tap
+10-27 03:27:47.214 I/SURCO_STEP( 4321): paso 12: tap
+10-27 03:27:48.747 I/SURCO_STEP( 4321): paso 13: paleta
+10-27 03:27:50.114 I/SURCO_STEP( 4321): paso 14: paleta_sorteada
+10-27 03:27:51.447 I/SURCO_STEP( 4321): paso 15: editar_fondo
+10-27 03:27:52.798 I/SURCO_STEP( 4321): paso 16: tap
+10-27 03:27:57.464 I/SURCO_STEP( 4321): paso 1: tap
+10-27 03:27:58.864 I/SURCO_STEP( 4321): paso 2: tap
+10-27 03:28:00.134 I/SURCO_STEP( 4321): paso 3: tap
+10-27 03:28:00.420 I/SURCO_STEP( 4321): paso 4: deslizar_siguiente
+10-27 03:28:01.997 I/SURCO_STEP( 4321): paso 5: tap
+10-27 03:28:02.332 I/SURCO_STEP( 4321): paso 6: deslizar_anterior
+10-27 03:28:05.331 E/ExoPlayerImplInternal( 4321):   Caused by: androidx.media3.datasource.ContentDataSource$ContentDataSourceException: java.io.FileNotFoundException: No content provider: content://fake/0/1
+10-27 03:28:05.331 E/ExoPlayerImplInternal( 4321):   Caused by: java.io.FileNotFoundException: No content provider: content://fake/0/1
+10-27 03:28:19.595 I/AndroidRuntime( 4274): VM exiting with result code 0.

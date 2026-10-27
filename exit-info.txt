@@ -1,0 +1,8 @@
+ACTIVITY MANAGER PROCESS EXIT INFO (dumpsys activity exit-info)
+Last Timestamp of Persistence Into Persistent Storage: 1970-01-01 00:00:00.000
+  package: dev.surco
+    Historical Process Exit for uid=10192
+        ApplicationExitInfo #0:
+          timestamp=2026-10-27 03:28:19.571 pid=4321 realUid=10192 packageUid=10192 definingUid=10192 user=0
+          process=dev.surco reason=10 (USER REQUESTED) subreason=21 (FORCE STOP) status=0
+          importance=125 pss=249MB rss=323MB description=stop dev.surco due to finished inst state=empty trace=null
