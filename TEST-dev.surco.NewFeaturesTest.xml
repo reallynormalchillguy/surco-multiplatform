@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.NewFeaturesTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:49" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.05">
+  <properties/>
+  <testcase name="easterEggNeedsTenRapidTaps[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="untaggedFilesAreMatchedByFileName[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.006"/>
+  <testcase name="remasterSuffixAndNumbersStillMatch[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="onlyEmptyKeepsExistingValues[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="unrelatedTracksAreNotMatched[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="paletteRoundTripsAndDefaultKeepsOriginalShades[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="randomPalettesAreAlwaysReadable[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.036"/>
+  <testcase name="hsvRoundTrip[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="onlyKnownLeftoversLetAnAlbumFolderBeDeleted[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="coverColorTakesTheDominantHueNotTheLoudestOne[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="greyCoverGivesNeutralBackground[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="scrobbleTitlesAreCleanedForSearch[iosSimulatorArm64]" classname="dev.surco.NewFeaturesTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

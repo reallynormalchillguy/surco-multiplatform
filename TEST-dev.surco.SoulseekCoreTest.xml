@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.SoulseekCoreTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:49" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.024">
+  <properties/>
+  <testcase name="loginSearchAndDownload[iosSimulatorArm64]" classname="dev.surco.SoulseekCoreTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

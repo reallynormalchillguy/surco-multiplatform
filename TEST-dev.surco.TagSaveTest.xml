@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.TagSaveTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:59" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.022">
+  <properties/>
+  <testcase name="renamedAlbumIsWhatTheScannerReadsBack[iosSimulatorArm64]" classname="dev.surco.TagSaveTest" time="0.022"/>
+  <system-out><![CDATA[TagSaveTest
+v23.mp3: antes=«Viejo» después=«Álbum nuevo»
+v24.mp3: antes=«Viejo» después=«Álbum nuevo»
+a.flac: antes=«Viejo» después=«Álbum nuevo»
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.AudioDspTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:48" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.139">
+  <properties/>
+  <testcase name="peakFilterHitsItsGainAtCenter[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.004"/>
+  <testcase name="shelvesBoostOnlyTheirSide[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="eqSettingsRoundTripAndFlatness[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="filteringASineChangesItsLevelLikeTheCurve[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="limiterNeverClips[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="loudnessOfReferenceSineMatchesEbu[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.125"/>
+  <testcase name="replayGainIsFoundInId3AndVorbisAndUtf16[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="normalizationOnlyLowersAndPrefersTheRightGain[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <testcase name="spectrogramFindsTheToneRow[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.002"/>
+  <testcase name="spectrogramReachesTwentyKilohertz[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.001"/>
+  <testcase name="fxChainPassesAudioUntouchedWhenOff[iosSimulatorArm64]" classname="dev.surco.AudioDspTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

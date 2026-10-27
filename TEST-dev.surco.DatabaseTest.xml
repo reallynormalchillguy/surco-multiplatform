@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.DatabaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:49" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.028">
+  <properties/>
+  <testcase name="libraryQueries[iosSimulatorArm64]" classname="dev.surco.DatabaseTest" time="0.019"/>
+  <testcase name="scrobbleQueueKeepsOriginalTimes[iosSimulatorArm64]" classname="dev.surco.DatabaseTest" time="0.007"/>
+  <testcase name="lyricsCacheAndFormatting[iosSimulatorArm64]" classname="dev.surco.DatabaseTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

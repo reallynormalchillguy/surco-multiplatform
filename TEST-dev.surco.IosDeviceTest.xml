@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.IosDeviceTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:49" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="0.018">
+  <properties/>
+  <testcase name="oledByModel[iosSimulatorArm64]" classname="dev.surco.IosDeviceTest" time="0.018"/>
+  <system-out><![CDATA[Simulador: iPhone18,1 → OLED=true
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

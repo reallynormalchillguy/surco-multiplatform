@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.SoulseekStressTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:34:55" hostname="sjc20-bb710-d54db6aa-6904-4399-a814-4be7dcb2e77a-46B0ABA68D5A.local" time="4.015">
+  <properties/>
+  <testcase name="manyPeersAnsweringASearch[iosSimulatorArm64]" classname="dev.surco.SoulseekStressTest" time="3.959"/>
+  <testcase name="socketWithHighDescriptorDoesNotKillTheApp[iosSimulatorArm64]" classname="dev.surco.SoulseekStressTest" time="0.056"/>
+  <system-out><![CDATA[Límite de archivos abiertos (RLIMIT_NOFILE): 4096
+Conexiones abiertas: 400, rechazadas: 0
+Resultados recibidos: 400; estado: Online(user=surco_test, port=49274)
+Sockets abiertos en el cliente: 245
+Descriptor más alto ocupado: 1049
+Soulseek: el selector de sockets se detuvo: kotlin.IllegalStateException: File descriptor 1050 is larger or equal to FD_SETSIZE (1024)
+Soulseek: el selector de sockets se detuvo: kotlin.IllegalStateException: File descriptor 1050 is larger or equal to FD_SETSIZE (1024)
+Estado tras el fallo: Failed(message=No connection to Soulseek. Retrying…, retrying=true)
+Soulseek: el selector de sockets se detuvo: kotlin.IllegalStateException: File descriptor 1053 is larger or equal to FD_SETSIZE (1024)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
