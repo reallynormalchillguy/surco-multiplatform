@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.StatsMathTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:23:57" hostname="runnervmwhx2h" time="0.011">
+  <properties/>
+  <testcase name="datesAndWeekdays" classname="dev.surco.StatsMathTest" time="0.001"/>
+  <testcase name="streaksCountConsecutiveDaysUpToTodayOrYesterday" classname="dev.surco.StatsMathTest" time="0.0"/>
+  <testcase name="genresAreWeightedByPlaysAndSkipNonGenres" classname="dev.surco.StatsMathTest" time="0.003"/>
+  <testcase name="obsessionAndMarathon" classname="dev.surco.StatsMathTest" time="0.001"/>
+  <testcase name="activityBucketsByPeriodLength" classname="dev.surco.StatsMathTest" time="0.003"/>
+  <testcase name="libraryMatchIgnoresCaseAndAccents" classname="dev.surco.StatsMathTest" time="0.001"/>
+  <testcase name="chronotypeAndDayParts" classname="dev.surco.StatsMathTest" time="0.0"/>
+  <testcase name="hoursUseLocalTime" classname="dev.surco.StatsMathTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.NewFeaturesTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:23:57" hostname="runnervmwhx2h" time="0.047">
+  <properties/>
+  <testcase name="randomPalettesAreAlwaysReadable" classname="dev.surco.NewFeaturesTest" time="0.034"/>
+  <testcase name="coverColorTakesTheDominantHueNotTheLoudestOne" classname="dev.surco.NewFeaturesTest" time="0.002"/>
+  <testcase name="greyCoverGivesNeutralBackground" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="untaggedFilesAreMatchedByFileName" classname="dev.surco.NewFeaturesTest" time="0.003"/>
+  <testcase name="easterEggNeedsTenRapidTaps" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="onlyKnownLeftoversLetAnAlbumFolderBeDeleted" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="paletteRoundTripsAndDefaultKeepsOriginalShades" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="scrobbleTitlesAreCleanedForSearch" classname="dev.surco.NewFeaturesTest" time="0.002"/>
+  <testcase name="hsvRoundTrip" classname="dev.surco.NewFeaturesTest" time="0.0"/>
+  <testcase name="remasterSuffixAndNumbersStillMatch" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="onlyEmptyKeepsExistingValues" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <testcase name="unrelatedTracksAreNotMatched" classname="dev.surco.NewFeaturesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

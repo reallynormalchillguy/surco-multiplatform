@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.CoreTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:23:57" hostname="runnervmwhx2h" time="0.11">
+  <properties/>
+  <testcase name="scanRules" classname="dev.surco.CoreTest" time="0.012"/>
+  <testcase name="prefsRoundTrip" classname="dev.surco.CoreTest" time="0.067"/>
+  <testcase name="soulseekQuery" classname="dev.surco.CoreTest" time="0.009"/>
+  <testcase name="textHelpers" classname="dev.surco.CoreTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

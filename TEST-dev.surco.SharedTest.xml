@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.SharedTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:23:57" hostname="runnervmwhx2h" time="0.016">
+  <properties/>
+  <testcase name="zlibRoundTripAndLatin1Fallback" classname="dev.surco.SharedTest" time="0.009"/>
+  <testcase name="md5MatchesKnownValues" classname="dev.surco.SharedTest" time="0.0"/>
+  <testcase name="loginMessageMatchesDocumentation" classname="dev.surco.SharedTest" time="0.001"/>
+  <testcase name="ipIsDecodedMostSignificantByteFirst" classname="dev.surco.SharedTest" time="0.004"/>
+  <testcase name="peerInitAndRoundTrip" classname="dev.surco.SharedTest" time="0.001"/>
+  <testcase name="lrcParsing" classname="dev.surco.SharedTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

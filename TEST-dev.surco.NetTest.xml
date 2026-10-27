@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.surco.NetTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-27T03:23:57" hostname="runnervmwhx2h" time="0.461">
+  <properties/>
+  <testcase name="lrclibDistinguishesNotFoundFromNetworkFailure" classname="dev.surco.NetTest" time="0.389"/>
+  <testcase name="lrclibFallsBackToSearch" classname="dev.surco.NetTest" time="0.01"/>
+  <testcase name="deezerErrorsAreNull" classname="dev.surco.NetTest" time="0.008"/>
+  <testcase name="deezerAlbumDetail" classname="dev.surco.NetTest" time="0.004"/>
+  <testcase name="lastFmSignatureAndScrobble" classname="dev.surco.NetTest" time="0.013"/>
+  <testcase name="accentFolding" classname="dev.surco.NetTest" time="0.004"/>
+  <testcase name="lastFmSingleScrobbleObjectAndErrors" classname="dev.surco.NetTest" time="0.008"/>
+  <testcase name="coverMatches" classname="dev.surco.NetTest" time="0.01"/>
+  <testcase name="metadataSearchParsesMusicBrainzAndDeezer" classname="dev.surco.NetTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

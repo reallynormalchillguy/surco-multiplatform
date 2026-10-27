@@ -1,0 +1,140 @@
+> Task :androidApp:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :androidApp:preBuild UP-TO-DATE
+> Task :androidApp:preDebugBuild UP-TO-DATE
+> Task :androidApp:generateDebugBuildConfig
+> Task :shared:preBuild UP-TO-DATE
+> Task :shared:preDebugBuild UP-TO-DATE
+> Task :shared:writeDebugAarMetadata
+> Task :androidApp:generateDebugResValues
+> Task :shared:generateDebugResValues
+> Task :androidApp:checkDebugAarMetadata
+> Task :shared:generateDebugResources
+> Task :shared:packageDebugResources
+> Task :androidApp:mapDebugSourceSetPaths
+> Task :androidApp:generateDebugResources
+> Task :androidApp:packageDebugResources
+> Task :androidApp:parseDebugLocalResources
+> Task :androidApp:createDebugCompatibleScreenManifests
+> Task :androidApp:extractDeepLinksDebug
+> Task :shared:extractDeepLinksDebug
+> Task :shared:processDebugManifest
+> Task :shared:compileDebugLibraryResources
+> Task :androidApp:mergeDebugResources
+> Task :androidApp:processDebugMainManifest
+> Task :androidApp:processDebugManifest
+> Task :androidApp:processDebugManifestForPackage
+> Task :shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:convertXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :shared:copyNonXmlValueResourcesForAndroidMain NO-SOURCE
+> Task :shared:prepareComposeResourcesTaskForAndroidMain NO-SOURCE
+> Task :shared:generateResourceAccessorsForAndroidMain NO-SOURCE
+> Task :shared:convertXmlValueResourcesForCommonMain NO-SOURCE
+> Task :shared:parseDebugLocalResources
+> Task :shared:copyNonXmlValueResourcesForCommonMain UP-TO-DATE
+> Task :shared:prepareComposeResourcesTaskForCommonMain UP-TO-DATE
+> Task :shared:generateResourceAccessorsForCommonMain UP-TO-DATE
+> Task :shared:generateActualResourceCollectorsForAndroidMain UP-TO-DATE
+> Task :shared:generateComposeResClass UP-TO-DATE
+> Task :shared:generateExpectResourceCollectorsForCommonMain UP-TO-DATE
+> Task :shared:convertXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :shared:generateDebugRFile
+> Task :shared:copyNonXmlValueResourcesForAndroidDebug NO-SOURCE
+> Task :shared:prepareComposeResourcesTaskForAndroidDebug NO-SOURCE
+> Task :shared:generateResourceAccessorsForAndroidDebug NO-SOURCE
+> Task :shared:javaPreCompileDebug
+> Task :androidApp:preDebugUnitTestBuild UP-TO-DATE
+> Task :androidApp:javaPreCompileDebug
+> Task :androidApp:javaPreCompileDebugUnitTest
+> Task :androidApp:mergeDebugShaders
+> Task :androidApp:compileDebugShaders NO-SOURCE
+> Task :androidApp:generateDebugAssets UP-TO-DATE
+> Task :shared:mergeDebugShaders
+> Task :shared:compileDebugShaders NO-SOURCE
+> Task :shared:copyDebugComposeResourcesToAndroidAssets
+> Task :shared:debugAssetsCopyForAGP NO-SOURCE
+> Task :shared:generateDebugAssets UP-TO-DATE
+> Task :androidApp:processDebugResources
+> Task :shared:packageDebugAssets
+> Task :androidApp:mergeDebugAssets
+> Task :androidApp:packageDebugUnitTestForUnitTest
+> Task :shared:preDebugUnitTestBuild UP-TO-DATE
+> Task :androidApp:generateDebugUnitTestConfig
+> Task :shared:convertXmlValueResourcesForAndroidUnitTest NO-SOURCE
+> Task :shared:copyNonXmlValueResourcesForAndroidUnitTest NO-SOURCE
+> Task :shared:prepareComposeResourcesTaskForAndroidUnitTest NO-SOURCE
+> Task :shared:generateResourceAccessorsForAndroidUnitTest NO-SOURCE
+> Task :shared:convertXmlValueResourcesForAndroidUnitTestDebug NO-SOURCE
+> Task :shared:copyNonXmlValueResourcesForAndroidUnitTestDebug NO-SOURCE
+> Task :shared:prepareComposeResourcesTaskForAndroidUnitTestDebug NO-SOURCE
+> Task :shared:generateResourceAccessorsForAndroidUnitTestDebug NO-SOURCE
+> Task :shared:convertXmlValueResourcesForCommonTest NO-SOURCE
+> Task :shared:copyNonXmlValueResourcesForCommonTest NO-SOURCE
+> Task :shared:prepareComposeResourcesTaskForCommonTest NO-SOURCE
+> Task :shared:generateResourceAccessorsForCommonTest NO-SOURCE
+> Task :shared:javaPreCompileDebugUnitTest
+> Task :shared:generateDebugUnitTestStubRFile
+> Task :shared:kspDebugKotlinAndroid
+
+> Task :shared:compileDebugKotlinAndroid
+w: file:///home/runner/work/surco-multiplatform/surco-multiplatform/shared/build/generated/ksp/android/androidDebug/kotlin/dev/surco/data/SurcoDatabaseConstructor.kt:5:8 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+w: file:///home/runner/work/surco-multiplatform/surco-multiplatform/shared/src/commonMain/kotlin/dev/surco/data/SurcoDatabase.kt:29:1 'expect'/'actual' classes (including interfaces, objects, annotations, enums, and 'actual' typealiases) are in Beta. Consider using the '-Xexpect-actual-classes' flag to suppress this warning. Also see: https://youtrack.jetbrains.com/issue/KT-61573
+
+> Task :shared:compileDebugJavaWithJavac NO-SOURCE
+> Task :shared:processDebugJavaRes
+> Task :shared:bundleLibCompileToJarDebug
+> Task :shared:bundleLibRuntimeToJarDebug
+> Task :shared:kspDebugUnitTestKotlinAndroid SKIPPED
+> Task :shared:compileDebugUnitTestKotlinAndroid
+> Task :shared:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :shared:processDebugUnitTestJavaRes
+
+> Task :androidApp:compileDebugKotlin
+w: file:///home/runner/work/surco-multiplatform/surco-multiplatform/androidApp/src/main/java/dev/surco/OledDetector.kt:16:40 'val supportedHdrTypes: IntArray!' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/surco-multiplatform/surco-multiplatform/androidApp/src/main/java/dev/surco/data/SurcoDatabase.kt:22:10 'fun fallbackToDestructiveMigrationOnDowngrade(): RoomDatabase.Builder<SurcoDatabase>' is deprecated. Replace by overloaded version with parameter to indicate if all tables should be dropped or not.
+
+> Task :shared:testDebugUnitTest
+> Task :androidApp:compileDebugJavaWithJavac
+> Task :androidApp:processDebugJavaRes
+> Task :androidApp:bundleDebugClassesToRuntimeJar
+> Task :androidApp:bundleDebugClassesToCompileJar
+> Task :androidApp:compileDebugUnitTestKotlin
+> Task :androidApp:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :androidApp:processDebugUnitTestJavaRes
+
+> Task :androidApp:testDebugUnitTest
+
+ProtocolTest > titleCleanup STARTED
+
+ProtocolTest > titleCleanup PASSED
+
+ScreenshotTest > audioAndExtras STARTED
+
+ScreenshotTest > audioAndExtras STANDARD_ERROR
+    SLF4J(W): No SLF4J providers were found.
+    SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+    SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+
+--- Failed to create image decoder with message 'unimplemented'
+--- Failed to create image decoder with message 'unimplemented'
+
+> Task :androidApp:testDebugUnitTest
+
+ScreenshotTest > audioAndExtras PASSED
+
+ScreenshotTest > screens STARTED
+
+--- Failed to create image decoder with message 'unimplemented'
+--- Failed to create image decoder with message 'unimplemented'
+--- Failed to create image decoder with message 'unimplemented'
+
+> Task :androidApp:testDebugUnitTest
+
+ScreenshotTest > screens PASSED
+
+SoulseekScreenTest > loginFlowDoesNotCrash STARTED
+
+SoulseekScreenTest > loginFlowDoesNotCrash PASSED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/shots-1793071404862.json
+
+BUILD SUCCESSFUL in 4m 6s
+57 actionable tasks: 51 executed, 6 up-to-date
